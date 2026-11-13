@@ -42,6 +42,11 @@ The first release of Kleari.
   to Cleanup's review. Also lists data left by apps that are gone and installers in Downloads
   and on the Desktop, to send to review. Nothing in your Library moves until you approve it,
   and then only into quarantine.
+- **First-launch setup:** Kleari offers Full Disk Access, Open at login and Show in the menu
+  bar when it first opens; each is optional.
+- **Step-by-step guides** wherever Kleari asks for a permission (Full Disk Access,
+  Accessibility, App Management, Automation, Files and Folders, notifications, login items),
+  saying exactly what to click in System Settings.
 - **Mouse:** switch apps with a held button and the wheel (like ⌘⇥: let go to choose), step
   through an app's windows (⌘`), and buttons for "last app used" and "next window".
 - **Browser care:** CPU and memory of Safari, Chrome, Brave and Edge, their tabs (after you

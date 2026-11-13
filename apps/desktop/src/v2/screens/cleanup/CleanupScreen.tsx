@@ -17,6 +17,7 @@ import {
   type StepFound,
 } from "./types";
 import "./cleanup.css";
+import { AccessSteps } from "../../ui/AccessSteps";
 
 /** Something the page should say about the last scan or the folders. */
 export interface CleanupNotices {
@@ -396,6 +397,7 @@ export function CleanupScreen(props: CleanupScreenProps) {
             <div className="v2-banner-text">
               <strong>macOS kept some folders private</strong>
               <span>Allow Full Disk Access for Kleari in System Settings, then scan again to include them. Nothing else changes.</span>
+              <AccessSteps kind="fullDiskAccess" compact />
             </div>
             <Button variant="soft" size="sm" onClick={props.onOpenFullDiskAccess}>Open System Settings</Button>
           </div>
@@ -635,6 +637,7 @@ export function CleanupScreen(props: CleanupScreenProps) {
                 <p className="v2-dialog-text">
                   You can allow it in System Settings › Privacy & Security › Files and Folders by turning on {grant.folder.path.replace("~/", "")} for Kleari. Then grant access again here.
                 </p>
+                <AccessSteps kind="filesAndFolders" compact />
                 <div className="v2-dialog-actions">
                   <Button variant="secondary" onClick={() => setGrant(null)}>Not now</Button>
                   <Button variant="primary" onClick={() => { setGrant(null); props.onOpenFilesAndFolders(); }}>Open System Settings</Button>

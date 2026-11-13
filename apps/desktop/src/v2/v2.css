@@ -1636,3 +1636,21 @@ input[type="checkbox"]:disabled {
   font-size: 12px;
   line-height: 1.45;
 }
+
+/* First-launch setup. */
+.setup-body {
+  max-width: 560px;
+}
+
+.setup-step {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.setup-step .v2-row-text {
+  gap: 6px;
+}

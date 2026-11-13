@@ -7,6 +7,7 @@ import { formatGb } from "../../ui/format";
 import { headingIdFor } from "../../shell/routes";
 import type { AnalysisStep, FolderNode, FolderTag, LargeFile, ManagedSpace, StorageAnalysis, StorageCapacity, StorageCategoryDetail } from "./types";
 import "./storage.css";
+import { AccessSteps } from "../../ui/AccessSteps";
 
 interface StorageScreenProps {
   volume: string;
@@ -166,6 +167,7 @@ export function StorageScreen(props: StorageScreenProps) {
             <div className="st-access">
               <Glyph name="lock" size={15} />
               <span>Some folders can only be measured with Full Disk Access. Kleari would still only read them.</span>
+              <AccessSteps kind="fullDiskAccess" compact />
               <Button variant="soft" size="sm" onClick={openPrivacySettings}>Open Privacy Settings</Button>
             </div>
           )}
@@ -315,6 +317,7 @@ export function StorageScreen(props: StorageScreenProps) {
             <Glyph name="shield" size={15} />
             <span>Kleari would still only read sizes. Nothing is moved or deleted.</span>
           </div>
+          <AccessSteps kind="fullDiskAccess" compact />
           <div className="v2-dialog-actions-end">
             <Button
               variant="secondary"

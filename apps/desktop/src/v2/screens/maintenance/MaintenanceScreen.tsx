@@ -7,6 +7,8 @@ import { Button, IconTile, Modal, PageHeader, Pill, Spinner, Toast, useToast, ty
 import { formatGb, plural } from "../../ui/format";
 import { headingIdFor, hrefFor } from "../../shell/routes";
 import "./maintenance.css";
+import { AccessSteps } from "../../ui/AccessSteps";
+import { openSystemSettings } from "../../../lib/systemPageIpc";
 
 const taskMeta: Record<Task, { title: string; tone: Tone; icon: IconName; what: string; after: string }> = {
   freeRam: {
@@ -157,6 +159,11 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
                 {line && <strong className="v2-num mt-line">{line}</strong>}
                 <div className="mt-task-foot">
                   {maintenance.last?.task === task && <span className="v2-card-note">{outcomeText[maintenance.last.outcome]}</span>}
+                </div>
+                {task === "emptyTrash" && maintenance.last?.task === "emptyTrash" && maintenance.last.outcome === "failed" && (
+                  <AccessSteps kind="automation" compact onOpen={() => void openSystemSettings("automation")} />
+                )}
+                <div className="mt-task-foot">
                   <Button variant={entry?.deletes ? "danger" : "soft"} size="sm" disabled={running !== null} onClick={() => setConfirm(task)}>
                     {running === task ? <Spinner size={10} /> : null} {running === task ? "Running…" : "Run…"}
                   </Button>

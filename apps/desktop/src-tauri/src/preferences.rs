@@ -49,6 +49,9 @@ pub struct Preferences {
     /// Notify issue alerts (low disk, a device's low battery, …) while Kleari runs (ADR-021).
     #[serde(default)]
     pub notify_issues: bool,
+    /// The first-launch setup (Full Disk Access, Open at login, menu bar) was seen.
+    #[serde(default)]
+    pub setup_done: bool,
 }
 
 const fn on() -> bool {
@@ -124,6 +127,7 @@ impl Default for Preferences {
             beta_updates: None,
             scan_schedule: ScanSchedule::default(),
             notify_issues: false,
+            setup_done: false,
         }
     }
 }

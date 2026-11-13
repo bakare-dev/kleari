@@ -5,6 +5,7 @@ import { formatGb, plural, sum } from "../../ui/format";
 import { headingIdFor, hrefFor } from "../../shell/routes";
 import "../developer/developer.css";
 import "./apps.css";
+import { AccessSteps } from "../../ui/AccessSteps";
 
 type View = "apps" | "leftovers" | "installers";
 
@@ -237,8 +238,7 @@ export function AppsScreen(props: AppsScreenProps) {
               )}
               {failed && (
                 <section aria-label="App Management" className="v2-card dev-detail">
-                  <span className="v2-card-note">macOS asks before one app removes another. Allow Kleari under App Management, then try again.</span>
-                  <Button variant="soft" size="sm" onClick={props.onOpenAppManagement}>Open App Management settings</Button>
+                  <AccessSteps kind="appManagement" onOpen={props.onOpenAppManagement} />
                 </section>
               )}
             </div>
