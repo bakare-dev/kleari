@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Core window capability, read-only System page activity, details and startup items, opening fixed System Settings panes, read-only startup-volume capacity and analysis of fixed locations, the Processes list and asking a regular app to quit, the read-only Developer scan and adding folders for it, the read-only Cleanup scan with its folder access requests, review, preview and approved moves into quarantine, and restoring (including choosing a restore-only folder) or permanently deleting quarantined items (ADR-012), reading and saving preferences, Open at login, asking for notification permission, excluded folders and removing folder access, and reading or clearing the activity log (ADR-013), showing items and the quarantine folder in Finder, setting the window theme to match the appearance preference, and dragging the window from its overlay title bar. Commands no screen uses (the process summary and the chosen-folder scan) are not granted.",
+  "description": "Core window capability, read-only System page activity, details and startup items, opening fixed System Settings panes, read-only startup-volume capacity and analysis of fixed locations, the Processes list and asking a regular app to quit, the read-only Developer scan and adding folders for it, the read-only Cleanup scan with its folder access requests, review, preview and approved moves into quarantine, and restoring (including choosing a restore-only folder) or permanently deleting quarantined items (ADR-012), reading and saving preferences, Open at login, asking for notification permission, excluded folders and removing folder access, and reading or clearing the activity log (ADR-013), showing items and the quarantine folder in Finder, setting the window theme to match the appearance preference, dragging the window from its overlay title bar, the Apps page's read-only scan, sending leftovers and installers to review and moving a confirmed app to the Trash (ADR-017), the Storage Browse view and sending chosen items to review (ADR-018), the Files tools (ADR-019), Maintenance's measuring, confirmed tasks and sending a launch agent to review (ADR-020), issue alerts (ADR-021), and listing and closing browser tabs (ADR-022). Commands no screen uses (the process summary and the chosen-folder scan) are not granted.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -54,6 +54,22 @@
     "allow-set-mouse",
     "allow-request-mouse-access",
     "allow-listen-mouse-probe",
-    "allow-capture-mouse-probe"
+    "allow-capture-mouse-probe",
+    "allow-start-apps-scan",
+    "allow-cancel-apps-scan",
+    "allow-send-app-items-to-review",
+    "allow-remove-app",
+    "allow-list-storage-folder",
+    "allow-cancel-storage-listing",
+    "allow-send-storage-items-to-review",
+    "allow-start-files-scan",
+    "allow-cancel-files-scan",
+    "allow-send-files-to-review",
+    "allow-get-maintenance-info",
+    "allow-run-maintenance-task",
+    "allow-send-launch-agent-to-review",
+    "allow-get-issues",
+    "allow-list-browser-tabs",
+    "allow-close-browser-tabs"
   ]
 }
