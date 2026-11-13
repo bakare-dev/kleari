@@ -6,37 +6,10 @@ All notable user-facing changes to Kleari are documented here. This file follows
 
 ## [Unreleased]
 
-The first release of Kleari.
+## [0.1.0-beta.2] - 2026-11-13
 
 ### Added
 
-- **Dashboard:** storage, memory, CPU and battery at a glance, the latest scan's largest
-  findings and what quarantine holds.
-- **Cleanup:** Standard, Deep and Developer scans that only read; each finding explained with
-  its risk; nothing moves until you approve a preview, and then only into quarantine. Items
-  an app is using, Apple's caches and the build folders of projects open in an app are
-  never offered.
-- **Scheduled scans** (Settings › Scanning): daily or weekly, read-only, with a notification
-  that opens the review.
-- **Quarantine:** restore anything (never overwriting what is there now), or delete
-  permanently after a separate confirmation.
-- **Storage:** your startup disk by folder and category, space macOS manages, and files of
-  1 GB or more.
-- **System:** live CPU, memory, swap, battery, thermal state, network and disk activity, this
-  Mac's details and its startup items. Readings keep going while Kleari's window or its
-  menu-bar panel is open, so the page opens with recent charts.
-- **Processes:** what is running, apps grouped with their helpers, with a confirmed, polite
-  Quit for regular apps. Like System, the list is kept up to date while Kleari is open.
-- **Developer:** developer caches, project build folders and Docker's disk use (read-only).
-- **Mouse:** reverse wheel scrolling for a mouse only, speed and smooth scrolling, button
-  actions and recorded shortcuts, media keys, and combinations of up to two buttons (left or
-  right click included) with ⌃⌥⇧⌘, while scrolling or when pressed. A drawn mouse shows
-  which button is which.
-- **Menu bar** panel with live readings, the last scan, quarantine and activity.
-- **Activity** log, kept for as long as you choose.
-- **Updates** from Kleari's releases, signed and installed only when you choose, and
-  **Beta updates** in Settings › About to also get betas.
-- **Uninstall** from Settings › About, moving Kleari and its data to the Trash.
 - **Apps:** every app you installed, with what it keeps in your Library. **Remove** moves an
   app to the Trash (Put Back works) after you confirm, and sends what it left in your Library
   to Cleanup's review. Also lists data left by apps that are gone and installers in Downloads
@@ -89,4 +62,40 @@ The first release of Kleari.
 - The sidebar and the menu-bar popover showed an old name instead of "Kleari".
 - The menu-bar popover appeared without its styling in release builds.
 
-[Unreleased]: https://github.com/bakare-dev/kleari/commits/beta
+## [0.1.0-beta.1] - 2026-11-13
+
+The first release of Kleari.
+
+### Added
+
+- **Dashboard:** storage, memory, CPU and battery at a glance, the latest scan's largest
+  findings and what quarantine holds.
+- **Cleanup:** Standard, Deep and Developer scans that only read; each finding explained with
+  its risk; nothing moves until you approve a preview, and then only into quarantine. Items
+  an app is using, Apple's caches and recently committed projects' build folders are never
+  offered.
+- **Scheduled scans** (Settings › Scanning): daily or weekly, read-only, with a notification
+  that opens the review.
+- **Quarantine:** restore anything (never overwriting what is there now), or delete
+  permanently after a separate confirmation.
+- **Storage:** your startup disk by folder and category, space macOS manages, and files of
+  1 GB or more.
+- **System:** live CPU, memory, swap, battery, thermal state, network and disk activity, this
+  Mac's details and its startup items. Readings keep going while Kleari's window or its
+  menu-bar panel is open, so the page opens with recent charts.
+- **Processes:** what is running, apps grouped with their helpers, with a confirmed, polite
+  Quit for regular apps. Like System, the list is kept up to date while Kleari is open.
+- **Developer:** developer caches, project build folders and Docker's disk use (read-only).
+- **Mouse:** reverse wheel scrolling for a mouse only, speed and smooth scrolling, button
+  actions and recorded shortcuts, media keys, and combinations of up to two buttons (left or
+  right click included) with ⌃⌥⇧⌘, while scrolling or when pressed. A drawn mouse shows
+  which button is which.
+- **Menu bar** panel with live readings, the last scan, quarantine and activity.
+- **Activity** log, kept for as long as you choose.
+- **Updates** from Kleari's releases, signed and installed only when you choose, and
+  **Beta updates** in Settings › About to also get betas.
+- **Uninstall** from Settings › About, moving Kleari and its data to the Trash.
+
+[Unreleased]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.2...HEAD
+[0.1.0-beta.2]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.1...v0.1.0-beta.2
+[0.1.0-beta.1]: https://github.com/bakare-dev/kleari/releases/tag/v0.1.0-beta.1
