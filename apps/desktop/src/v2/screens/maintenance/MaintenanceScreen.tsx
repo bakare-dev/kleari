@@ -3,7 +3,7 @@ import type { Task, TaskInfo, TaskOutcome } from "../../../contracts/maintenance
 import type { StartupItem } from "../../../contracts/systemPage";
 import type { Maintenance } from "../../../features/maintenance/useMaintenance";
 import type { IconName } from "../../ui/icons";
-import { Button, IconTile, Modal, PageHeader, Pill, Spinner, Toast, useToast, type Tone } from "../../ui/components";
+import { Button, IconTile, Modal, PageHeader, Pill, Segmented, Spinner, Toast, useToast, type Tone } from "../../ui/components";
 import { formatGb, plural } from "../../ui/format";
 import { headingIdFor, hrefFor } from "../../shell/routes";
 import "./maintenance.css";
@@ -111,6 +111,7 @@ const outcomeText: Record<TaskOutcome, string> = {
 
 export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenance: Maintenance; onOpenLoginItems: () => void }) {
   const { info, startup, running } = maintenance;
+  const [tab, setTab] = useState<"tasks" | "login" | "notOffered">("tasks");
   const [confirm, setConfirm] = useState<Task | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const toast = useToast(6000);
@@ -143,6 +144,17 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
       />
       <div className="mt-body">
         {maintenance.error && <span role="status" className="v2-card-note">{maintenance.error}</span>}
+        <Segmented
+          label="Section"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "tasks", label: "Tasks" },
+            { value: "login", label: "Login items" },
+            { value: "notOffered", label: "Not offered" },
+          ]}
+        />
+        {tab === "tasks" && (
         <section aria-label="Tasks" className="mt-grid">
           {(Object.keys(taskMeta) as Task[]).map((task) => {
             const meta = taskMeta[task];
@@ -172,7 +184,9 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
             );
           })}
         </section>
+        )}
 
+        {tab === "login" && (
         <section aria-labelledby="mt-login" className="v2-card mt-login">
           <div className="mt-login-head">
             <h2 id="mt-login" className="v2-card-title-sm">Login and background items</h2>
@@ -220,7 +234,9 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
             </ul>
           )}
         </section>
+        )}
 
+        {tab === "notOffered" && (
         <section aria-labelledby="mt-not" className="v2-card mt-not">
           <h2 id="mt-not" className="v2-card-title-sm">Not offered, and why</h2>
           <ul className="v2-info-list">
@@ -234,6 +250,7 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
             ))}
           </ul>
         </section>
+        )}
       </div>
 
       <Modal open={confirm !== null} onClose={() => { setConfirm(null); setAcknowledged(false); }} labelledBy="mt-confirm-title" role="alertdialog">
