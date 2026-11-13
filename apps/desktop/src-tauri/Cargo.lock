@@ -1756,7 +1756,7 @@ dependencies = [
 
 [[package]]
 name = "kleari"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 dependencies = [
  "block2",
  "libc",
