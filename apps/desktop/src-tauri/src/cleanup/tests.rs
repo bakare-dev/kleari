@@ -1021,6 +1021,93 @@ fn a_removed_apps_leftover_moves_through_preview_into_quarantine_and_restores() 
 }
 
 #[test]
+fn something_you_chose_moves_only_while_nothing_in_it_is_open_and_restores() {
+    let home = Home::new("chosen");
+    let video = home.write("Movies/holiday/clip.mov", 3_000_000);
+    let history = home.history();
+    let home_path = home.home();
+    let state = crate::storage::explorer::ExplorerState::default();
+    let cancel = AtomicBool::new(false);
+    let root = state
+        .list(&home_path, None, &[], &cancel, &mut |_| {})
+        .expect("home");
+    let movies = root
+        .entries
+        .iter()
+        .find(|entry| entry.name == "Movies")
+        .expect("Movies");
+    let movies = state
+        .list(&home_path, Some(&movies.id), &[], &cancel, &mut |_| {})
+        .expect("Movies listed");
+    let holiday = movies
+        .entries
+        .iter()
+        .find(|entry| entry.name == "holiday")
+        .expect("holiday");
+    assert!(holiday.selectable);
+    let chosen = state.chosen(std::slice::from_ref(&holiday.id));
+
+    let open = OpenPaths::from_paths(vec![video.clone()]);
+    let intake = |open: Option<&'static OpenPaths>| super::intake::Intake {
+        home: &home_path,
+        running: &[],
+        open,
+        store_dev: history.store.volume(),
+        now_ms: now_ms(),
+        excluded: &[],
+    };
+    let leaked: &'static OpenPaths = Box::leak(Box::new(open));
+    let held = intake(Some(leaked)).chosen_items(chosen.clone());
+    assert_eq!(held[0].assessment.why_not, Some(WhyNot::OpenInApp));
+    let candidates = intake(Some(&NOTHING_OPEN)).chosen_items(chosen);
+    assert_eq!(candidates[0].category(), policy::Category::Chosen);
+    assert_eq!(candidates[0].assessment.eligibility, Eligibility::Eligible);
+
+    let review = CleanupState::default();
+    let ids = review.add_sent(candidates);
+    // Opened in an app since it was sent: approval reads that again and leaves it.
+    let now_open = Checks {
+        open: Some(leaked),
+        ..checks(&home_path, &history, &cancel, &[])
+    };
+    let preview = execute::create_preview(&review, &ids, &now_open, now_ms());
+    assert_eq!(preview.items[0].state, PlannedState::NotEligible);
+    let checks = checks(&home_path, &history, &cancel, &[]);
+    let preview = execute::create_preview(&review, &ids, &checks, now_ms());
+    assert_eq!(preview.items[0].state, PlannedState::Planned);
+    let outcome = execute::approve(
+        &review,
+        &preview.id,
+        &checks,
+        &history,
+        "sent",
+        now_ms,
+        |_| {},
+    );
+    assert!(
+        matches!(outcome, ApproveOutcome::Finished { .. }),
+        "{outcome:?}"
+    );
+    assert!(!video.exists());
+    let held = history.db.held_items().expect("held");
+    let results = crate::quarantine::restore_items(
+        &history.db,
+        &history.store,
+        &crate::quarantine::Scope {
+            home: &home_path,
+            temp: None,
+            added: &[],
+            excluded: &[],
+        },
+        &[held[0].id.clone()],
+        now_ms(),
+    )
+    .expect("restore");
+    assert_eq!(format!("{:?}", results[0].outcome), "Restored");
+    assert_eq!(fs::metadata(&video).expect("back").len(), 3_000_000);
+}
+
+#[test]
 fn a_folder_containing_an_excluded_folder_is_never_measured_or_offered() {
     let home = Home::new("excluded-inside");
     home.write("Library/Caches/com.example.Google/Private/blob", 2_000_000);

@@ -19,6 +19,7 @@ import type { useQuarantine } from "../features/cleanup/useQuarantine";
 import { buildDeveloperView } from "../features/developer/developerView";
 import type { useDeveloperScan } from "../features/developer/useDeveloperScan";
 import type { Apps } from "../features/apps/useApps";
+import type { StorageExplorer as StorageExplorerState } from "../features/storage/useStorageExplorer";
 import { AppsScreen } from "./screens/apps/AppsScreen";
 import { useProcessesPage, type ProcessMonitor } from "../features/processes/useProcessesPage";
 import { useSystemPage, type SystemMonitor } from "../features/system/useSystemPage";
@@ -94,7 +95,7 @@ export function AppsRoute({ apps }: { apps: Apps }) {
 }
 
 /** Capacity is read on each visit; the analysis runs only when asked. */
-export function StorageRoute({ storage, review, cleanup }: { storage: ReturnType<typeof useStorageAnalysis>; review: CleanupReview; cleanup: CleanupScan }) {
+export function StorageRoute({ storage, review, cleanup, explorer }: { storage: ReturnType<typeof useStorageAnalysis>; review: CleanupReview; cleanup: CleanupScan; explorer: StorageExplorerState }) {
   const overview = useStorageOverview(storage.state.result);
   const view = buildStorageView({ overview, analysis: storage.state, nowMs: Date.now() });
   return (
@@ -105,6 +106,7 @@ export function StorageRoute({ storage, review, cleanup }: { storage: ReturnType
       onOpenPrivacySettings={openFullDiskAccessSettings}
       inReview={review.storageSent}
       onAddToReview={(file) => review.addStorageFile(file.reviewId, file.name)}
+      explorer={explorer}
       onScanInCleanup={(mode: ScanMode) => {
         // Opens Cleanup with the mode chosen; the scan starts only when asked there.
         cleanup.prepare({ mode });

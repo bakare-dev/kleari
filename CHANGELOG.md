@@ -42,6 +42,9 @@ The first release of Kleari.
   to Cleanup's review. Also lists data left by apps that are gone and installers in Downloads
   and on the Desktop, to send to review. Nothing in your Library moves until you approve it,
   and then only into quarantine.
+- **Storage › Browse:** open any folder in your home folder down to single files, with a map of
+  what takes the most space, and send what you choose to Cleanup's review. It moves only when
+  you approve it, into quarantine; never while something in it is open in an app.
 
 ### Changed
 
@@ -55,6 +58,8 @@ The first release of Kleari.
 - **Large and old files** say what kind of file they are (video, disk image, archive, …)
   instead of "Large file Kleari can't classify".
 - **Activity** reads the log when Kleari opens, so the page isn't blank while it loads.
+- **Large files added to review from Storage** can now be moved to quarantine when they are in
+  your home folder (they were inspect only).
 
 ### Fixed
 

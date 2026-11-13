@@ -33,6 +33,8 @@ pub enum Category {
     Old,
     /// What apps leave behind: data of removed apps, and installers already used.
     Apps,
+    /// Files and folders you chose yourself on the Storage page.
+    Chosen,
 }
 
 impl Category {
@@ -47,6 +49,7 @@ impl Category {
             Self::Large => "large",
             Self::Old => "old",
             Self::Apps => "apps",
+            Self::Chosen => "chosen",
         }
     }
 }
@@ -100,6 +103,8 @@ pub enum WhyNot {
     /// It's on another disk than the quarantine folder.
     OtherVolume,
     ChangedSinceScan,
+    /// Something inside is open in an app.
+    OpenInApp,
 }
 
 /// What Kleari observed about an item. The frontend has the wording.
@@ -144,6 +149,9 @@ pub enum EvidenceCode {
     LosesAppData,
     InstallerFile,
     DownloadAgain,
+    ChosenByYou,
+    OpenInApp,
+    NothingOpen,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -242,6 +250,8 @@ pub enum Kind {
     AppLeftover { owner: String },
     /// An installer (`.dmg`, `.pkg`, `.mpkg`, `.xip`) directly in Downloads or on the Desktop.
     Installer,
+    /// A file or folder you chose on the Storage page (see `chosen_in_bounds`).
+    UserChosen,
 }
 
 /// Package managers whose caches live in `~/Library/Caches` under these names.
@@ -275,7 +285,72 @@ pub fn category(kind: &Kind) -> Category {
         Kind::LargeFile => Category::Large,
         Kind::OldFile => Category::Old,
         Kind::AppLeftover { .. } | Kind::Installer => Category::Apps,
+        Kind::UserChosen => Category::Chosen,
     }
+}
+
+/// Folders directly in the home folder that are never chosen as a whole (their contents can
+/// be): moving one would break macOS's layout or sync.
+const HOME_FOLDERS: &[&str] = &[
+    "Desktop",
+    "Documents",
+    "Downloads",
+    "Library",
+    "Movies",
+    "Music",
+    "Pictures",
+    "Public",
+    "Applications",
+    ".Trash",
+];
+
+/// The only parts of the Library where you may choose something yourself.
+const CHOSEN_IN_LIBRARY: &[&str] = &["Library/Caches", "Library/Logs", "Library/Developer"];
+
+/// Packages whose insides belong to their app: the package may be chosen, never part of it.
+const PACKAGE_SUFFIXES: &[&str] = &[
+    ".app",
+    ".photoslibrary",
+    ".musiclibrary",
+    ".fcpbundle",
+    ".bundle",
+    ".framework",
+    ".xcarchive",
+    ".imovielibrary",
+    ".tvlibrary",
+    ".logicx",
+];
+
+/// Whether `relative` (below the home folder, already free of the never-touched places) may be
+/// chosen: not a top-level home folder itself, in the Library only below Caches, Logs or
+/// Developer, never in the Trash, and never inside a package.
+fn chosen_in_bounds(relative: &Path) -> bool {
+    let parts: Vec<&str> = relative
+        .components()
+        .filter_map(|part| part.as_os_str().to_str())
+        .collect();
+    if parts.len() != relative.components().count() || parts.is_empty() {
+        return false;
+    }
+    if parts.len() == 1 && HOME_FOLDERS.contains(&parts[0]) {
+        return false;
+    }
+    if parts[0] == ".Trash" {
+        return false;
+    }
+    if parts[0] == "Library"
+        && !CHOSEN_IN_LIBRARY
+            .iter()
+            .any(|allowed| relative.starts_with(allowed) && relative != Path::new(allowed))
+    {
+        return false;
+    }
+    !parts[..parts.len() - 1].iter().any(|part| {
+        let lower = part.to_lowercase();
+        PACKAGE_SUFFIXES
+            .iter()
+            .any(|suffix| lower.ends_with(suffix))
+    })
 }
 
 /// Folders in the home folder where apps keep their data, each entry named for its app.
@@ -595,6 +670,19 @@ fn assess_kind(kind: &Kind, facts: &Facts<'_>) -> Assessment {
             Certainty::High,
             vec![ok(E::InstallerFile), info(E::DownloadAgain)],
         ),
+        // `project_active` is whether anything inside is open in an app now.
+        Kind::UserChosen if facts.project_active => blocked(
+            Risk::Medium,
+            Certainty::Unknown,
+            Eligibility::NotNow,
+            WhyNot::OpenInApp,
+            vec![warn(E::ChosenByYou), warn(E::OpenInApp)],
+        ),
+        Kind::UserChosen => eligible(
+            Risk::Medium,
+            Certainty::Unknown,
+            vec![warn(E::ChosenByYou), ok(E::NothingOpen)],
+        ),
     }
 }
 
@@ -793,6 +881,7 @@ pub fn within_bounds(
                 && !relative.starts_with(".Trash")
         }
         Kind::Installer => (under("Downloads") || under("Desktop")) && is_installer_name(name),
+        Kind::UserChosen => chosen_in_bounds(relative),
         // Never moved, so never in bounds.
         Kind::SimulatorDevice | Kind::LargeFile | Kind::OldFile => false,
         Kind::Temp | Kind::AppLeftover { .. } => false,
@@ -886,6 +975,7 @@ pub fn restorable(
             .any(in_bounds),
         // The app it belonged to isn't recorded: any entry directly in a leftover folder.
         "apps" => in_leftover_folder(path, home) || in_bounds(&Kind::Installer),
+        "chosen" => in_bounds(&Kind::UserChosen),
         _ => false,
     }
 }

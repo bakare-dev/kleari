@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from "react";
+import type { StorageExplorer as Explorer } from "../../../features/storage/useStorageExplorer";
+import { StorageExplorer } from "./StorageExplorer";
 import { Glyph, StatusMark } from "../../ui/icons";
 import { Button, IconTile, Modal, PageHeader, Pill, ProgressBar, ScrollEdgeGlass, Segmented, Spinner, Toast, useScrolled, useToast, type Status } from "../../ui/components";
 import { formatGb } from "../../ui/format";
@@ -31,6 +33,8 @@ interface StorageScreenProps {
   onAddToReview: (file: LargeFile) => Promise<string>;
   /** Opens Cleanup with this scan chosen; it doesn't start the scan. */
   onScanInCleanup: (mode: "standard" | "deep" | "dev") => void;
+  /** The Browse view: any folder of the home folder, measured on demand. */
+  explorer: Explorer;
 }
 
 const tagMeta: Record<FolderTag, { label: string; status: Status }> = {
@@ -38,7 +42,7 @@ const tagMeta: Record<FolderTag, { label: string; status: Status }> = {
   yours: { label: "Your files", status: "link" },
 };
 
-type View = "folders" | "files";
+type View = "folders" | "files" | "browse";
 
 /**
  * Whether Analyze first explains Full Disk Access: only when it is known to be off, once per
@@ -171,9 +175,20 @@ export function StorageScreen(props: StorageScreenProps) {
           <section aria-labelledby="st-explore" className="v2-card st-explore">
             <div className="st-explore-head">
               <h2 id="st-explore" className="v2-card-title-sm">What is taking space</h2>
-              {tree && <Segmented label="View" value={view} onChange={setView} options={[{ value: "folders", label: "Largest folders" }, { value: "files", label: "Large files" }]} />}
+              <Segmented
+                label="View"
+                value={view}
+                onChange={setView}
+                options={[
+                  { value: "folders", label: "Largest folders" },
+                  { value: "files", label: "Large files" },
+                  { value: "browse", label: "Browse" },
+                ]}
+              />
             </div>
-            {!tree ? (
+            {view === "browse" ? (
+              <StorageExplorer explorer={props.explorer} />
+            ) : !tree ? (
               <div className="st-empty">
                 {analysis.running ? <Spinner size={34} /> : <IconTile tone="blue" icon="disk" size={42} glow />}
                 <span role="status" className="v2-row-title">{analysis.running ? "Analyzing…" : "Not analyzed yet"}</span>
@@ -187,7 +202,7 @@ export function StorageScreen(props: StorageScreenProps) {
             ) : (
               <>
                 <span className="v2-card-note st-files-note">
-                  {props.largeFilesNote} Adding one to review lists it in Cleanup step 2 for you to inspect; Kleari never moves your files.
+                  {props.largeFilesNote} Adding one to review lists it in Cleanup step 2. A file in your home folder can then be moved to quarantine when you approve it; elsewhere it’s there to inspect.
                 </span>
                 {props.largeFiles.length === 0 ? (
                   <span className="v2-card-note st-files-note">No files of 1 GB or more were found.</span>

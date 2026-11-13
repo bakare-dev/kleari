@@ -223,7 +223,7 @@ export function modeDefinitions(input: {
   return { standard: build("standard"), deep: build("deep"), dev: build("dev") };
 }
 
-const categoryOrder: readonly FindingCategory[] = ["cache", "pkg", "logs", "xcode", "node", "build", "apps", "large", "old"];
+const categoryOrder: readonly FindingCategory[] = ["cache", "pkg", "logs", "xcode", "node", "build", "apps", "chosen", "large", "old"];
 
 function resultLines(findings: readonly ReviewFinding[], result: CleanupScanResult): ScanResultLine[] {
   const lines: ScanResultLine[] = [];
@@ -265,6 +265,7 @@ export const whyNotText: Record<WhyNot, string> = {
   appleCache: "macOS and Apple’s apps use this while running. Kleari leaves it alone.",
   manageInXcode: "Remove simulators and runtimes in Xcode (Window › Devices and Simulators, or Settings › Components) so Xcode stays consistent.",
   userFile: "Large and old files are listed for you to look at in Finder. Kleari won’t move them.",
+  openInApp: "Something in it is open in an app, so Kleari leaves it until it’s closed.",
   otherVolume: "It’s on another disk than Kleari’s quarantine folder, and Kleari only moves items within one disk.",
   changedSinceScan: "It changed after the scan. Scan again to review it.",
 };
@@ -359,6 +360,12 @@ export function evidenceText(entry: EvidenceEntry): string {
       return "An installer: apps run from where they were installed, not from this file";
     case "downloadAgain":
       return "You can download it again from the app’s maker";
+    case "chosenByYou":
+      return "You chose this on the Storage page; Kleari doesn’t know what it is, so check before you approve";
+    case "openInApp":
+      return "Something in it is open in an app";
+    case "nothingOpen":
+      return "Nothing in it is open in any app";
   }
 }
 
@@ -399,6 +406,8 @@ function reasonFor(finding: ReviewFinding): string {
       return `Large ${fileKindLabel[finding.fileCategory ?? "other"]} to look over`;
     case "old":
       return `${capitalize(fileKindLabel[finding.fileCategory ?? "other"])} you haven’t opened in a while`;
+    case "chosen":
+      return finding.eligibility === "notNow" ? "Chosen by you, but open in an app" : "Chosen by you on the Storage page";
     case "apps":
       return codes.has("installerFile")
         ? "An installer you’ve already used"
@@ -452,7 +461,7 @@ export function findingView(finding: ReviewFinding, nowMs: number): Finding {
 }
 
 export function categoryCounts(findings: readonly Finding[]): Record<FindingCategory, number> {
-  const counts: Record<FindingCategory, number> = { cache: 0, xcode: 0, pkg: 0, node: 0, build: 0, logs: 0, large: 0, old: 0, apps: 0 };
+  const counts: Record<FindingCategory, number> = { cache: 0, xcode: 0, pkg: 0, node: 0, build: 0, logs: 0, large: 0, old: 0, apps: 0, chosen: 0 };
   for (const finding of findings) {
     counts[finding.category] += 1;
   }
@@ -535,6 +544,9 @@ export function consequences(categories: readonly FindingCategory[]): string {
   }
   if (has("logs")) {
     parts.push("apps start new logs when they need them");
+  }
+  if (has("chosen")) {
+    parts.push("what you chose waits in Quarantine until you restore or delete it");
   }
   if (has("apps")) {
     parts.push("removed apps’ data and used installers wait in Quarantine, so a reinstalled app can get its settings back");

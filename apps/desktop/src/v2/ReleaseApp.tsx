@@ -2,6 +2,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { useSettingsShortcut } from "../app/navigation";
 import { useActivity } from "../features/activity/useActivity";
 import { useApps } from "../features/apps/useApps";
+import { useStorageExplorer } from "../features/storage/useStorageExplorer";
 import { scanOptionsFromInput } from "../features/cleanup/cleanupView";
 import { useCleanupReview } from "../features/cleanup/useCleanupReview";
 import { useCleanupScan } from "../features/cleanup/useCleanupScan";
@@ -54,6 +55,8 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
   const activity = useActivity();
   // App-level so a running Apps scan and its result survive leaving the page.
   const apps = useApps(review.refresh);
+  // App-level so the folder you were browsing is still open when you come back to Storage.
+  const explorer = useStorageExplorer(review.refresh);
   // App-level so a Mouse save, and the combination changes waiting their turn, finish after
   // leaving the Mouse page; read and watched only while it is open.
   const mouse = useMouse(route === "mouse");
@@ -97,7 +100,7 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
     review: () => <ReviewRoute review={review} initialQuery={reviewQuery} />,
     preview: () => <PreviewRoute review={review} quarantine={quarantine} />,
     quarantine: () => <QuarantineRoute quarantine={quarantine} />,
-    storage: () => <StorageRoute storage={storage} review={review} cleanup={cleanup} />,
+    storage: () => <StorageRoute storage={storage} review={review} cleanup={cleanup} explorer={explorer} />,
     system: () => <SystemRoute monitor={system} />,
     developer: () => <DeveloperRoute developer={developer} review={review} />,
     apps: () => <AppsRoute apps={apps} />,

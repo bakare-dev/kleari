@@ -4,6 +4,7 @@
 
 pub mod analysis;
 pub(crate) mod category;
+pub mod explorer;
 // Also used by the System page's startup-item check (system_monitor::startup).
 pub(crate) mod fsdir;
 pub mod picker;

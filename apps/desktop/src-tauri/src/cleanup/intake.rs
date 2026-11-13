@@ -4,7 +4,7 @@
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
-use super::policy::Kind;
+use super::policy::{self, Kind};
 use super::{assess_now, location_of, new_id, Candidate, Source, StoredFacts};
 use crate::developer::{open_absolute, ReviewItem, ReviewKind};
 use crate::quarantine::Identity;
@@ -375,20 +375,33 @@ impl Intake<'_> {
             .collect()
     }
 
-    /// A large file from the Storage page: always inspect only.
+    /// A large file from the Storage page: yours to quarantine when it is somewhere you may
+    /// choose things (`Kind::UserChosen`), otherwise inspect only.
     pub fn storage_file(&self, file: LargeFile) -> Option<Candidate> {
         if crate::preferences::touches_excluded(&file.source.path, self.excluded) {
             return None;
         }
         let stat = file.source.stat?;
+        let chosen = policy::within_bounds(
+            &Kind::UserChosen,
+            &file.source.path,
+            self.home,
+            None,
+            |_| Vec::new(),
+        );
         let facts = StoredFacts {
             larger_than: STORAGE_LARGE_BYTES,
             ..StoredFacts::default()
         };
+        let path = file.source.path;
         let mut candidate = self.candidate(
-            Kind::LargeFile,
+            if chosen {
+                Kind::UserChosen
+            } else {
+                Kind::LargeFile
+            },
             Source::Storage,
-            file.source.path,
+            path.clone(),
             &stat,
             facts,
             file.name,
@@ -396,6 +409,51 @@ impl Intake<'_> {
         candidate.bytes = file.bytes;
         candidate.files = 1;
         candidate.modified_ms = file.modified_ms;
+        if chosen {
+            self.hold_while_open(&mut candidate, path);
+        }
         Some(candidate)
+    }
+
+    /// Files and folders chosen on the Storage page's Browse view.
+    pub fn chosen_items(&self, items: Vec<crate::storage::explorer::Chosen>) -> Vec<Candidate> {
+        items
+            .into_iter()
+            .filter(|item| !crate::preferences::touches_excluded(&item.path, self.excluded))
+            .filter(|item| {
+                policy::within_bounds(&Kind::UserChosen, &item.path, self.home, None, |_| {
+                    Vec::new()
+                })
+            })
+            .map(|item| {
+                let mut candidate = self.candidate(
+                    Kind::UserChosen,
+                    Source::Storage,
+                    item.path.clone(),
+                    &item.stat,
+                    StoredFacts::default(),
+                    item.name,
+                );
+                candidate.bytes = item.measured.bytes;
+                candidate.files = item.measured.files;
+                candidate.lower_bound = item.measured.lower_bound;
+                candidate.modified_ms = u64::try_from(item.measured.newest_modified_s)
+                    .ok()
+                    .filter(|&seconds| seconds > 0)
+                    .and_then(|seconds| seconds.checked_mul(1000));
+                self.hold_while_open(&mut candidate, item.path);
+                candidate
+            })
+            .collect()
+    }
+
+    /// Something you chose isn't moved while anything inside it is open in an app: it is its
+    /// own "project" for the in-use check, read again before anything moves.
+    fn hold_while_open(&self, candidate: &mut Candidate, path: std::path::PathBuf) {
+        candidate.project = Some(path);
+        let same_volume = self
+            .store_dev
+            .is_none_or(|dev| dev == candidate.identity.dev);
+        candidate.reassess(self.running, self.open, same_volume);
     }
 }
