@@ -41,6 +41,8 @@ export const actionOptions: readonly { value: ActionChoice; label: string }[] = 
   { value: "appWindows", label: "App windows (⌃↓)" },
   { value: "previousSpace", label: "Previous Space (⌃←)" },
   { value: "nextSpace", label: "Next Space (⌃→)" },
+  { value: "lastApp", label: "Last app used (⌘⇥)" },
+  { value: "nextWindow", label: "Next window of the app (⌘`)" },
   { value: "middleClick", label: "Middle click" },
   { value: "playPause", label: "Play / Pause" },
   { value: "nextTrack", label: "Next track" },
@@ -59,6 +61,8 @@ export const scrollActionNames: Record<ScrollAction, string> = {
   zoom: "Zoom in and out",
   switchTabs: "Switch tabs",
   horizontalScroll: "Scroll sideways",
+  switchApps: "Switch apps (like ⌘⇥; let go to choose)",
+  switchWindows: "Switch the app’s windows (⌘`)",
 };
 
 export const scrollActionOptions = scrollActions.map((action) => ({ value: action, label: scrollActionNames[action] }));
@@ -124,6 +128,11 @@ export function comboProblem(combo: Combo, others: readonly Combo[]): string | n
   }
   if (combo.does.kind === "wheel" && combo.buttons.length === 0 && !anyModifier(combo.modifiers)) {
     return "Choose a button or a key to hold.";
+  }
+  // Mirrors Rust: the switcher stays open while a button is held, and left click's release
+  // must reach the app.
+  if (combo.does.kind === "wheel" && combo.does.wheel === "switchApps" && (combo.buttons.length === 0 || combo.buttons.includes(0))) {
+    return "Switching apps needs a mouse button to hold (not left click): letting go of it picks the app.";
   }
   if (combo.does.kind === "press" && combo.buttons.length === 0) {
     return "Choose the buttons to press together.";

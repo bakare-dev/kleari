@@ -17,6 +17,7 @@ import type {
   StepId,
   WhyNot,
 } from "../../contracts/cleanup";
+import type { FileCategory } from "../../contracts/storage";
 import { categoryMeta } from "../../v2/screens/cleanup/findingMeta";
 import type {
   Finding,
@@ -88,6 +89,7 @@ export function stepsFor(mode: ScanMode, options: ScanOptions): StepId[] {
     "appCaches",
     ...(options.logs || options.temp ? (["logsAndTemp"] as const) : []),
     "packageCaches",
+    "brokenItems",
     ...(mode === "deep" ? (["largeAndOld"] as const) : []),
   ];
 }
@@ -97,6 +99,7 @@ const stepLabels: Record<StepId, string> = {
   logsAndTemp: "Checking logs and temporary files",
   packageCaches: "Measuring package caches",
   largeAndOld: "Finding large and old files",
+  brokenItems: "Checking preferences and login items",
   xcode: "Reading Xcode data",
   simulators: "Reading the iOS Simulator",
   nodeModules: "Checking node_modules lockfiles",
@@ -222,7 +225,7 @@ export function modeDefinitions(input: {
   return { standard: build("standard"), deep: build("deep"), dev: build("dev") };
 }
 
-const categoryOrder: readonly FindingCategory[] = ["cache", "pkg", "logs", "xcode", "node", "build", "large", "old"];
+const categoryOrder: readonly FindingCategory[] = ["cache", "pkg", "logs", "xcode", "node", "build", "broken", "startup", "apps", "chosen", "large", "old"];
 
 function resultLines(findings: readonly ReviewFinding[], result: CleanupScanResult): ScanResultLine[] {
   const lines: ScanResultLine[] = [];
@@ -260,10 +263,11 @@ export const whyNotText: Record<WhyNot, string> = {
   xcodeRunning: "Quit Xcode and scan again to include this.",
   simulatorRunning: "Quit the Simulator and scan again to include this.",
   noLockfile: "Kleari only offers node_modules when a lockfile next to it can install the same packages again.",
-  activeProject: "You committed to this project in the last 14 days, so Kleari leaves its build folders alone.",
+  activeProject: "Something in this project is open in an app (an editor, a terminal or a dev server), so Kleari leaves its build folders alone until it’s closed.",
   appleCache: "macOS and Apple’s apps use this while running. Kleari leaves it alone.",
   manageInXcode: "Remove simulators and runtimes in Xcode (Window › Devices and Simulators, or Settings › Components) so Xcode stays consistent.",
   userFile: "Large and old files are listed for you to look at in Finder. Kleari won’t move them.",
+  openInApp: "Something in it is open in an app, so Kleari leaves it until it’s closed.",
   otherVolume: "It’s on another disk than Kleari’s quarantine folder, and Kleari only moves items within one disk.",
   changedSinceScan: "It changed after the scan. Scan again to review it.",
 };
@@ -333,9 +337,9 @@ export function evidenceText(entry: EvidenceEntry): string {
     case "noLockfile":
       return "No lockfile was found, so a reinstall may get different packages";
     case "projectActive":
-      return "You committed to this project in the last 14 days";
+      return "Something in the project is open in an app";
     case "projectInactive":
-      return "No commits to the project in the last 14 days";
+      return "Nothing in the project is open in any app";
     case "buildOutput":
       return "Made by a build or an install";
     case "reinstallNeeded":
@@ -348,6 +352,36 @@ export function evidenceText(entry: EvidenceEntry): string {
       return "Not a known cache, so only you can decide";
     case "otherVolume":
       return "On another disk than Kleari’s quarantine folder";
+    case "leftoverOfRemovedApp":
+      return "Left behind by an app you removed with Kleari";
+    case "leftoverNoApp":
+      return "Named for an app that isn’t installed, and unchanged for a month or more";
+    case "losesAppData":
+      return "The app’s settings and data go with it if you reinstall it later";
+    case "installerFile":
+      return "An installer: apps run from where they were installed, not from this file";
+    case "downloadAgain":
+      return "You can download it again from the app’s maker";
+    case "chosenByYou":
+      return "You chose this on the Storage page; Kleari doesn’t know what it is, so check before you approve";
+    case "openInApp":
+      return "Something in it is open in an app";
+    case "nothingOpen":
+      return "Nothing in it is open in any app";
+    case "preferencesUnreadable":
+      return "This preferences file is damaged: macOS can’t read it as a property list";
+    case "appMakesNewPreferences":
+      return "The app makes a new one with its default settings";
+    case "programMissing":
+      return "The program it starts at login no longer exists";
+    case "agentNotStarted":
+      return "Nothing will start from it; macOS stops trying at your next login";
+    case "inXcodePreviews":
+      return "SwiftUI previews Xcode builds again when you open a preview";
+    case "startsAtLogin":
+      return "Starts a program each time you log in; the app that installed it may stop working as it did";
+    case "stopsAtNextLogin":
+      return "It stops starting from your next login; restore it from Quarantine to bring it back";
   }
 }
 
@@ -385,10 +419,38 @@ function reasonFor(finding: ReviewFinding): string {
     case "logs":
       return codes.has("tempOlderThan") ? "Temporary files left behind" : "Old logs and crash reports";
     case "large":
-      return "Large file Kleari can’t classify";
+      return `Large ${fileKindLabel[finding.fileCategory ?? "other"]} to look over`;
     case "old":
-      return "A file you haven’t opened in a while";
+      return `${capitalize(fileKindLabel[finding.fileCategory ?? "other"])} you haven’t opened in a while`;
+    case "startup":
+      return "A login item you chose to stop";
+    case "broken":
+      return codes.has("programMissing") ? "Login item whose program is gone" : "Damaged preferences file";
+    case "chosen":
+      return finding.eligibility === "notNow" ? "Chosen by you, but open in an app" : "Chosen by you on the Storage page";
+    case "apps":
+      return codes.has("installerFile")
+        ? "An installer you’ve already used"
+        : codes.has("leftoverOfRemovedApp")
+          ? "Data left by an app you removed"
+          : "Data left by an app that’s gone";
   }
+}
+
+/** What a large or old file is, by its extension; Kleari decides nothing from it. */
+const fileKindLabel: Record<FileCategory, string> = {
+  video: "video",
+  image: "image",
+  audio: "audio file",
+  archive: "archive",
+  diskImage: "disk image",
+  document: "document",
+  code: "code or build file",
+  other: "file",
+};
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function displayName(finding: ReviewFinding): string {
@@ -419,7 +481,7 @@ export function findingView(finding: ReviewFinding, nowMs: number): Finding {
 }
 
 export function categoryCounts(findings: readonly Finding[]): Record<FindingCategory, number> {
-  const counts: Record<FindingCategory, number> = { cache: 0, xcode: 0, pkg: 0, node: 0, build: 0, logs: 0, large: 0, old: 0 };
+  const counts: Record<FindingCategory, number> = { cache: 0, xcode: 0, pkg: 0, node: 0, build: 0, logs: 0, large: 0, old: 0, apps: 0, chosen: 0, broken: 0, startup: 0 };
   for (const finding of findings) {
     counts[finding.category] += 1;
   }
@@ -502,6 +564,18 @@ export function consequences(categories: readonly FindingCategory[]): string {
   }
   if (has("logs")) {
     parts.push("apps start new logs when they need them");
+  }
+  if (has("startup")) {
+    parts.push("login items you chose stop starting from your next login");
+  }
+  if (has("broken")) {
+    parts.push("apps make new preferences with their defaults");
+  }
+  if (has("chosen")) {
+    parts.push("what you chose waits in Quarantine until you restore or delete it");
+  }
+  if (has("apps")) {
+    parts.push("removed apps’ data and used installers wait in Quarantine, so a reinstalled app can get its settings back");
   }
   const text = parts.join(", and ");
   return text ? text.charAt(0).toUpperCase() + text.slice(1) : "Restore any item from Quarantine if you need it back";

@@ -1,7 +1,7 @@
 import type { IconName } from "../../ui/icons";
 import type { Status, Tone } from "../../ui/components";
 
-export type FindingCategory = "cache" | "xcode" | "pkg" | "node" | "build" | "logs" | "large" | "old";
+export type FindingCategory = "cache" | "xcode" | "pkg" | "node" | "build" | "logs" | "large" | "old" | "apps" | "chosen" | "broken" | "startup";
 export type Eligibility = "eligible" | "notNow" | "needsCheck" | "rescan" | "inspectOnly";
 export type Level = "Low" | "Medium" | "Unknown";
 

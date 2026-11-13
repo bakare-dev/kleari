@@ -9,7 +9,7 @@
 //! same volume (`developer::measure`). No file is opened except a simulator's small
 //! `device.plist` for its name; nothing is written.
 
-use std::ffi::{CString, OsStr};
+use std::ffi::{CStr, CString, OsStr};
 use std::io::Read;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
@@ -25,6 +25,7 @@ use crate::developer::projects;
 use crate::developer::{catalog, measure_dir, open_absolute, Links, Measured};
 use crate::quarantine::Identity;
 use crate::storage::fsdir::{display_name, DirHandle, FileStat};
+use crate::system_monitor::open_paths::OpenPaths;
 use crate::system_monitor::running_apps::RunningBundle;
 use crate::system_monitor::{display_path, non_local_mounts};
 
@@ -96,6 +97,8 @@ pub enum StepId {
     LogsAndTemp,
     PackageCaches,
     LargeAndOld,
+    /// Preferences that don't open and login items whose program is gone.
+    BrokenItems,
     Xcode,
     Simulators,
     NodeModules,
@@ -112,6 +115,7 @@ pub fn steps(mode: ScanMode, options: &ScanOptions) -> Vec<StepId> {
                 steps.push(StepId::LogsAndTemp);
             }
             steps.push(StepId::PackageCaches);
+            steps.push(StepId::BrokenItems);
             if mode == ScanMode::Deep {
                 steps.push(StepId::LargeAndOld);
             }
@@ -162,6 +166,8 @@ pub struct Context<'a> {
     pub home: &'a Path,
     pub temp: Option<&'a Path>,
     pub running: &'a [RunningBundle],
+    /// What is open now; `None` (couldn't be read) counts every project as in use.
+    pub open: Option<&'a OpenPaths>,
     pub now_ms: u64,
     pub options: ScanOptions,
     /// The quarantine folder's volume; items elsewhere are inspect only.
@@ -191,8 +197,6 @@ pub struct Outcome {
 const MIN_BYTES: u64 = 1_000_000;
 /// Temporary files must be this many days untouched.
 pub const TEMP_IDLE_DAYS: u64 = 7;
-/// A project with a commit within this many days is active.
-const ACTIVE_DAYS: u64 = 14;
 /// Old files are listed only from this size.
 const OLD_MIN_BYTES: u64 = 100_000_000;
 /// Large and old files kept, each.
@@ -317,7 +321,16 @@ impl<'a> Collector<'a> {
     ) -> &mut Candidate {
         let same_volume = self.ctx.store_dev.is_none_or(|dev| dev == stat.dev);
         let file_name = super::display_name_of(&path);
-        let assessment = assess_now(&kind, &file_name, facts, self.ctx.running, same_volume);
+        // A project, and so whether it is in use, is known only for build folders, reassessed
+        // once it is set.
+        let assessment = assess_now(
+            &kind,
+            &file_name,
+            facts,
+            self.ctx.running,
+            false,
+            same_volume,
+        );
         let (bytes, files, lower_bound) = measured
             .map_or((stat.blocks.saturating_mul(512), 1, false), |measured| {
                 (measured.bytes, measured.files, measured.lower_bound)
@@ -594,8 +607,100 @@ impl<'a> Collector<'a> {
         }
     }
 
+    /// Preferences in `~/Library/Preferences` that no longer open as property lists, and launch
+    /// agents in `~/Library/LaunchAgents` whose program no longer exists. Only property lists
+    /// are read (at most 10 MB each); Apple's are never listed.
+    fn broken_items(&mut self) {
+        const MAX_PLIST: u64 = 10 * 1024 * 1024;
+        let read = |dir: &DirHandle, name: &CStr| -> Option<Vec<u8>> {
+            let file = dir.open_file_child(name).ok()?;
+            let mut bytes = Vec::new();
+            file.take(MAX_PLIST + 1).read_to_end(&mut bytes).ok()?;
+            (u64::try_from(bytes.len()).ok()? <= MAX_PLIST).then_some(bytes)
+        };
+        let plist_name = |name: &CStr| {
+            name.to_str()
+                .ok()
+                .filter(|text| {
+                    text.ends_with(".plist") && !text.to_lowercase().starts_with("com.apple.")
+                })
+                .map(str::to_owned)
+        };
+        let preferences = self.ctx.home.join("Library/Preferences");
+        if let Some((dir, _, entries)) = self.list(&preferences) {
+            for (name, stat) in entries {
+                if self.cancelled() {
+                    return;
+                }
+                let Some(text) = plist_name(&name) else {
+                    continue;
+                };
+                if !stat.is_file() {
+                    continue;
+                }
+                let Some(bytes) = read(&dir, &name) else {
+                    continue;
+                };
+                if plist::Value::from_reader(std::io::Cursor::new(&bytes)).is_err() {
+                    self.add(
+                        Kind::BrokenPreference,
+                        preferences.join(&text),
+                        &stat,
+                        None,
+                        StoredFacts::default(),
+                    );
+                }
+            }
+        }
+        let agents = self.ctx.home.join("Library/LaunchAgents");
+        if let Some((dir, _, entries)) = self.list(&agents) {
+            for (name, stat) in entries {
+                if self.cancelled() {
+                    return;
+                }
+                let Some(text) = plist_name(&name) else {
+                    continue;
+                };
+                if !stat.is_file() {
+                    continue;
+                }
+                let Some(bytes) = read(&dir, &name) else {
+                    continue;
+                };
+                if program_missing(&bytes) {
+                    self.add(
+                        Kind::BrokenLaunchAgent,
+                        agents.join(&text),
+                        &stat,
+                        None,
+                        StoredFacts::default(),
+                    );
+                }
+            }
+        }
+    }
+
     fn xcode(&mut self) {
         let xcode = self.ctx.home.join("Library/Developer/Xcode");
+        let previews = xcode.join("UserData/Previews");
+        if let Some((parent, dev, entries)) = self.list(&xcode.join("UserData")) {
+            if let Some((name, stat)) = entries
+                .into_iter()
+                .find(|(name, stat)| name.to_bytes() == b"Previews" && stat.is_dir())
+            {
+                if let Some(measured) = self.measure(&parent, &name, &stat, dev) {
+                    if measured.bytes >= MIN_BYTES {
+                        self.add(
+                            Kind::XcodePreviews,
+                            previews,
+                            &stat,
+                            Some(&measured),
+                            StoredFacts::default(),
+                        );
+                    }
+                }
+            }
+        }
         self.children_as(&xcode.join("DerivedData"), Kind::DerivedData);
         self.children_as(&xcode.join("Archives"), Kind::Archive);
         let Some((_, _, entries)) = self.list(&xcode) else {
@@ -694,8 +799,7 @@ impl<'a> Collector<'a> {
             .filter(|root| !self.excluded(root))
             .cloned()
             .collect();
-        let now_ms = self.ctx.now_ms;
-        let mut found: Vec<(PathBuf, FileStat, Measured, bool, bool)> = Vec::new();
+        let mut found: Vec<(PathBuf, FileStat, Measured, bool)> = Vec::new();
         let links = &mut self.links;
         let cancel = self.ctx.cancel;
         // The search can take a while; what it found so far is reported as it goes.
@@ -740,13 +844,10 @@ impl<'a> Collector<'a> {
                 let lockfile = LOCKFILES
                     .iter()
                     .any(|lock| dir.stat_child(lock).is_ok_and(|lock| lock.is_file()));
-                let active = project.last_commit_ms.is_some_and(|commit| {
-                    now_ms.saturating_sub(commit) < ACTIVE_DAYS * DAY_S * 1000
-                });
                 let measured = measure_dir(child, dev, links, cancel);
                 if measured.bytes > 0 {
                     found_bytes = found_bytes.saturating_add(measured.bytes);
-                    found.push((project.path, stat, measured, lockfile, active));
+                    found.push((project.path, stat, measured, lockfile));
                     if last_report.elapsed() >= PROGRESS_INTERVAL {
                         last_report = std::time::Instant::now();
                         report(Progress {
@@ -764,19 +865,20 @@ impl<'a> Collector<'a> {
                 .iter()
                 .map(|root| display_path(root, Some(home))),
         );
-        for (project, stat, measured, lockfile, active) in found {
+        for (project, stat, measured, lockfile) in found {
             let project_name = super::display_name_of(&project);
             // In a workspace the lockfile is at the workspace root, above the package.
             let lockfile =
                 lockfile || super::intake::has_lockfile(&project, home, self.ctx.excluded);
             let facts = StoredFacts {
                 lockfile,
-                project_active: active,
                 ..StoredFacts::default()
             };
             let kind = Kind::BuildFolder {
                 name: "node_modules".to_owned(),
             };
+            let (running, open) = (self.ctx.running, self.ctx.open);
+            let same_volume = self.ctx.store_dev.is_none_or(|dev| dev == stat.dev);
             let item = self.add(
                 kind,
                 project.join("node_modules"),
@@ -786,6 +888,7 @@ impl<'a> Collector<'a> {
             );
             item.name = format!("{project_name}/node_modules");
             item.project = Some(project);
+            item.reassess(running, open, same_volume);
         }
     }
 
@@ -853,7 +956,7 @@ impl<'a> Collector<'a> {
                 .collect();
             for name in names {
                 let bytes = name.to_bytes();
-                if !hidden && bytes.starts_with(b".") {
+                if hidden_skipped(bytes, hidden) {
                     continue;
                 }
                 let child = path.join(OsStr::from_bytes(bytes));
@@ -884,7 +987,69 @@ impl<'a> Collector<'a> {
 
 /// Folders a large-file search doesn't enter: app bundles and libraries (one item each to
 /// macOS), and places with their own pages.
-fn skipped_folder(name: &[u8]) -> bool {
+/// Dot-folders tools make that aren't private: build output, dependencies and caches. Their
+/// name starts with a dot only to keep them out of the way, so the large and old files in
+/// them are searched even with hidden files off.
+const TOOL_DOT_FOLDERS: &[&str] = &[
+    ".cache",
+    ".expo",
+    ".angular",
+    ".output",
+    ".vercel",
+    ".netlify",
+    ".serverless",
+    ".terraform",
+    ".yarn",
+    ".pnpm-store",
+];
+
+/// Whether the large and old search skips `name` as hidden. With hidden files off, only
+/// private dotfiles are skipped (`.env`, `.ssh`, `.git`, …), never a tool's build or cache
+/// folder such as `.next`.
+pub(crate) fn hidden_skipped(name: &[u8], hidden: bool) -> bool {
+    if hidden || !name.starts_with(b".") {
+        return false;
+    }
+    let Ok(name) = std::str::from_utf8(name) else {
+        return true;
+    };
+    !(policy::is_build_folder(name) || TOOL_DOT_FOLDERS.contains(&name))
+}
+
+/// Whether a launch agent's property list names a program (`Program`, or the first of
+/// `ProgramArguments`) that is an absolute path to nothing. A program on another volume (an
+/// unplugged drive) or one that can't be checked isn't "missing".
+pub(crate) fn program_missing(plist_bytes: &[u8]) -> bool {
+    let Ok(value) = plist::Value::from_reader(std::io::Cursor::new(plist_bytes)) else {
+        return false;
+    };
+    let Some(dictionary) = value.as_dictionary() else {
+        return false;
+    };
+    let program = dictionary
+        .get("Program")
+        .and_then(plist::Value::as_string)
+        .or_else(|| {
+            dictionary
+                .get("ProgramArguments")?
+                .as_array()?
+                .first()?
+                .as_string()
+        });
+    let Some(program) = program else {
+        return false;
+    };
+    let path = Path::new(program);
+    if !path.is_absolute() || path.starts_with("/Volumes") || path.starts_with("/Network") {
+        return false;
+    }
+    if non_local_mounts().is_none_or(|mounts| mounts.iter().any(|mount| path.starts_with(mount))) {
+        return false;
+    }
+    matches!(std::fs::symlink_metadata(path), Err(error) if error.kind() == std::io::ErrorKind::NotFound)
+}
+
+pub(crate) fn skipped_folder(name: &[u8]) -> bool {
     const SUFFIXES: &[&[u8]] = &[
         b".app",
         b".photoslibrary",
@@ -948,6 +1113,7 @@ pub fn run(mode: ScanMode, ctx: &Context<'_>, mut progress: impl FnMut(Progress)
                 collector.catalog_caches();
             }
             StepId::LargeAndOld => collector.large_and_old(&mut skipped),
+            StepId::BrokenItems => collector.broken_items(),
             StepId::Xcode => collector.xcode(),
             StepId::Simulators => collector.simulators(),
             StepId::NodeModules => collector.node_modules(&mut skipped),

@@ -1,6 +1,6 @@
 import { useId } from "react";
 
-// The Navigator mark from docs/design/v2/brand: an orbit ellipse, a pilot arrow and a dot on
+// The Navigator mark from docs/design/v2/brand: an orbit ellipse, an arrow and a dot on
 // a blue-to-violet squircle. Brand colours are fixed by the brand board and never recoloured.
 
 const SQUIRCLE = "M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z";
@@ -63,11 +63,11 @@ export function NavigatorGlyph({ size = 16 }: { size?: number }) {
   );
 }
 
-/** "Kleari" with "Pilot" filled by the wordmark gradient. */
+/** "Kleari", filled by the wordmark gradient. */
 export function Wordmark({ className = "v2-wordmark" }: { className?: string }) {
   return (
     <span className={className}>
-      Mac<span className="v2-wordmark-pilot">Pilot</span>
+      <span className="v2-wordmark-fill">Kleari</span>
     </span>
   );
 }

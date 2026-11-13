@@ -23,6 +23,7 @@ pub use projects::Stack;
 
 use crate::ids::new_id;
 use crate::storage::fsdir::{DirHandle, FileStat};
+use crate::system_monitor::open_paths::{self, OpenPaths};
 use crate::system_monitor::{display_path, non_local_mounts};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -50,11 +51,7 @@ pub struct BuildFolder {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReviewKind {
     Cache(&'static str),
-    Build {
-        name: String,
-        project: PathBuf,
-        last_commit_ms: Option<u64>,
-    },
+    Build { name: String, project: PathBuf },
 }
 
 /// A cache or build folder the last scan measured, which the page may send to review.
@@ -83,6 +80,10 @@ pub struct ProjectResult {
     pub location: String,
     pub stack: Stack,
     pub last_commit_ms: Option<u64>,
+    /// A file in it, or the folder itself, is open in some app (an editor, a terminal, a
+    /// dev server) as the scan read it; nothing in it is suggested then. Checked again
+    /// before anything moves.
+    pub in_use: bool,
     pub bytes: u64,
     pub folders: Vec<BuildFolder>,
 }
@@ -246,11 +247,13 @@ pub fn search_roots(home: Option<&Path>, added: &[PathBuf]) -> Vec<PathBuf> {
 }
 
 /// Runs the scan read-only: caches, then projects, then Docker. `started_at_ms` is recorded
-/// in the result.
+/// in the result. `open` is what is open now (`None`: couldn't be read, so every project
+/// counts as in use).
 pub fn scan(
     home: Option<&Path>,
     added: &[PathBuf],
     excluded: &[PathBuf],
+    open: Option<&OpenPaths>,
     cancel: &AtomicBool,
     started_at_ms: u64,
     mut progress: impl FnMut(ScanProgress),
@@ -310,7 +313,6 @@ pub fn scan(
                             kind: ReviewKind::Build {
                                 name: name.clone(),
                                 project: project.path.clone(),
-                                last_commit_ms: project.last_commit_ms,
                             },
                             path: project.path.join(name),
                             stat,
@@ -335,6 +337,7 @@ pub fn scan(
                     name: project.name,
                     stack: project.stack,
                     last_commit_ms: project.last_commit_ms,
+                    in_use: open_paths::in_use(open, &project.path),
                     bytes,
                     folders,
                 });
@@ -544,7 +547,7 @@ mod tests {
         write("Code/api/target/debug/app", 40_000);
 
         let cancel = AtomicBool::new(false);
-        let scan = scan(Some(&home), &[], &[], &cancel, 0, |_| {});
+        let scan = scan(Some(&home), &[], &[], None, &cancel, 0, |_| {});
         assert_eq!(scan.status, ScanStatus::Completed);
         // Caches outside the home folder (the host's /Library) may exist too; only check ours.
         let ids: Vec<&str> = scan
@@ -579,6 +582,7 @@ mod tests {
             Some(&home),
             &[],
             &[home.join("Code/api")],
+            None,
             &cancel,
             0,
             |_| {},
@@ -590,7 +594,15 @@ mod tests {
             .collect();
         assert_eq!(names, ["web"]);
         // An excluded cache folder isn't measured or listed either.
-        let no_npm = super::scan(Some(&home), &[], &[home.join(".npm")], &cancel, 0, |_| {});
+        let no_npm = super::scan(
+            Some(&home),
+            &[],
+            &[home.join(".npm")],
+            None,
+            &cancel,
+            0,
+            |_| {},
+        );
         assert!(no_npm.caches.iter().all(|cache| cache.id != "npm"));
         assert!(no_npm.caches.iter().any(|cache| cache.id == "pnpmStore"));
         // Nor is a project's build folder that holds an excluded folder.
@@ -598,6 +610,7 @@ mod tests {
             Some(&home),
             &[],
             &[home.join("Code/api/target/debug")],
+            None,
             &cancel,
             0,
             |_| {},
@@ -608,6 +621,7 @@ mod tests {
             Some(&home),
             &[],
             std::slice::from_ref(&home),
+            None,
             &cancel,
             0,
             |_| {},

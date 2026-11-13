@@ -49,6 +49,8 @@ export const simpleButtonActions = [
   "volumeUp",
   "volumeDown",
   "mute",
+  "lastApp",
+  "nextWindow",
 ] as const;
 export type SimpleButtonAction = (typeof simpleButtonActions)[number];
 export type ButtonAction = { kind: SimpleButtonAction } | { kind: "shortcut"; shortcut: Shortcut };
@@ -58,7 +60,7 @@ export interface ButtonMapping {
   action: ButtonAction;
 }
 
-export const scrollActions = ["switchSpaces", "zoom", "switchTabs", "horizontalScroll"] as const;
+export const scrollActions = ["switchSpaces", "zoom", "switchTabs", "horizontalScroll", "switchApps", "switchWindows"] as const;
 export type ScrollAction = (typeof scrollActions)[number];
 
 /** What a combination does: while held, each wheel step does `wheel`; or, pressed together, `action` once. */

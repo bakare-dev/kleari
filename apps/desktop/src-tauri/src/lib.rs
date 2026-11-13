@@ -1,12 +1,21 @@
 mod activity;
+mod apps;
+mod apps_commands;
+mod browser;
 mod cleanup;
 mod cleanup_commands;
 mod commands;
 mod developer;
+mod explorer_commands;
+mod files;
+mod files_commands;
 mod finder;
 mod history;
 mod ids;
+mod issues;
 mod login_item;
+mod maintenance;
+mod maintenance_commands;
 mod menubar;
 mod mouse;
 mod notifications;
@@ -36,6 +45,11 @@ pub fn run() {
         .manage(storage::StorageState::default())
         .manage(storage::analysis::AnalysisState::default())
         .manage(developer::DeveloperState::default())
+        .manage(apps::AppsState::default())
+        .manage(storage::explorer::ExplorerState::default())
+        .manage(files::FilesState::default())
+        .manage(browser::BrowserState::default())
+        .manage(maintenance_commands::MaintenanceState::default())
         .manage(cleanup::CleanupState::default())
         .manage(quarantine::QuarantineState::default())
         .manage(menubar::PopoverState::default())
@@ -53,6 +67,8 @@ pub fn run() {
             // Clicking a scan's notification opens the review.
             notifications::open_review_on_click(app.handle().clone());
             schedule::start(app.handle().clone());
+            // Issue alerts, notified only when that's turned on in Settings.
+            issues::watch(app.handle().clone());
             // The Mouse settings apply from launch if they are on and macOS allows them.
             mouse::start(app.handle());
             Ok(())
@@ -95,6 +111,22 @@ pub fn run() {
             commands::start_developer_scan,
             commands::cancel_developer_scan,
             commands::add_developer_folder,
+            apps_commands::start_apps_scan,
+            apps_commands::cancel_apps_scan,
+            apps_commands::send_app_items_to_review,
+            apps_commands::remove_app,
+            explorer_commands::list_storage_folder,
+            explorer_commands::cancel_storage_listing,
+            explorer_commands::send_storage_items_to_review,
+            files_commands::start_files_scan,
+            files_commands::cancel_files_scan,
+            files_commands::send_files_to_review,
+            maintenance_commands::get_maintenance_info,
+            maintenance_commands::run_maintenance_task,
+            maintenance_commands::send_launch_agent_to_review,
+            issues::get_issues,
+            browser::list_browser_tabs,
+            browser::close_browser_tabs,
             cleanup_commands::get_cleanup_scope,
             cleanup_commands::request_folder_access,
             cleanup_commands::add_cleanup_folder,

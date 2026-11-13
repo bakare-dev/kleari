@@ -518,3 +518,156 @@
   flex-shrink: 0;
   color: var(--mp-ok-text);
 }
+
+/* Browse and choose: one folder at a time, down to single files. */
+.st-browse {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.st-browse-head,
+.st-browse-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.st-browse-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.st-crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.st-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.st-crumb button {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* The storage map: the largest entries side by side, sized by what they take. */
+.st-map {
+  display: flex;
+  gap: 3px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.st-map-cell {
+  display: flex;
+  min-width: 28px;
+  flex-basis: 0;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: linear-gradient(160deg, var(--c1), var(--c2));
+  color: #fff;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.st-map-cell:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.st-map-cell:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+.st-browse-rows {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.st-browse-rows li {
+  display: grid;
+  grid-template-columns: 16px 28px minmax(0, 1fr) minmax(40px, 120px) 72px 96px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.st-browse-name {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--mp-text);
+  font: inherit;
+  text-align: left;
+}
+
+button.st-browse-name {
+  cursor: pointer;
+}
+
+.st-browse-name .v2-ellipsis {
+  max-width: 100%;
+}
+
+.st-browse-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--mp-track);
+}
+
+.st-browse-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--mp-link);
+}
+
+.st-browse-size {
+  text-align: right;
+}
+
+.st-browse-pill {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .st-browse-rows li {
+    grid-template-columns: 16px 28px minmax(0, 1fr) 64px;
+  }
+
+  .st-browse-bar,
+  .st-browse-pill {
+    display: none;
+  }
+}

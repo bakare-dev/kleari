@@ -3,12 +3,13 @@
 // never arrive here: only opaque IDs, names and `~/…` locations.
 
 import { parseDockerState, type DockerState } from "./developer";
+import { fileCategories, type FileCategory } from "./storage";
 import { ContractError, nonNegativeInteger, nullable, oneOf, record } from "./systemMetrics";
 
 export const scanModes = ["standard", "deep", "dev"] as const;
 export type ScanMode = (typeof scanModes)[number];
 
-export const findingCategories = ["cache", "xcode", "pkg", "node", "build", "logs", "large", "old"] as const;
+export const findingCategories = ["cache", "xcode", "pkg", "node", "build", "logs", "large", "old", "apps", "chosen", "broken", "startup"] as const;
 export type FindingCategory = (typeof findingCategories)[number];
 
 const risks = ["low", "medium", "unknown"] as const;
@@ -29,6 +30,7 @@ const whyNots = [
   "appleCache",
   "manageInXcode",
   "userFile",
+  "openInApp",
   "otherVolume",
   "changedSinceScan",
 ] as const;
@@ -68,6 +70,21 @@ export const evidenceCodes = [
   "notOpenedFor",
   "notKnownCache",
   "otherVolume",
+  "leftoverOfRemovedApp",
+  "leftoverNoApp",
+  "losesAppData",
+  "installerFile",
+  "downloadAgain",
+  "chosenByYou",
+  "openInApp",
+  "nothingOpen",
+  "preferencesUnreadable",
+  "appMakesNewPreferences",
+  "programMissing",
+  "agentNotStarted",
+  "inXcodePreviews",
+  "startsAtLogin",
+  "stopsAtNextLogin",
 ] as const;
 export type EvidenceCode = (typeof evidenceCodes)[number];
 
@@ -79,7 +96,7 @@ export interface EvidenceEntry {
   app: string | null;
 }
 
-export type FindingSource = "scan" | "storage" | "developer";
+export type FindingSource = "scan" | "storage" | "developer" | "apps";
 
 export interface ReviewFinding {
   id: string;
@@ -101,6 +118,8 @@ export interface ReviewFinding {
   source: FindingSource;
   /** A Developer catalog ID for a known tool cache. */
   tool: string | null;
+  /** What kind of file a large or old file is, by its extension. */
+  fileCategory: FileCategory | null;
 }
 
 export interface ReviewScan {
@@ -127,7 +146,7 @@ export interface ScanOptionsInput {
   docker: boolean;
 }
 
-export const stepIds = ["appCaches", "logsAndTemp", "packageCaches", "largeAndOld", "xcode", "simulators", "nodeModules", "docker"] as const;
+export const stepIds = ["appCaches", "logsAndTemp", "packageCaches", "largeAndOld", "brokenItems", "xcode", "simulators", "nodeModules", "docker"] as const;
 export type StepId = (typeof stepIds)[number];
 
 export interface StepResult {
@@ -332,8 +351,9 @@ function finding(value: unknown, field: string): ReviewFinding {
     eligibility,
     whyNot,
     evidence: list(fields.evidence, `${field}.evidence`, MAX_EVIDENCE).map((entry, index) => evidence(entry, `${field}.evidence[${index}]`)),
-    source: oneOf(["scan", "storage", "developer"] as const, fields.source, `${field}.source`),
+    source: oneOf(["scan", "storage", "developer", "apps"] as const, fields.source, `${field}.source`),
     tool: nullable(fields.tool, (tool) => text(tool, `${field}.tool`)),
+    fileCategory: nullable(fields.fileCategory, (category) => oneOf(fileCategories, category, `${field}.fileCategory`)),
   };
 }
 
