@@ -1,0 +1,246 @@
+/* Mouse page: Settings' groups and rows (settings.css), with controls side by side. */
+.mouse-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 6px 28px 26px;
+}
+
+.mouse-controls {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* The button finder: the drawn mouse beside what it has seen. */
+.mouse-finder {
+  display: grid;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 18px;
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
+/* The pointer is over the box: buttons and the wheel only light up the drawing. */
+.mouse-finder {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mouse-finder.testing {
+  border-color: var(--mp-link);
+  box-shadow: var(--mp-card-shadow), 0 0 0 3px var(--mp-link-bg);
+}
+
+.mouse-finder-badge {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.mouse-finder-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mouse-finder-last {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.mouse-finder-seen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mouse-diagram {
+  width: 220px;
+  height: auto;
+}
+
+.md-body {
+  fill: var(--mp-card);
+  stroke: var(--mp-border);
+  stroke-width: 2;
+}
+
+.md-part,
+.md-pick rect {
+  fill: var(--mp-seg-bg);
+  stroke: var(--mp-border);
+  stroke-width: 1.5;
+  transition: fill 0.15s ease;
+}
+
+.md-part.seen,
+.md-pick.seen rect {
+  stroke: var(--mp-link);
+}
+
+.md-part.lit,
+.md-pick.lit rect,
+.md-arrow.lit {
+  fill: var(--mp-link);
+  animation: md-blink 0.6s ease-out;
+}
+
+.md-pick {
+  cursor: pointer;
+  outline: none;
+}
+
+.md-pick:hover rect,
+.md-pick:focus-visible rect {
+  stroke: var(--mp-link);
+  stroke-width: 2.5;
+}
+
+.md-arrow {
+  fill: var(--mp-text-2);
+  opacity: 0.45;
+}
+
+.md-arrow.lit {
+  opacity: 1;
+}
+
+.md-label {
+  fill: var(--mp-text-2);
+  font-size: 13px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.md-chip-label {
+  fill: var(--mp-text);
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+@keyframes md-blink {
+  0% {
+    opacity: 0.35;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md-part.lit,
+  .md-pick.lit rect,
+  .md-arrow.lit {
+    animation: none;
+  }
+}
+
+/* Status: whether the settings are working, and what would stop them. */
+.mouse-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+.mouse-status-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.mouse-status-notes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* One combination: its name, then its buttons, keys and what it does. */
+.mouse-combo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.mouse-combo:first-child {
+  border-top: 0;
+}
+
+.mouse-combo-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mouse-combo-fields {
+  display: grid;
+  align-items: center;
+  gap: 8px 14px;
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+
+.mouse-combo-fields .mouse-controls {
+  justify-content: flex-start;
+}
+
+.mouse-combo-label {
+  color: var(--mp-text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mouse-combo-note {
+  margin: 0;
+}
+
+/* A modifier key that is part of the combination, or not. */
+.mouse-key {
+  width: 30px;
+  height: 28px;
+  border: 1px solid var(--mp-border);
+  border-radius: 8px;
+  background: var(--mp-card);
+  color: var(--mp-text-2);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mouse-key.on {
+  border-color: var(--mp-link);
+  background: var(--mp-link-bg);
+  color: var(--mp-link);
+}
+
+.mouse-key:focus-visible {
+  outline: 2px solid var(--mp-link);
+  outline-offset: 1px;
+}
+
+/* A shortcut, shown as keys; pressing it records a new one. */
+.mouse-shortcut {
+  min-width: 72px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--mp-border);
+  border-radius: 8px;
+  background: var(--mp-card);
+  color: var(--mp-text);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.mouse-shortcut.recording {
+  border-color: var(--mp-link);
+  color: var(--mp-link);
+}

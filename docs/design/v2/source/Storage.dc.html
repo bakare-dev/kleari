@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kleari Storage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}
+@keyframes mp-spin{to{transform:rotate(360deg)}}
+.mp-spin{animation:mp-spin 0.9s linear infinite}
+@keyframes mp-sheen{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+.mp-sheen{animation:mp-sheen 1.3s ease-in-out infinite}
+@keyframes mp-glass-in{from{opacity:0}to{opacity:1}}
+@supports (animation-timeline: scroll()){.mp-glass-edge{animation:mp-glass-in linear both;animation-timeline:scroll(nearest block);animation-range:0 28px}}
+@media (prefers-reduced-motion: reduce){.mp-spin,.mp-sheen{animation:none}}
+</style>
+</helmet>
+<div style="width: 1260px; height: 920px; position: relative; overflow: hidden; background: {{t.wallpaper}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; line-height: 1.45; color: {{t.text}}">
+
+<svg aria-hidden="true" width="1260" height="420" viewBox="0 0 1260 420" style="position: absolute; left: 0; bottom: 0">
+<path d="M0 260 L140 170 L240 230 L380 110 L520 220 L640 150 L780 240 L920 120 L1060 210 L1260 140 L1260 420 L0 420 Z" fill="{{t.ridge1}}"></path>
+<path d="M0 330 L180 250 L330 310 L470 230 L640 320 L820 240 L980 310 L1120 250 L1260 300 L1260 420 L0 420 Z" fill="{{t.ridge2}}"></path>
+</svg>
+
+<div style="position: absolute; left: 70px; top: 60px; width: 1120px; height: 800px; display: flex; border-radius: 14px; overflow: hidden; border: 1px solid {{t.windowEdge}}; box-shadow: {{t.windowShadow}}">
+
+<nav aria-label="Main" style="width: 232px; flex-shrink: 0; box-sizing: border-box; padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; background: {{t.glass}}; backdrop-filter: blur(40px) saturate(1.8); -webkit-backdrop-filter: blur(40px) saturate(1.8); border-right: 1px solid {{t.glassEdge}}; box-shadow: inset -1px 0 0 {{t.glassShine}}">
+<div aria-hidden="true" style="display: flex; gap: 8px; height: 20px; align-items: center; padding: 0 4px">
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FF5F57"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FEBC2E"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #28C840"></span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 18px 6px 16px">
+<span style="width: 36px; height: 37px; flex-shrink: 0; display: flex"><svg width="36" height="37" viewBox="-6 -4 112 116" aria-hidden="true" style="display: block; overflow: visible"><defs><linearGradient id="bgAsb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6CC4FF"></stop><stop offset="0.55" stop-color="#2F6FED"></stop><stop offset="1" stop-color="#6D3FE0"></stop></linearGradient><linearGradient id="hlAsb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"></stop><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.06"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></linearGradient><radialGradient id="glAsb" cx="0.3" cy="0.15" r="0.7"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.45"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></radialGradient><filter id="shAsb" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#2F6FED" flood-opacity="0.45"></feDropShadow></filter><filter id="gsAsb"><feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.22"></feDropShadow></filter></defs><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#bgAsb)" filter="url(#shAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#glAsb)"></path><g filter="url(#gsAsb)"><ellipse cx="50" cy="52" rx="36" ry="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="2.6" transform="rotate(-24 50 52)"></ellipse><path d="M30.6 46.2 L70.2 28.6 L52.6 68.2 L48.2 50.6 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"></path><circle cx="80.5" cy="38.5" r="3.6" fill="#FFFFFF"></circle></g><path d="M50,1.5 C86,1.5 98.5,11 98.5,44 C80,36 20,36 1.5,44 C1.5,11 14,1.5 50,1.5 Z" fill="url(#hlAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="1"></path></svg></span>
+<span style="display: flex; flex-direction: column; line-height: 1.2">
+<span style="font-size: 15px; font-weight: 800; letter-spacing: -0.02em">Mac<span style="background: {{t.wordmark}}; -webkit-background-clip: text; background-clip: text; color: transparent">Pilot</span></span>
+<span style="font-size: 11px; color: {{t.text2}}">Scan · Explain · Approve</span>
+</span>
+</div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}; background: {{n.bg}}; box-shadow: {{n.shadow}}; font-weight: {{n.weight}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{n.icon}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="flex-grow: 1"></div>
+<sc-for list="{{navBottom}}" as="n" hint-placeholder-count="2">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}; background: {{n.bg}}; box-shadow: {{n.shadow}}; font-weight: {{n.weight}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{n.icon}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="margin-top: 8px; padding: 10px; border-radius: 10px; background: {{t.glassChip}}; display: flex; gap: 8px; align-items: center; font-size: 11.5px; color: {{t.text2}}">
+<span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,0.2)"></span>
+<span>Offline. Nothing leaves this Mac.</span>
+</div>
+</nav>
+
+<main style="position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: {{t.bg}}; overflow: hidden">
+<header style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 30px 28px 14px">
+<div style="display: flex; flex-direction: column; gap: 3px">
+<h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">Storage</h1>
+<span style="color: {{t.text2}}; font-size: 12.5px">See what is using space on this Mac. This screen only reads; nothing is moved or deleted from here.</span>
+</div>
+<div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0">
+<span style="display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 8px; background: {{t.card}}; border: 1px solid {{t.border}}; box-shadow: {{t.cardShadow}}; font-size: 12px; font-weight: 600">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{t.text2}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12H2M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1zM6 16h.01"></path></svg>Macintosh HD</span>
+<button type="button" disabled="{{busy}}" onClick="{{analyze}}" style="height: 28px; padding: 0 10px; border-radius: 7px; border: 0; background: {{t.linkBg}}; color: {{t.link}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px">
+<sc-if value="{{busy}}" hint-placeholder-val="{{ false }}"><span class="mp-spin" aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; border: 2px solid {{t.linkBg}}; border-top-color: {{t.link}}"></span></sc-if>{{analyzeText}}</button>
+</div>
+</header>
+
+<div style="flex: 1 1 auto; overflow: auto; padding: 4px 28px 22px; display: flex; flex-direction: column; gap: 14px">
+<div class="mp-glass-edge" aria-hidden="true" style="position: sticky; top: 0; z-index: 3; flex-shrink: 0; height: 40px; margin: 0 -28px -54px; pointer-events: none; opacity: 0">
+<div style="position: absolute; inset: 0; backdrop-filter: blur(16px) saturate(1.9) brightness(1.04); -webkit-backdrop-filter: blur(16px) saturate(1.9) brightness(1.04); background: linear-gradient(180deg, {{t.edgeTop}} 0%, {{t.edgeMid}} 55%, rgba(255,255,255,0) 100%); -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0), {{t.edgeLine}} 20%, {{t.edgeLine}} 80%, rgba(255,255,255,0))"></div>
+<div style="position: absolute; left: 28px; right: 28px; top: 1px; height: 14px; border-radius: 0 0 50% 50% / 0 0 100% 100%; background: radial-gradient(ellipse at 50% 0%, {{t.edgeSheen}}, rgba(255,255,255,0) 70%)"></div>
+</div>
+
+
+<section aria-labelledby="cap-h" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: flex-end; gap: 18px">
+<div style="display: flex; flex-direction: column; line-height: 1.2">
+<h2 id="cap-h" style="margin: 0; font-size: 12px; font-weight: 600; color: {{t.text2}}">Used on Macintosh HD</h2>
+<span style="font-size: 30px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">312 GB <span style="font-size: 14px; font-weight: 600; color: {{t.text2}}">of 994 GB</span></span>
+</div>
+<div style="margin-left: auto; display: flex; gap: 10px">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="3">
+<span style="display: flex; flex-direction: column; line-height: 1.25; padding: 7px 12px; border-radius: 10px; background: {{t.infoBg}}">
+<span style="font-size: 11px; color: {{t.text2}}">{{c.label}}</span>
+<span style="font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: {{c.fg}}">{{c.value}}</span>
+</span>
+</sc-for>
+</div>
+</div>
+<div style="position: relative">
+<div role="img" aria-label="312 GB used of 994 GB, split by category" style="display: flex; height: 22px; border-radius: 8px; overflow: hidden; background: {{t.track}}; box-shadow: inset 0 1px 2px rgba(24,34,48,0.08)">
+<sc-for list="{{cats}}" as="c" hint-placeholder-count="6">
+<span title="{{c.label}}" style="width: {{c.width}}; background: {{c.fill}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset -1px 0 0 rgba(255,255,255,0.7); opacity: {{c.barOp}}; transition: opacity 0.2s"></span>
+</sc-for>
+</div>
+</div>
+<div role="group" aria-label="Categories" style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{cats}}" as="c" hint-placeholder-count="6">
+<button type="button" aria-pressed="{{c.on}}" onClick="{{c.pick}}" style="display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px; border-radius: 8px; border: {{c.border}}; background: {{c.bg}}; color: {{t.text}}; font: inherit; font-size: 12px; cursor: pointer">
+<span aria-hidden="true" style="width: 9px; height: 9px; border-radius: 5px; background: {{c.fill}}"></span>
+<span style="font-weight: 600">{{c.label}}</span>
+<span style="color: {{t.text2}}; font-variant-numeric: tabular-nums">{{c.size}}</span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 14px; align-items: start">
+
+<section aria-labelledby="ex-h" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 14px 12px 8px; display: flex; flex-direction: column; gap: 8px; min-height: 452px; box-sizing: border-box">
+<div style="display: flex; align-items: center; gap: 10px; margin: 0 6px">
+<h2 id="ex-h" style="margin: 0; font-size: 15px; font-weight: 700; flex: 1">What is taking space</h2>
+<div role="tablist" aria-label="View" style="display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: 9px; background: {{t.segBg}}; gap: 3px">
+<sc-for list="{{tabs}}" as="v" hint-placeholder-count="2">
+<button type="button" role="tab" aria-selected="{{v.on}}" onClick="{{v.pick}}" style="height: 24px; padding: 0 12px; border-radius: 7px; border: 0; background: {{v.bg}}; box-shadow: {{v.shadow}}; color: {{v.fg}}; font: inherit; font-size: 12px; font-weight: {{v.weight}}; cursor: pointer">{{v.label}}</button>
+</sc-for>
+</div>
+</div>
+
+<sc-if value="{{isFolders}}" hint-placeholder-val="{{ true }}">
+<nav aria-label="Folder path" style="display: flex; align-items: center; flex-wrap: wrap; gap: 2px; margin: 0 4px; font-size: 12px">
+<sc-for list="{{crumbs}}" as="b" hint-placeholder-count="3">
+<sc-if value="{{b.sep}}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.text2}}" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></sc-if>
+<sc-if value="{{b.link}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{b.go}}" style="border: 0; background: transparent; padding: 2px 5px; border-radius: 5px; color: {{t.link}}; font: inherit; font-weight: 600; cursor: pointer">{{b.label}}</button></sc-if>
+<sc-if value="{{b.here}}" hint-placeholder-val="{{ false }}"><span aria-current="location" style="padding: 2px 5px; font-weight: 700">{{b.label}}</span></sc-if>
+</sc-for>
+<span style="margin-left: auto; color: {{t.text2}}; font-variant-numeric: tabular-nums">{{folderTotal}}</span>
+</nav>
+<ul style="margin: 0; padding: 0; list-style: none">
+<sc-for list="{{folders}}" as="r" hint-placeholder-count="6">
+<li style="border-top: 1px solid {{t.borderSolid}}">
+<button type="button" onClick="{{r.open}}" disabled="{{r.leaf}}" aria-label="{{r.aria}}" style="width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 6px; border: 0; border-radius: 8px; background: transparent; color: {{t.text}}; font: inherit; text-align: left; cursor: {{r.cursor}}">
+<span aria-hidden="true" style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; background: {{r.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); display: flex; align-items: center; justify-content: center">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.d}}"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1">
+<span style="display: flex; align-items: center; gap: 8px; min-width: 0">
+<span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</span>
+<sc-if value="{{r.tag}}" hint-placeholder-val="{{ false }}"><span style="flex-shrink: 0; font-size: 10.5px; font-weight: 600; color: {{r.tagFg}}; background: {{r.tagBg}}; border-radius: 5px; padding: 1px 6px">{{r.tag}}</span></sc-if>
+</span>
+<span aria-hidden="true" style="height: 5px; border-radius: 3px; background: {{t.track}}; overflow: hidden"><span style="display: block; height: 100%; width: {{r.width}}; border-radius: 3px; background: {{r.bar}}"></span></span>
+</span>
+<span style="width: 62px; flex-shrink: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{r.size}}</span>
+<span style="width: 14px; flex-shrink: 0; display: flex">
+<sc-if value="{{r.canOpen}}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{t.text2}}" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></sc-if>
+</span>
+</button>
+</li>
+</sc-for>
+</ul>
+</sc-if>
+
+<sc-if value="{{isFiles}}" hint-placeholder-val="{{ false }}">
+<span style="margin: 0 6px; font-size: 11.5px; color: {{t.text2}}">Files over 1 GB. Adding one to review sends it to Cleanup step 2; nothing moves until you approve it there.</span>
+<ul style="margin: 0; padding: 0; list-style: none">
+<sc-for list="{{files}}" as="f" hint-placeholder-count="6">
+<li style="display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-top: 1px solid {{t.borderSolid}}">
+<span aria-hidden="true" style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; background: {{f.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); display: flex; align-items: center; justify-content: center">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="{{f.d}}"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.3">
+<span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{f.name}}</span>
+<span style="font-size: 11px; color: {{t.text2}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace">{{f.path}}</span> · {{f.age}}</span>
+</span>
+<span style="width: 58px; flex-shrink: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{f.size}}</span>
+<span style="width: 118px; flex-shrink: 0; display: flex; justify-content: flex-end; padding-left: 6px; box-sizing: border-box">
+<sc-if value="{{f.canAdd}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{f.add}}" aria-label="{{f.addLabel}}" style="height: 26px; padding: 0 10px; border-radius: 7px; border: 0; background: {{t.linkBg}}; color: {{t.link}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap">Add to review</button></sc-if>
+<sc-if value="{{f.pill}}" hint-placeholder-val="{{ false }}"><span title="{{f.pillTip}}" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: {{f.pillFg}}; background: {{f.pillBg}}; border-radius: 6px; padding: 2px 8px; white-space: nowrap">{{f.pill}}</span></sc-if>
+</span>
+</li>
+</sc-for>
+</ul>
+</sc-if>
+</section>
+
+<div style="display: flex; flex-direction: column; gap: 14px">
+<section aria-labelledby="cat-h" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 12px; align-items: center">
+<span aria-hidden="true" style="width: 42px; height: 42px; flex-shrink: 0; border-radius: 11px; background: {{cat.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 3px 8px {{cat.glow}}; display: flex; align-items: center; justify-content: center">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{cat.d}}"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; line-height: 1.25; min-width: 0">
+<h2 id="cat-h" style="margin: 0; font-size: 15px; font-weight: 700">{{cat.label}}</h2>
+<span style="font-size: 12px; color: {{t.text2}}; font-variant-numeric: tabular-nums">{{cat.size}} · {{cat.pct}} of used space</span>
+</span>
+</div>
+<span style="font-size: 12.5px">{{cat.blurb}}</span>
+<ul style="margin: 0; padding: 4px 12px; list-style: none; border-radius: 10px; background: {{t.infoBg}}">
+<sc-for list="{{cat.top}}" as="x" hint-placeholder-count="3">
+<li style="display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: {{x.divider}}; font-size: 12.5px">
+<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{x.name}}</span><span style="font-weight: 600; font-variant-numeric: tabular-nums">{{x.size}}</span>
+</li>
+</sc-for>
+</ul>
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="font-size: 11px; font-weight: 600; color: {{cat.pillFg}}; background: {{cat.pillBg}}; border-radius: 6px; padding: 2px 8px">{{cat.pill}}</span>
+<sc-if value="{{cat.toCleanup}}" hint-placeholder-val="{{ true }}"><a href="Cleanup.dc.html" style="margin-left: auto; font-size: 12px; font-weight: 600; color: {{t.link}}; background: {{t.linkBg}}; border-radius: 7px; padding: 4px 10px; text-decoration: none">Scan in Cleanup</a></sc-if>
+<sc-if value="{{cat.toBrowse}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{cat.browse}}" style="margin-left: auto; border: 0; font: inherit; font-size: 12px; font-weight: 600; color: {{t.link}}; background: {{t.linkBg}}; border-radius: 7px; padding: 4px 10px; cursor: pointer">Show folders</button></sc-if>
+</div>
+</section>
+
+<section aria-labelledby="os-h" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+<h2 id="os-h" style="margin: 0; font-size: 15px; font-weight: 700">Space macOS manages</h2>
+<span style="font-size: 11.5px; color: {{t.text2}}; margin-top: -4px">Shown for context. Kleari doesn't remove any of these.</span>
+<sc-for list="{{managed}}" as="m" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid {{t.borderSolid}}">
+<span aria-hidden="true" style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 7px; background: {{m.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); display: flex; align-items: center; justify-content: center">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{m.d}}"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; line-height: 1.3; flex: 1; min-width: 0">
+<span style="font-weight: 600; font-size: 12.5px">{{m.label}}</span>
+<span style="font-size: 11px; color: {{t.text2}}">{{m.sub}}</span>
+</span>
+<span style="font-weight: 600; font-variant-numeric: tabular-nums">{{m.size}}</span>
+</div>
+</sc-for>
+</section>
+</div>
+
+</div>
+</div>
+
+<sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 10px; background: {{t.menuBg}}; backdrop-filter: blur(30px) saturate(1.8); -webkit-backdrop-filter: blur(30px) saturate(1.8); border: 1px solid {{t.menuEdge}}; box-shadow: {{t.menuShadow}}; font-weight: 600; white-space: nowrap; z-index: 6">
+<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="{{toastColor}}"></circle><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span>{{toast}}</span>
+</div>
+</sc-if>
+<sc-if value="{{scan.show}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: {{t.scrim}}; display: flex; align-items: center; justify-content: center; z-index: 10">
+<section role="dialog" aria-modal="true" aria-labelledby="an-h" style="width: 460px; box-sizing: border-box; background: {{t.card}}; border: 1px solid {{t.strong}}; border-radius: 16px; box-shadow: {{t.sheetShadow}}; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; gap: 12px; align-items: center">
+<span aria-hidden="true" style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 13px; background: {{scan.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 6px 16px {{scan.glow}}; display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{scan.icon}}"></path></svg>
+</span>
+<div style="display: flex; flex-direction: column; min-width: 0">
+<h2 id="an-h" style="margin: 0; font-size: 17px; font-weight: 700">{{scan.title}}</h2>
+<span aria-live="polite" style="font-size: 12.5px; color: {{t.text2}}">{{scan.sub}}</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div role="progressbar" aria-label="Storage analysis" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{scan.pct}}" style="position: relative; height: 10px; border-radius: 6px; background: {{t.track}}; overflow: hidden; box-shadow: inset 0 1px 2px rgba(24,34,48,0.10)">
+<div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{scan.width}}; border-radius: 6px; background: {{scan.bar}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); transition: width 0.4s ease-out; overflow: hidden">
+<sc-if value="{{scan.running}}" hint-placeholder-val="{{ true }}"><span class="mp-sheen" style="position: absolute; top: 0; bottom: 0; left: 0; width: 40%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.55), rgba(255,255,255,0))"></span></sc-if>
+</div>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: {{t.text2}}; font-variant-numeric: tabular-nums">
+<span>{{scan.counted}}</span><span style="font-weight: 600; color: {{t.text}}">{{scan.pctText}}</span>
+</div>
+</div>
+<ul style="margin: 0; padding: 4px 12px; list-style: none; border-radius: 10px; background: {{t.infoBg}}">
+<sc-for list="{{scan.steps}}" as="r" hint-placeholder-count="5">
+<li style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: {{r.divider}}; font-size: 12.5px">
+<span aria-hidden="true" style="width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center">
+<sc-if value="{{r.isDone}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#1FA45B"></circle><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+<sc-if value="{{r.isNow}}" hint-placeholder-val="{{ false }}"><span class="mp-spin" style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid {{t.track}}; border-top-color: #2F7CF6"></span></sc-if>
+<sc-if value="{{r.isWait}}" hint-placeholder-val="{{ true }}"><span style="width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid {{t.strong}}"></span></sc-if>
+</span>
+<span style="flex: 1; font-weight: {{r.weight}}; color: {{r.fg}}">{{r.label}}</span>
+<span style="font-size: 11.5px; color: {{t.text2}}; font-variant-numeric: tabular-nums">{{r.size}}</span>
+</li>
+</sc-for>
+</ul>
+<div style="display: flex; gap: 10px; align-items: center; padding: 9px 12px; border-radius: 10px; border: 1px solid {{t.border}}; font-size: 12px; color: {{t.text2}}">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{t.okText}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+<span>{{scan.note}}</span>
+</div>
+<div style="display: flex; justify-content: flex-end; gap: 8px">
+<sc-if value="{{scan.running}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{cancelScan}}" style="height: 34px; padding: 0 16px; border-radius: 9px; border: 1px solid {{t.strong}}; background: {{t.card}}; color: {{t.text}}; font: inherit; font-weight: 600; cursor: pointer">Cancel</button></sc-if>
+<sc-if value="{{scan.finished}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{closeScan}}" style="height: 34px; padding: 0 22px; border-radius: 9px; border: 0; background: linear-gradient(180deg, #4C9BFF, #2468D8); color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px rgba(36,104,216,0.3)">{{scan.doneText}}</button></sc-if>
+</div>
+</section>
+</div>
+</sc-if>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"view":{"editor":"enum","options":["folders","files"],"default":"folders"},"$preview":{"width":1260,"height":920}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { view: null, path: [], cat: 'dev', added: {}, scanning: false, scanPct: 0, scanShow: false, scanStopped: false, toast: '', toastColor: '#1FA45B' }; }
+  componentWillUnmount() { clearTimeout(this.toastTimer); clearInterval(this.scanTimer); }
+  theme() {
+    var light = {
+      wallpaper:'linear-gradient(165deg, #9FB3E0 0%, #C3B4DE 38%, #EBC2C4 66%, #B9A6CF 100%)', ridge1:'rgba(92,96,150,0.45)', ridge2:'rgba(60,62,110,0.55)',
+      windowEdge:'rgba(255,255,255,0.6)', windowShadow:'0 30px 80px rgba(30,30,70,0.35), 0 4px 14px rgba(30,30,70,0.18)',
+      glass:'rgba(244,246,252,0.62)', glassEdge:'rgba(255,255,255,0.55)', glassShine:'rgba(255,255,255,0.35)', glassChip:'rgba(255,255,255,0.55)',
+      navSel:'rgba(255,255,255,0.85)', navSelShadow:'0 1px 3px rgba(24,34,48,0.10), inset 0 1px 0 rgba(255,255,255,0.9)',
+      bg:'#F5F7FA', card:'#FFFFFF', border:'rgba(24,34,48,0.07)', borderSolid:'#EEF1F5', strong:'#C5CED9', cardShadow:'0 1px 2px rgba(24,34,48,0.04), 0 8px 24px rgba(24,34,48,0.06)',
+      edgeTop:'rgba(255,255,255,0.62)', edgeMid:'rgba(255,255,255,0.22)', edgeLine:'rgba(255,255,255,0.95)', edgeSheen:'rgba(255,255,255,0.7)', floatTop:'rgba(255,255,255,0.80)', floatBg:'rgba(244,247,252,0.56)', floatEdge:'rgba(255,255,255,0.78)', floatShadow:'0 12px 32px rgba(24,34,48,0.14), 0 2px 6px rgba(24,34,48,0.06), inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(24,34,48,0.05)', thGlass:'rgba(255,255,255,0.72)', wordmark:'linear-gradient(90deg, #2F6FED, #6D3FE0)', text:'#182230', text2:'#5D6878', track:'#EDF0F5', link:'#1F6FEB', linkBg:'rgba(47,124,246,0.10)', infoBg:'#F3F6FA', selRow:'rgba(47,124,246,0.07)', barBg:'rgba(248,250,253,0.92)', segBg:'#E9EDF3', segShadow:'0 1px 3px rgba(24,34,48,0.12)',
+      menuBg:'rgba(250,251,253,0.9)', menuEdge:'rgba(24,34,48,0.10)', menuShadow:'0 12px 32px rgba(24,34,48,0.20)', scrim:'rgba(24,34,48,0.28)', sheetShadow:'0 24px 60px rgba(24,34,48,0.28)',
+      danger:'#C92A2A', dangerText:'#B42332', okText:'#15703F', okBg:'rgba(34,197,94,0.14)', warnText:'#8A5600', warnBg:'rgba(245,158,11,0.18)', mutedText:'#4B5565', mutedBg:'rgba(100,116,139,0.14)'
+    };
+    var dark = {
+      wallpaper:'linear-gradient(165deg, #1D2440 0%, #2E2546 40%, #4A2F44 70%, #1A1C30 100%)', ridge1:'rgba(10,12,28,0.55)', ridge2:'rgba(6,8,20,0.7)',
+      windowEdge:'rgba(255,255,255,0.12)', windowShadow:'0 30px 80px rgba(0,0,0,0.6)',
+      glass:'rgba(34,40,54,0.55)', glassEdge:'rgba(255,255,255,0.08)', glassShine:'rgba(255,255,255,0.05)', glassChip:'rgba(255,255,255,0.06)',
+      navSel:'rgba(255,255,255,0.12)', navSelShadow:'inset 0 1px 0 rgba(255,255,255,0.08)',
+      bg:'#14181E', card:'#1C222B', border:'rgba(255,255,255,0.06)', borderSolid:'#2A323E', strong:'#465364', cardShadow:'none',
+      edgeTop:'rgba(22,27,35,0.72)', edgeMid:'rgba(22,27,35,0.3)', edgeLine:'rgba(255,255,255,0.14)', edgeSheen:'rgba(140,170,255,0.12)', floatTop:'rgba(52,61,76,0.62)', floatBg:'rgba(30,36,46,0.5)', floatEdge:'rgba(255,255,255,0.13)', floatShadow:'0 12px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.10)', thGlass:'rgba(28,34,43,0.72)', wordmark:'linear-gradient(90deg, #7CC0FF, #B49CFF)', text:'#F0F3F7', text2:'#B5BFCC', track:'#2A323E', link:'#8BC0FF', linkBg:'rgba(108,180,255,0.14)', infoBg:'#202731', selRow:'rgba(108,180,255,0.08)', barBg:'rgba(32,39,49,0.92)', segBg:'#252D38', segShadow:'0 1px 3px rgba(0,0,0,0.4)',
+      menuBg:'rgba(37,45,56,0.9)', menuEdge:'rgba(255,255,255,0.10)', menuShadow:'0 12px 32px rgba(0,0,0,0.55)', scrim:'rgba(0,0,0,0.5)', sheetShadow:'0 24px 60px rgba(0,0,0,0.6)',
+      danger:'#FF7D86', dangerText:'#FF7D86', okText:'#68C995', okBg:'rgba(104,201,149,0.14)', warnText:'#F0BD63', warnBg:'rgba(240,189,99,0.14)', mutedText:'#B5BFCC', mutedBg:'rgba(181,191,204,0.12)'
+    };
+    return this.props.dark ? dark : light;
+  }
+  renderVals() {
+    var t = this.theme();
+    var self = this;
+    var st = this.state;
+    var navItem = function (n, active) {
+      var on = n.label === active;
+      return {label:n.label,href:n.href,d:n.d,current:on ? 'page' : undefined,bg:on ? t.navSel : 'transparent',shadow:on ? t.navSelShadow : 'none',icon:on ? '#2F7CF6' : t.text2,weight:on ? 600 : 500};
+    };
+    var nav = [
+      {label:'Dashboard',href:'Main.dc.html',d:'M3 13h8V3H3zM13 21h8V11h-8zM13 3v6h8V3zM3 21h8v-6H3z'},
+      {label:'Cleanup',href:'Cleanup.dc.html',d:'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3'},
+      {label:'Quarantine',href:'Quarantine.dc.html',d:'M21 8v13H3V8M1 3h22v5H1zM10 12h4'},
+      {label:'Storage',href:'Storage.dc.html',d:'M22 12H2M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1zM6 16h.01'},
+      {label:'System',href:'System.dc.html',d:'M22 12h-4l-3 9L9 3l-3 9H2'},
+      {label:'Developer',href:'Developer.dc.html',d:'M16 18l6-6-6-6M8 6l-6 6 6 6'},
+      {label:'Processes',href:'Processes.dc.html',d:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'},
+      {label:'Activity',href:'Activity.dc.html',d:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2'}
+    ].map(function (n) { return navItem(n, 'Storage'); });
+    var navBottom = [
+      {label:'Settings',href:'Settings.dc.html',d:'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6'}
+    ].map(function (n) { return navItem(n, 'Storage'); });
+    var I = {
+      folder:'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z',
+      app:'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
+      code:'M16 18l6-6-6-6M8 6l-6 6 6 6',
+      user:'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+      sys:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
+      cache:'M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15',
+      other:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM8 12h.01M12 12h.01M16 12h.01',
+      file:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6',
+      film:'M2 4h20v16H2zM7 4v16M17 4v16M2 9h5M2 15h5M17 9h5M17 15h5',
+      box:'M21 16V8l-9-5-9 5v8l9 5zM3.3 7L12 12l8.7-5M12 22V12',
+      disk:'M12 2C6.5 2 3 3.6 3 5.5v13C3 20.4 6.5 22 12 22s9-1.6 9-3.5v-13C21 3.6 17.5 2 12 2zM3 5.5C3 7.4 6.5 9 12 9s9-1.6 9-3.5',
+      clock:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2',
+      swap:'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3'
+    };
+    var G = {
+      blue:['linear-gradient(160deg, #6CB4FF, #2F6FED)','rgba(47,111,237,0.35)','linear-gradient(90deg, #6CB4FF, #2F6FED)'],
+      indigo:['linear-gradient(160deg, #9D90FF, #5B4BE0)','rgba(91,75,224,0.35)','linear-gradient(90deg, #9D90FF, #5B4BE0)'],
+      purple:['linear-gradient(160deg, #D8A4FF, #9333EA)','rgba(147,51,234,0.35)','linear-gradient(90deg, #D8A4FF, #9333EA)'],
+      orange:['linear-gradient(160deg, #FFC56E, #F5841F)','rgba(245,132,31,0.35)','linear-gradient(90deg, #FFC56E, #F5841F)'],
+      yellow:['linear-gradient(160deg, #FDE68A, #EAB308)','rgba(234,179,8,0.35)','linear-gradient(90deg, #FDE68A, #EAB308)'],
+      gray:['linear-gradient(160deg, #B6C0CE, #6B7686)','rgba(107,118,134,0.35)','linear-gradient(90deg, #B6C0CE, #6B7686)'],
+      teal:['linear-gradient(160deg, #67E8F9, #0891B2)','rgba(8,145,178,0.35)','linear-gradient(90deg, #67E8F9, #0891B2)'],
+      pink:['linear-gradient(160deg, #FDA4C8, #E1306C)','rgba(225,48,108,0.35)','linear-gradient(90deg, #FDA4C8, #E1306C)']
+    };
+    var fmt = function (gb) { return gb >= 1 ? gb.toFixed(1) + ' GB' : Math.round(gb * 1000) + ' MB'; };
+    var TAG = {
+      review:['Reviewable in Cleanup', t.okText, t.okBg],
+      macos:['Managed by macOS', t.mutedText, t.mutedBg],
+      ro:['Read-only', t.mutedText, t.mutedBg],
+      yours:['Your files', t.link, t.linkBg]
+    };
+    var N = function (name, gb, g, d, tag, kids) { return {name:name, gb:gb, g:g, d:d, tag:tag, kids:kids}; };
+    var tree = N('Macintosh HD', 312, 'gray', I.disk, null, [
+      N('Applications', 142, 'blue', I.app, null, [
+        N('Xcode.app', 38.4, 'indigo', I.code), N('Docker.app', 4.1, 'teal', I.box, 'ro'), N('Adobe Photoshop 2026', 6.2, 'blue', I.app),
+        N('Final Cut Pro.app', 5.9, 'purple', I.film), N('Microsoft Word.app', 2.3, 'blue', I.app), N('84 other apps', 85.1, 'gray', I.app)]),
+      N('Users/bakare', 118, 'purple', I.user, null, [
+        N('Library', 74, 'indigo', I.folder, null, [
+          N('Containers', 30.4, 'teal', I.box, null, [
+            N('com.docker.docker', 28.4, 'teal', I.box, 'ro'), N('Other app containers', 2.0, 'gray', I.folder)]),
+          N('Developer', 24.4, 'indigo', I.code, null, [
+            N('Xcode/DerivedData', 12.6, 'indigo', I.code, 'review'), N('CoreSimulator/Devices', 7.4, 'indigo', I.code, 'macos'),
+            N('Xcode/iOS DeviceSupport', 3.2, 'indigo', I.code, 'review'), N('Other developer files', 1.2, 'gray', I.folder)]),
+          N('Caches', 9.8, 'yellow', I.cache, 'review'), N('Application Support', 7.6, 'blue', I.folder),
+          N('Logs', 1.8, 'yellow', I.file, 'review')]),
+        N('Documents', 18, 'purple', I.file, 'yours'), N('Downloads', 12.6, 'pink', I.folder, 'yours'),
+        N('Desktop', 6.3, 'purple', I.folder, 'yours'), N('Movies', 5.1, 'pink', I.film, 'yours'), N('Other', 2.0, 'gray', I.folder)]),
+      N('System', 32, 'orange', I.sys, 'macos'),
+      N('Library, opt and var', 20, 'teal', I.folder, null, [
+        N('Library/Developer', 8.0, 'indigo', I.code), N('opt/homebrew', 6.0, 'teal', I.box), N('private/var', 4.0, 'orange', I.sys, 'macos'), N('Other', 2.0, 'gray', I.folder)])
+    ]);
+    var catDefs = [
+      {id:'apps',label:'Applications',gb:142,g:'blue',d:I.app,blurb:'Apps in /Applications. Kleari shows how big they are but doesn’t uninstall apps.',top:[['Xcode.app',38.4],['Adobe Photoshop 2026',6.2],['Final Cut Pro.app',5.9]],pill:'Shown only',pillKey:'muted',browse:[0]},
+      {id:'dev',label:'Developer files',gb:68,g:'indigo',d:I.code,blurb:'Build products, simulators and container disks. Some of it rebuilds itself and can be reviewed in Cleanup.',top:[['Docker.raw (read-only)',28.4],['Xcode/DerivedData',12.6],['iOS Simulator runtimes',7.4]],pill:'Partly reviewable',pillKey:'ok',cleanup:true},
+      {id:'user',label:'User files',gb:44,g:'purple',d:I.user,blurb:'Your documents, downloads and media. Kleari never suggests these on its own; you choose what to review.',top:[['Documents',18],['Downloads',12.6],['Desktop',6.3]],pill:'Your files',pillKey:'link',browse:[1]},
+      {id:'sys',label:'System files',gb:32,g:'orange',d:I.sys,blurb:'macOS itself. It is protected and managed by macOS, so Kleari only shows it.',top:[['System',32]],pill:'Managed by macOS',pillKey:'muted'},
+      {id:'cache',label:'Caches and temporary',gb:18,g:'yellow',d:I.cache,blurb:'App caches and logs that apps can recreate. A good place to start, after a scan and your review.',top:[['~/Library/Caches',9.8],['Homebrew cache',4.2],['~/Library/Logs',1.8]],pill:'Reviewable',pillKey:'ok',cleanup:true},
+      {id:'other',label:'Other',gb:8,g:'gray',d:I.other,blurb:'Files that don’t fit a category, such as fonts, plug-ins and hidden app data.',top:[['Hidden app data',4.6],['Fonts and plug-ins',2.1],['Unsorted',1.3]],pill:'Shown only',pillKey:'muted'}
+    ];
+    var PILL = {muted:[t.mutedText,t.mutedBg], ok:[t.okText,t.okBg], link:[t.link,t.linkBg]};
+    var showToast = function (msg, color) { clearTimeout(self.toastTimer); self.setState({toast:msg, toastColor:color || '#1FA45B'}); self.toastTimer = setTimeout(function () { self.setState({toast:''}); }, 3500); };
+    var cats = catDefs.map(function (c) {
+      var on = c.id === st.cat;
+      return {label:c.label, size:c.gb + ' GB', fill:G[c.g][2], width:(c.gb / 994 * 100).toFixed(2) + '%', on:on,
+        barOp:on ? 1 : (self.props.dark ? 0.75 : 0.55), border:on ? '1.5px solid ' + t.link : '1px solid ' + t.border, bg:on ? t.linkBg : t.card,
+        pick:function () { self.setState({cat:c.id}); }};
+    });
+    var sel = catDefs.filter(function (c) { return c.id === st.cat; })[0];
+    var view = st.view || this.props.view || 'folders';
+    var setView = function (v) { self.setState({view:v}); };
+    var node = tree, chain = [tree];
+    st.path.forEach(function (k) { node = node.kids[k]; chain.push(node); });
+    var crumbs = chain.map(function (n, k) {
+      var last = k === chain.length - 1;
+      return {label:k === 0 ? 'Macintosh HD' : n.name, sep:k > 0, link:!last, here:last, go:function () { self.setState({path:st.path.slice(0, k)}); }};
+    });
+    var maxGb = node.kids.reduce(function (a, n) { return Math.max(a, n.gb); }, 0);
+    var folders = node.kids.slice().map(function (n, k) { return [n, k]; }).sort(function (a, b) { return b[0].gb - a[0].gb; }).map(function (p) {
+      var n = p[0], k = p[1], can = !!n.kids, tg = n.tag ? TAG[n.tag] : null;
+      return {name:n.name, size:fmt(n.gb), tile:G[n.g][0], bar:G[n.g][2], d:n.d, width:(n.gb / maxGb * 100).toFixed(1) + '%',
+        tag:tg ? tg[0] : '', tagFg:tg ? tg[1] : '', tagBg:tg ? tg[2] : '',
+        canOpen:can, leaf:!can, cursor:can ? 'pointer' : 'default', aria:can ? 'Open ' + n.name + ', ' + fmt(n.gb) : n.name + ', ' + fmt(n.gb),
+        open:function () { if (can) self.setState({path:st.path.concat([k])}); }};
+    });
+    var fileDefs = [
+      {id:'f1',name:'Docker.raw',path:'~/Library/Containers/com.docker.docker/Data/vms',gb:28.4,g:'teal',d:I.box,pill:['Read-only',t.mutedText,t.mutedBg],tip:'Docker data. Kleari never changes it.',age:'Docker disk image · used today'},
+      {id:'f2',name:'iOS 18.2 Simulator runtime',path:'/Library/Developer/CoreSimulator/Volumes',gb:7.4,g:'indigo',d:I.code,pill:['Xcode managed',t.mutedText,t.mutedBg],tip:'Remove runtimes from Xcode settings.',age:'Simulator runtime · used 2 weeks ago'},
+      {id:'f3',name:'ubuntu-24.04-desktop.iso',path:'~/Downloads',age:'not opened in 8 months',gb:6.1,g:'pink',d:I.disk},
+      {id:'f4',name:'Xcode_17.xip',path:'~/Downloads',age:'not opened in 3 months',gb:4.6,g:'indigo',d:I.box},
+      {id:'f5',name:'Screen Recording 2026-05-02.mov',path:'~/Desktop',age:'not opened in 5 months',gb:3.8,g:'purple',d:I.film},
+      {id:'f6',name:'project-backup-2025.zip',path:'~/Documents',age:'not opened in 1 year',gb:2.9,g:'orange',d:I.file}
+    ];
+    var files = fileDefs.map(function (f) {
+      var inRev = !!st.added[f.id];
+      var pill = f.pill || (inRev ? ['In review', t.okText, t.okBg] : null);
+      return {name:f.name, path:f.path, age:f.age, size:fmt(f.gb), tile:G[f.g][0], d:f.d,
+        canAdd:!pill, pill:pill ? pill[0] : '', pillTip:f.tip || '', pillFg:pill ? pill[1] : '', pillBg:pill ? pill[2] : '', addLabel:'Add ' + f.name + ' to review',
+        add:function () { var a = Object.assign({}, self.state.added); a[f.id] = true; self.setState({added:a}); showToast('Added ' + f.name + ' to Cleanup review. Nothing has moved.'); }};
+    });
+    var nAdded = Object.keys(st.added).length;
+    var steps = ['Reading Applications', 'Reading your home folder', 'Reading Library', 'Sizing system files', 'Sorting by category'];
+    var pc = PILL[sel.pillKey];
+    return {
+      t:t, nav:nav, navBottom:navBottom, cats:cats,
+      chips:[
+        {label:'Available',value:'682 GB',fg:t.okText},
+        {label:'In quarantine',value:'7.7 GB',fg:t.warnText},
+        {label:'Added to review',value:nAdded ? String(nAdded) + (nAdded === 1 ? ' file' : ' files') : 'None',fg:t.text}
+      ],
+      busy:st.scanShow, analyzeText:st.scanning ? 'Analyzing…' : 'Analyze again',
+      scan:(function () {
+        var defs = [['Applications', 142], ['Your home folder', 118], ['System files', 32], ['Library, opt and var', 20], ['Sorting into categories', null]];
+        var p = st.scanPct, idx = Math.min(Math.floor(p / 20), 4), done = !st.scanning, stopped = st.scanStopped;
+        var counted = defs.slice(0, done && !stopped ? 4 : Math.min(idx, 4)).reduce(function (a, d) { return a + (d[1] || 0); }, 0);
+        return {
+          show:st.scanShow, running:st.scanning, finished:!st.scanning,
+          title:st.scanning ? 'Analyzing Macintosh HD' : (stopped ? 'Analysis stopped' : 'Analysis complete'),
+          sub:st.scanning ? defs[idx][0] + '…' : (stopped ? 'Showing the results from your last analysis.' : '312 GB used · 0.6 GB more than last time'),
+          tile:stopped ? 'linear-gradient(160deg, #FFC56E, #F5841F)' : (st.scanning ? 'linear-gradient(160deg, #6CB4FF, #2F6FED)' : 'linear-gradient(160deg, #6EE7A0, #1FA45B)'),
+          glow:stopped ? 'rgba(245,132,31,0.35)' : (st.scanning ? 'rgba(47,111,237,0.35)' : 'rgba(31,164,91,0.35)'),
+          icon:stopped ? 'M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z' : (st.scanning ? 'M22 12H2M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1zM6 16h.01' : 'M20 6L9 17l-5-5'),
+          bar:stopped ? 'linear-gradient(180deg, #FFC56E, #F5841F)' : (st.scanning ? 'linear-gradient(90deg, #4C9BFF, #8B7CFF)' : 'linear-gradient(180deg, #6EE7A0, #1FA45B)'),
+          pct:p, pctText:p + '%', width:Math.max(p, 3) + '%', counted:counted + ' GB of 312 GB counted',
+          note:'Read-only. Analyzing only measures sizes; nothing is moved or deleted.',
+          doneText:stopped ? 'Close' : 'Done',
+          steps:defs.map(function (d, k) {
+            var isDone = done && !stopped ? true : k < idx, isNow = st.scanning && k === idx;
+            return {label:d[0], size:isDone && d[1] ? d[1] + ' GB' : (isNow ? 'Reading…' : (stopped && !isDone ? 'Skipped' : '')),
+              divider:k ? '1px solid ' + t.borderSolid : '0', isDone:isDone, isNow:isNow, isWait:!isDone && !isNow,
+              weight:isNow ? 600 : 500, fg:!isDone && !isNow ? t.text2 : t.text};
+          })
+        };
+      })(),
+      analyze:function () {
+        if (self.state.scanning) return;
+        self.setState({scanning:true, scanShow:true, scanStopped:false, scanPct:0});
+        clearInterval(self.scanTimer);
+        self.scanTimer = setInterval(function () {
+          var p = Math.min(self.state.scanPct + 5, 100);
+          if (p >= 100) { clearInterval(self.scanTimer); self.setState({scanning:false, scanPct:100}); }
+          else self.setState({scanPct:p});
+        }, 220);
+      },
+      cancelScan:function () { clearInterval(self.scanTimer); self.setState({scanning:false, scanStopped:true}); },
+      closeScan:function () {
+        var ok = !self.state.scanStopped;
+        self.setState({scanShow:false});
+        if (ok) showToast('Storage analysis updated. Nothing was changed.');
+      },
+      tabs:[['folders','Largest folders'],['files','Large files']].map(function (v) {
+        var on = view === v[0];
+        return {label:v[1], on:on, bg:on ? t.card : 'transparent', shadow:on ? t.segShadow : 'none', fg:on ? t.text : t.text2, weight:on ? 600 : 500, pick:function () { setView(v[0]); }};
+      }),
+      isFolders:view === 'folders', isFiles:view === 'files',
+      crumbs:crumbs, folders:folders, folderTotal:fmt(node.gb) + ' total', files:files,
+      cat:{label:sel.label, size:sel.gb + ' GB', pct:Math.round(sel.gb / 312 * 100) + '%', tile:G[sel.g][0], glow:G[sel.g][1], d:sel.d, blurb:sel.blurb,
+        top:sel.top.map(function (x, k) { return {name:x[0], size:fmt(x[1]), divider:k ? '1px solid ' + t.borderSolid : '0'}; }),
+        pill:sel.pill, pillFg:pc[0], pillBg:pc[1], toCleanup:!!sel.cleanup, toBrowse:!!sel.browse,
+        browse:function () { self.setState({view:'folders', path:sel.browse || []}); }},
+      managed:[
+        {label:'Purgeable space',sub:'macOS frees this on its own when needed',size:'14.2 GB',tile:G.blue[0],d:I.disk},
+        {label:'Local Time Machine snapshots',sub:'Removed by macOS over time',size:'6.1 GB',tile:G.teal[0],d:I.clock},
+        {label:'Swap and sleep image',sub:'Used for memory and sleep',size:'3.0 GB',tile:G.gray[0],d:I.swap}
+      ],
+      toast:st.toast, toastColor:st.toastColor
+    };
+  }
+}
+</script>
+</body>
+</html>

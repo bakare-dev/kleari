@@ -1,0 +1,20 @@
+version: 2
+# Updates are proposed into `beta`, where all changes land first (CONTRIBUTING.md).
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: beta
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: cargo
+    directory: /apps/desktop/src-tauri
+    target-branch: beta
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: beta
+    schedule:
+      interval: monthly

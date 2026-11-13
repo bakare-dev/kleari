@@ -1,0 +1,239 @@
+/* Only the list of batches scrolls; the totals and the note stay put, as on Processes. */
+.q-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+  padding: 4px 28px 12px;
+}
+
+.q-list {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0 -6px;
+  padding: 0 6px 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.q-batch {
+  flex-shrink: 0;
+  padding: 12px 12px 6px;
+}
+
+.q-batch-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 6px 6px;
+}
+
+.q-batch-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.q-batch-title h2 {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.q-batch-size {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.q-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.q-rows li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.q-rows li.selected {
+  background: var(--mp-sel-row);
+}
+
+.q-size {
+  width: 64px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+.q-status {
+  display: flex;
+  width: 150px;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  margin-left: 8px;
+}
+
+.q-action {
+  display: flex;
+  width: 76px;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+.q-more {
+  display: block;
+  width: 100%;
+  margin-top: 2px;
+  padding: 8px;
+  border: 0;
+  border-top: 1px solid var(--mp-border-solid);
+  background: transparent;
+  color: var(--mp-link);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.q-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px;
+  text-align: center;
+}
+
+.q-delete {
+  height: 34px;
+  padding: 0 14px;
+}
+
+.q-delete-dialog {
+  width: 480px;
+}
+
+.q-danger-text {
+  color: var(--mp-danger-text);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.q-delete-list {
+  max-height: 150px;
+  overflow: auto;
+}
+
+.q-delete-actions > :last-child {
+  flex: 1.2;
+}
+
+.q-delete-actions .v2-btn {
+  height: 36px;
+}
+
+.q-conflict-path {
+  align-self: stretch;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--mp-info-bg);
+  font-size: 11.5px;
+  text-align: left;
+  word-break: break-all;
+}
+
+.q-job {
+  gap: 14px;
+}
+
+.q-job-sub {
+  font-size: 12.5px;
+}
+
+.q-job-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.q-job-numbers {
+  display: flex;
+  justify-content: space-between;
+  color: var(--mp-text-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.q-job-numbers strong {
+  color: var(--mp-text);
+}
+
+.q-job-list {
+  max-height: 170px;
+  overflow: auto;
+}
+
+.q-job-list > li {
+  align-items: center;
+  padding: 7px 0;
+}
+
+.q-job-icon {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.q-job-wait {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--mp-strong);
+  border-radius: 50%;
+}
+
+.q-job-name {
+  min-width: 0;
+  flex: 1;
+}
+
+.q-job-state {
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+}
+
+.q-job-state.now {
+  color: var(--mp-danger-text);
+}
+
+.q-job-state.kept {
+  color: var(--mp-warn-text);
+}
+
+.q-job-size {
+  width: 58px;
+  color: var(--mp-text-2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.q-job-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.q-job-foot .v2-card-note {
+  flex: 1;
+  font-size: 12px;
+}

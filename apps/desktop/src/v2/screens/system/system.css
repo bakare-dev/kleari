@@ -1,0 +1,287 @@
+.sys-gauge {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  padding: 12px 14px 14px;
+}
+
+.sys-gauge-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.sys-gauge-label {
+  color: var(--mp-text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.sys-gauge-pill {
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 10.5px;
+}
+
+.sys-gauge-body {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+
+/* Beside the ring while it fits; on a narrow card it moves below the ring rather than
+   squeezing words apart. */
+.sys-gauge-text {
+  flex: 1 1 96px;
+  min-width: 96px;
+}
+
+/* Readings are shown in full: a long one wraps onto the next line, never cut short. */
+.sys-gauge-value {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+}
+
+.sys-gauge-sub {
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+  line-height: 1.3;
+  overflow-wrap: break-word;
+}
+
+.sys-pair {
+  display: grid;
+  align-items: stretch;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+}
+
+.sys-pair-even {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.sys-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.sys-chart-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sys-chart-head h2 {
+  flex: 1;
+}
+
+.sys-chart-legend {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+}
+
+.sys-chart-legend > span:not(.sys-chart-note) {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.sys-chart-legend strong {
+  font-size: 18px;
+}
+
+.sys-legend-dot {
+  width: 9px;
+  height: 9px;
+  align-self: center;
+  border-radius: 5px;
+  background: var(--c2);
+}
+
+.sys-chart-note {
+  margin-left: auto;
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+}
+
+.sys-chart-svg {
+  display: block;
+}
+
+.sys-chart-frame {
+  position: relative;
+}
+
+.sys-chart-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mp-text-2);
+  font-size: 12px;
+}
+
+.sys-note-region:empty {
+  display: none;
+}
+
+.sys-note {
+  font-size: 12px;
+}
+
+.sys-bg-note {
+  margin: 6px 6px 2px;
+}
+
+.sys-grid {
+  stroke: var(--mp-border-solid);
+}
+
+.sys-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--mp-text-2);
+  font-size: 11px;
+}
+
+.sys-mac {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.sys-mac-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sys-mac-sub {
+  font-size: 12px;
+}
+
+.sys-specs {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.sys-specs > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.sys-specs dt {
+  color: var(--mp-text-2);
+}
+
+.sys-specs dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+.sys-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 12px 8px;
+}
+
+.sys-list-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 6px 4px;
+}
+
+.sys-list-head h2 {
+  flex: 1;
+}
+
+.sys-bg-summary {
+  margin: -2px 6px 4px;
+}
+
+.sys-bg-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 6px;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.sys-bg-row.wide {
+  padding: 8px 4px;
+}
+
+.sys-bg-impact {
+  color: var(--mp-text-2);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sys-bg-row.wide .sys-bg-impact {
+  width: 90px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.sys-bg-row.wide .sys-bg-status {
+  display: flex;
+  width: 92px;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+.sys-more {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-top: 1px solid var(--mp-border-solid);
+  background: transparent;
+  color: var(--mp-link);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sys-all {
+  width: 520px;
+  max-height: 640px;
+}
+
+.sys-all-body {
+  max-height: 640px;
+  padding: 22px;
+}
+
+.sys-all-info {
+  font-size: 12px;
+}
+
+.sys-all-list {
+  min-height: 0;
+  padding: 0 4px;
+  overflow: auto;
+}

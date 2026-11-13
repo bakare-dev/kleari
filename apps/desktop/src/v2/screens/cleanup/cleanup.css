@@ -1,0 +1,581 @@
+/* Cleanup step tabs (shared by Cleanup, Review and Preview). */
+.clean-steps {
+  display: grid;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 11px;
+  background: var(--mp-seg-bg);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.clean-step {
+  display: flex;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 8px;
+  color: var(--mp-text-2);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.clean-step.done:hover {
+  background: var(--mp-glass-chip);
+  color: var(--mp-text);
+}
+
+.clean-step.current {
+  background: var(--mp-card);
+  box-shadow: var(--mp-seg-shadow);
+  color: var(--mp-text);
+  font-weight: 600;
+}
+
+.clean-step-num {
+  display: flex;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--mp-strong);
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.clean-step.current .clean-step-num {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  background: linear-gradient(160deg, #6cb4ff, #2468d8);
+  color: #ffffff;
+  font-size: 10px;
+}
+
+.clean-body {
+  gap: 16px;
+  padding: 6px 28px 26px;
+}
+
+/* Scan modes */
+
+.clean-mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 2px solid var(--mp-border);
+  color: var(--mp-text);
+  text-align: left;
+}
+
+.clean-mode.on {
+  border-color: var(--mp-ring-color);
+  box-shadow: var(--mp-ring);
+}
+
+.clean-mode-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.clean-mode-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.clean-mode-sub {
+  color: var(--mp-text-2);
+  font-size: 12px;
+}
+
+.clean-mode-meta {
+  margin-top: 4px;
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+}
+
+.clean-pair {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Folders */
+
+.clean-scope {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 12px 10px;
+}
+
+.clean-folder {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 6px;
+  border-radius: 10px;
+}
+
+.clean-folder-path {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.clean-folder-note {
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+}
+
+.clean-scope .v2-pill {
+  padding: 2px 8px;
+  font-size: 11.5px;
+}
+
+.clean-grant {
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 6px;
+  font-size: 11.5px;
+}
+
+/* Run card */
+
+.clean-run {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.clean-run-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.clean-ring {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  flex-shrink: 0;
+}
+
+.clean-ring > svg {
+  position: absolute;
+  inset: 0;
+}
+
+.clean-ring-spin {
+  animation: v2-spin 1.2s linear infinite;
+}
+
+.clean-ring-hero {
+  position: absolute;
+  inset: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(160deg, var(--c1), var(--c2));
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 6px 16px var(--glow);
+  color: #ffffff;
+}
+
+.clean-run-status {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.clean-run-mode {
+  color: var(--fg);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.clean-run-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.clean-run-detail {
+  color: var(--mp-text-2);
+  font-size: 12px;
+}
+
+.clean-looks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.clean-looks-label {
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.clean-looks ul {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clean-looks li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.clean-look-tick {
+  display: flex;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: linear-gradient(160deg, var(--c1), var(--c2));
+  color: #ffffff;
+}
+
+.clean-look-title {
+  font-weight: 600;
+}
+
+.clean-look-sub {
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+}
+
+.clean-note {
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--c2) 9%, transparent);
+  font-size: 12px;
+}
+
+.clean-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--fg);
+}
+
+.clean-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.clean-progress ol {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clean-progress li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clean-progress li > span:nth-child(2) {
+  flex: 1;
+}
+
+.clean-progress li.pending {
+  color: var(--mp-text-2);
+}
+
+.clean-step-active {
+  font-weight: 600;
+}
+
+.clean-step-meta {
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.clean-step-spin {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 3px solid var(--mp-track);
+  border-top-color: var(--c2, var(--v2-check));
+  border-radius: 50%;
+  animation: v2-spin 0.9s linear infinite;
+}
+
+.clean-step-wait {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 2px dashed var(--mp-strong);
+  border-radius: 50%;
+}
+
+.clean-bar {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--mp-track);
+}
+
+.clean-bar > div {
+  height: 7px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+  transition: width 0.4s ease-out;
+}
+
+/* While a step runs, a sheen moves across the filled part so the scan visibly works. */
+.clean-bar.running > div {
+  position: relative;
+  overflow: hidden;
+}
+
+.clean-bar.running > div::after {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+  animation: v2-sheen 1.4s ease-in-out infinite;
+  content: "";
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clean-bar.running > div::after {
+    animation: none;
+  }
+}
+
+.clean-progress-text {
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.clean-results {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+  list-style: none;
+}
+
+.clean-results li {
+  display: grid;
+  align-items: center;
+  gap: 10px;
+  grid-template-columns: 12px 1fr auto auto;
+}
+
+.clean-result-label {
+  font-weight: 600;
+}
+
+.clean-result-label span {
+  color: var(--mp-text-2);
+  font-weight: 400;
+}
+
+.clean-result-size {
+  font-weight: 600;
+}
+
+.clean-run-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.clean-run-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.clean-again {
+  height: 34px;
+  padding: 0 14px;
+  color: var(--mp-link);
+}
+
+.clean-review {
+  background: linear-gradient(180deg, var(--c1), var(--c2));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* Split start button and its options menu */
+
+.clean-split {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.clean-split-buttons {
+  display: flex;
+  overflow: hidden;
+  border-radius: 9px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 12px var(--glow);
+}
+
+.clean-split-main,
+.clean-split-more {
+  height: 34px;
+  border: 0;
+  background: linear-gradient(180deg, var(--c1), var(--c2));
+  color: #ffffff;
+}
+
+.clean-split-main {
+  padding: 0 18px;
+  font-weight: 600;
+}
+
+.clean-split-more {
+  display: flex;
+  width: 32px;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.clean-menu {
+  right: 0;
+  bottom: 42px;
+  width: 290px;
+}
+
+.clean-menu-start {
+  background: var(--c2);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.clean-menu-start:hover,
+.clean-menu-start:focus-visible {
+  background: var(--c2) !important;
+  filter: brightness(1.08);
+}
+
+.clean-menu-start .v2-menu-hint {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.clean-menu-mark {
+  color: var(--fg);
+}
+
+/* Last scan */
+
+.clean-last {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.clean-last-head {
+  margin: 0;
+}
+
+.clean-last-bar {
+  display: flex;
+  height: 12px;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+.clean-last-bar span {
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+}
+
+.clean-last-cat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.clean-last-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.clean-last-size {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.clean-last-size span {
+  color: var(--mp-text-2);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.clean-last-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.clean-last-pills .v2-pill {
+  padding: 1px 7px;
+}
+
+/* Grant access dialog (folders are added with the macOS folder panel) */
+
+.clean-access-facts {
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.v2-modal-center .clean-access-facts {
+  align-self: stretch;
+  margin-top: 4px;
+  text-align: left;
+}
+
+.clean-fact-ok {
+  display: flex;
+  color: #1fa45b;
+}
+
+.clean-fact-info {
+  display: flex;
+  color: var(--v2-check);
+}
+
+.clean-grant-spin {
+  width: 28px;
+  height: 28px;
+}

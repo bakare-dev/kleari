@@ -1,0 +1,56 @@
+[package]
+name = "kleari"
+version = "0.1.0-beta.1"
+description = "Kleari desktop app"
+authors = ["Kleari"]
+license = "GPL-3.0-or-later"
+edition = "2021"
+# sysinfo 0.39+ needs Rust 1.95, the highest minimum among the resolved dependencies.
+rust-version = "1.95"
+
+[lib]
+name = "kleari_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+sysinfo = { version = "0.40.1", default-features = false, features = ["system", "disk", "network"] }
+# Launch agent and daemon plists (startup items). Already in the tree via Tauri.
+plist = { version = "1.10.3", default-features = false }
+# Docker's `system/df` and npm's package.json (Developer page). Already in the tree via Tauri.
+serde_json = "1"
+# tray-icon: the menu-bar item (its icon is raw pixels, so no image decoder is added).
+tauri = { version = "2", features = ["tray-icon"] }
+# Local history of cleanups and quarantine (ADR-006). SQLite is compiled in (`bundled`) so
+# the schema doesn't depend on the macOS library's version; no other feature is enabled.
+rusqlite = { version = "0.41.1", default-features = false, features = ["bundled"] }
+tauri-plugin-updater = "2"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+# Race-free, no-follow directory traversal for storage discovery (storage/fsdir.rs). Already
+# in the tree via sysinfo and Tauri.
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.191"
+
+# macOS integrations. All crates are already in the tree (via sysinfo and Tauri); only
+# feature flags are added. IOKit: power sources and registry properties (GPU cores, battery
+# health). CoreGraphics: display size. AppKit/Foundation: the folder panel, display name,
+# thermal state and opening System Settings.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { version = "0.6.5", default-features = false, features = ["std"] }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "block2", "objc2-core-graphics", "NSApplication", "NSEvent", "NSGraphics", "NSGraphicsContext", "NSOpenPanel", "NSPanel", "NSResponder", "NSRunningApplication", "NSSavePanel", "NSScreen", "NSWindow", "NSWorkspace", "libc"] }
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFBase", "CFDate", "CFDictionary", "CFMachPort", "CFNumber", "CFRunLoop", "CFString"] }
+# CGEvent*: the Mouse module's event tap and the events it posts (ADR-016).
+objc2-core-graphics = { version = "0.3.2", default-features = false, features = ["std", "libc", "CGDirectDisplay", "CGDisplayConfiguration", "CGError", "CGEvent", "CGEventSource", "CGEventTypes", "CGRemoteOperation"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSBundle", "NSDictionary", "NSError", "NSFileManager", "NSProcessInfo", "NSString", "NSURL", "NSValue"] }
+# Notifications (Settings › Notifications) and the completion blocks their API takes. Both
+# are already in the tree via Tauri.
+objc2-user-notifications = { version = "0.3.2", default-features = false, features = ["std", "block2", "UNNotification", "UNNotificationContent", "UNNotificationRequest", "UNNotificationResponse", "UNNotificationSettings", "UNNotificationSound", "UNNotificationTrigger", "UNUserNotificationCenter"] }
+block2 = { version = "0.6.2", default-features = false, features = ["std"] }
+objc2-io-kit = { version = "0.3.2", default-features = false, features = ["std", "libc", "ps"] }

@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kleari Quarantine</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}
+@keyframes mp-spin{to{transform:rotate(360deg)}}
+.mp-spin{animation:mp-spin 0.9s linear infinite}
+@keyframes mp-sheen{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+.mp-sheen{animation:mp-sheen 1.3s ease-in-out infinite}
+@keyframes mp-glass-in{from{opacity:0}to{opacity:1}}
+@supports (animation-timeline: scroll()){.mp-glass-edge{animation:mp-glass-in linear both;animation-timeline:scroll(nearest block);animation-range:0 28px}}
+@media (prefers-reduced-motion: reduce){.mp-spin,.mp-sheen{animation:none}}
+</style>
+</helmet>
+<div style="width: 1260px; height: 920px; position: relative; overflow: hidden; background: {{t.wallpaper}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; line-height: 1.45; color: {{t.text}}">
+
+<svg aria-hidden="true" width="1260" height="420" viewBox="0 0 1260 420" style="position: absolute; left: 0; bottom: 0">
+<path d="M0 260 L140 170 L240 230 L380 110 L520 220 L640 150 L780 240 L920 120 L1060 210 L1260 140 L1260 420 L0 420 Z" fill="{{t.ridge1}}"></path>
+<path d="M0 330 L180 250 L330 310 L470 230 L640 320 L820 240 L980 310 L1120 250 L1260 300 L1260 420 L0 420 Z" fill="{{t.ridge2}}"></path>
+</svg>
+
+<div style="position: absolute; left: 70px; top: 60px; width: 1120px; height: 800px; display: flex; border-radius: 14px; overflow: hidden; border: 1px solid {{t.windowEdge}}; box-shadow: {{t.windowShadow}}">
+
+<nav aria-label="Main" style="width: 232px; flex-shrink: 0; box-sizing: border-box; padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; background: {{t.glass}}; backdrop-filter: blur(40px) saturate(1.8); -webkit-backdrop-filter: blur(40px) saturate(1.8); border-right: 1px solid {{t.glassEdge}}; box-shadow: inset -1px 0 0 {{t.glassShine}}">
+<div aria-hidden="true" style="display: flex; gap: 8px; height: 20px; align-items: center; padding: 0 4px">
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FF5F57"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FEBC2E"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #28C840"></span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 18px 6px 16px">
+<span style="width: 36px; height: 37px; flex-shrink: 0; display: flex"><svg width="36" height="37" viewBox="-6 -4 112 116" aria-hidden="true" style="display: block; overflow: visible"><defs><linearGradient id="bgAsb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6CC4FF"></stop><stop offset="0.55" stop-color="#2F6FED"></stop><stop offset="1" stop-color="#6D3FE0"></stop></linearGradient><linearGradient id="hlAsb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"></stop><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.06"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></linearGradient><radialGradient id="glAsb" cx="0.3" cy="0.15" r="0.7"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.45"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></radialGradient><filter id="shAsb" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#2F6FED" flood-opacity="0.45"></feDropShadow></filter><filter id="gsAsb"><feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.22"></feDropShadow></filter></defs><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#bgAsb)" filter="url(#shAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#glAsb)"></path><g filter="url(#gsAsb)"><ellipse cx="50" cy="52" rx="36" ry="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="2.6" transform="rotate(-24 50 52)"></ellipse><path d="M30.6 46.2 L70.2 28.6 L52.6 68.2 L48.2 50.6 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"></path><circle cx="80.5" cy="38.5" r="3.6" fill="#FFFFFF"></circle></g><path d="M50,1.5 C86,1.5 98.5,11 98.5,44 C80,36 20,36 1.5,44 C1.5,11 14,1.5 50,1.5 Z" fill="url(#hlAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="1"></path></svg></span>
+<span style="display: flex; flex-direction: column; line-height: 1.2">
+<span style="font-size: 15px; font-weight: 800; letter-spacing: -0.02em">Mac<span style="background: {{t.wordmark}}; -webkit-background-clip: text; background-clip: text; color: transparent">Pilot</span></span>
+<span style="font-size: 11px; color: {{t.text2}}">Scan · Explain · Approve</span>
+</span>
+</div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}; background: {{n.bg}}; box-shadow: {{n.shadow}}; font-weight: {{n.weight}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{n.icon}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="flex-grow: 1"></div>
+<sc-for list="{{navBottom}}" as="n" hint-placeholder-count="2">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}; background: {{n.bg}}; box-shadow: {{n.shadow}}; font-weight: {{n.weight}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{n.icon}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="margin-top: 8px; padding: 10px; border-radius: 10px; background: {{t.glassChip}}; display: flex; gap: 8px; align-items: center; font-size: 11.5px; color: {{t.text2}}">
+<span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,0.2)"></span>
+<span>Offline. Nothing leaves this Mac.</span>
+</div>
+</nav>
+
+<main style="position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: {{t.bg}}; overflow: hidden">
+<header style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 30px 28px 14px">
+<div style="display: flex; flex-direction: column; gap: 3px">
+<h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">Quarantine</h1>
+<span style="color: {{t.text2}}; font-size: 12.5px">Items here have left their original place but are still on this Mac. Restore any of them at any time.</span>
+</div>
+<a href="Cleanup.dc.html" style="flex-shrink: 0; font-size: 12px; font-weight: 600; color: {{t.link}}; background: {{t.linkBg}}; border-radius: 7px; padding: 5px 10px; text-decoration: none">Back to Cleanup</a>
+</header>
+
+<div style="flex: 1 1 auto; overflow: auto; padding: 4px 28px 104px; margin-bottom: -86px; display: flex; flex-direction: column; gap: 14px">
+<div class="mp-glass-edge" aria-hidden="true" style="position: sticky; top: 0; z-index: 3; flex-shrink: 0; height: 40px; margin: 0 -28px -54px; pointer-events: none; opacity: 0">
+<div style="position: absolute; inset: 0; backdrop-filter: blur(16px) saturate(1.9) brightness(1.04); -webkit-backdrop-filter: blur(16px) saturate(1.9) brightness(1.04); background: linear-gradient(180deg, {{t.edgeTop}} 0%, {{t.edgeMid}} 55%, rgba(255,255,255,0) 100%); -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0), {{t.edgeLine}} 20%, {{t.edgeLine}} 80%, rgba(255,255,255,0))"></div>
+<div style="position: absolute; left: 28px; right: 28px; top: 1px; height: 14px; border-radius: 0 0 50% 50% / 0 0 100% 100%; background: radial-gradient(ellipse at 50% 0%, {{t.edgeSheen}}, rgba(255,255,255,0) 70%)"></div>
+</div>
+
+
+<section aria-label="Quarantine summary" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+<sc-for list="{{stats}}" as="s" hint-placeholder-count="3">
+<div style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 14px; display: flex; gap: 12px; align-items: center">
+<span aria-hidden="true" style="width: 42px; height: 42px; flex-shrink: 0; border-radius: 11px; background: {{s.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 3px 8px {{s.glow}}; display: flex; align-items: center; justify-content: center">
+<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{s.d}}"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; line-height: 1.25; min-width: 0">
+<span style="font-size: 12px; font-weight: 600; color: {{t.text2}}">{{s.label}}</span>
+<span style="font-size: 22px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums">{{s.value}}</span>
+<span style="font-size: 11.5px; color: {{t.text2}}">{{s.sub}}</span>
+</span>
+</div>
+</sc-for>
+</section>
+
+<div style="display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; background: {{t.infoBg}}; font-size: 12.5px">
+<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10" fill="#2F7CF6"></circle><path d="M12 11v6M12 7h.01" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"></path></svg>
+<span>Kleari never empties quarantine on its own. Restores never overwrite a file that is already in the original place.</span>
+</div>
+
+<sc-for list="{{batches}}" as="b" hint-placeholder-count="3">
+<section aria-label="{{b.aria}}" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 12px 12px 6px">
+<div style="display: flex; align-items: center; gap: 10px; margin: 0 6px 6px">
+<input type="checkbox" aria-label="{{b.selectLabel}}" checked="{{b.allOn}}" onChange="{{b.toggleAll}}" style="width: 15px; height: 15px; margin: 0; accent-color: #2F7CF6; cursor: pointer">
+<div style="display: flex; flex-direction: column; line-height: 1.25; flex: 1">
+<span style="display: flex; align-items: center; gap: 8px"><h2 style="margin: 0; font-size: 14.5px; font-weight: 700">{{b.title}}</h2>
+<sc-if value="{{b.isNew}}" hint-placeholder-val="{{ false }}"><span style="font-size: 10.5px; font-weight: 700; color: #FFFFFF; background: linear-gradient(180deg, #4C9BFF, #2468D8); border-radius: 5px; padding: 1px 6px">NEW</span></sc-if></span>
+<span style="font-size: 11.5px; color: {{t.text2}}">{{b.sub}}</span>
+</div>
+<span style="font-weight: 700; font-variant-numeric: tabular-nums">{{b.size}}</span>
+</div>
+<ul style="margin: 0; padding: 0; list-style: none">
+<sc-for list="{{b.rows}}" as="r" hint-placeholder-count="3">
+<li style="display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-top: 1px solid {{t.borderSolid}}; background: {{r.bg}}; opacity: {{r.op}}">
+<input type="checkbox" aria-label="{{r.selectLabel}}" checked="{{r.checked}}" disabled="{{r.done}}" onChange="{{r.toggle}}" style="width: 15px; height: 15px; margin: 0; accent-color: #2F7CF6; cursor: pointer">
+<span aria-hidden="true" style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; background: {{r.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); display: flex; align-items: center; justify-content: center">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.d}}"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.3">
+<span style="font-weight: 600">{{r.name}}</span>
+<span style="font-size: 11px; color: {{t.text2}}">From <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace">{{r.from}}</span></span>
+</span>
+<span style="width: 64px; flex-shrink: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{r.size}}</span>
+<span style="width: 150px; margin-left: 8px; flex-shrink: 0; display: flex; justify-content: flex-end"><span style="font-size: 11px; font-weight: 600; color: {{r.stFg}}; background: {{r.stBg}}; border-radius: 6px; padding: 2px 8px; white-space: nowrap">{{r.status}}</span></span>
+<span style="width: 76px; flex-shrink: 0; display: flex; justify-content: flex-end">
+<sc-if value="{{r.canRestore}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{r.restore}}" aria-label="{{r.restoreLabel}}" style="height: 26px; padding: 0 10px; border-radius: 7px; border: 0; background: {{t.linkBg}}; color: {{t.link}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer">Restore</button>
+</sc-if>
+</span>
+</li>
+</sc-for>
+</ul>
+<sc-if value="{{b.hasMore}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{b.toggleMore}}" style="display: block; width: 100%; margin-top: 2px; padding: 8px; border: 0; border-top: 1px solid {{t.borderSolid}}; background: transparent; color: {{t.link}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer">{{b.moreLabel}}</button>
+</sc-if>
+</section>
+</sc-for>
+
+</div>
+
+<div style="position: relative; z-index: 4; display: flex; align-items: center; gap: 12px; margin: 0 28px 22px; padding: 12px 14px; border-radius: 18px; background: linear-gradient(180deg, {{t.floatTop}}, {{t.floatBg}}); backdrop-filter: blur(24px) saturate(1.9); -webkit-backdrop-filter: blur(24px) saturate(1.9); border: 1px solid {{t.floatEdge}}; box-shadow: {{t.floatShadow}}">
+<div style="display: flex; flex-direction: column; line-height: 1.3">
+<span role="status" style="font-weight: 700; font-variant-numeric: tabular-nums">{{selText}}</span>
+<span style="font-size: 11.5px; color: {{t.text2}}">Restore puts items back where they were. Permanent delete has its own confirmation.</span>
+</div>
+<div style="margin-left: auto; display: flex; gap: 8px">
+<button type="button" disabled="{{noSel}}" onClick="{{openDelete}}" style="height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid {{delBorder}}; background: {{t.card}}; color: {{delFg}}; font: inherit; font-weight: 600; cursor: {{selCursor}}">Delete permanently…</button>
+<button type="button" disabled="{{noSel}}" onClick="{{restoreSelected}}" style="height: 34px; padding: 0 16px; border-radius: 9px; border: 0; background: {{restoreBg}}; box-shadow: {{restoreShadow}}; color: {{restoreFg}}; font: inherit; font-weight: 600; cursor: {{selCursor}}">{{restoreText}}</button>
+</div>
+</div>
+
+<sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: absolute; left: 50%; bottom: 92px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 10px; background: {{t.menuBg}}; backdrop-filter: blur(30px) saturate(1.8); -webkit-backdrop-filter: blur(30px) saturate(1.8); border: 1px solid {{t.menuEdge}}; box-shadow: {{t.menuShadow}}; font-weight: 600; white-space: nowrap; z-index: 6">
+<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="{{toastColor}}"></circle><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span>{{toast}}</span>
+</div>
+</sc-if>
+
+<sc-if value="{{showConflict}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: {{t.scrim}}; display: flex; align-items: center; justify-content: center; z-index: 10">
+<section role="alertdialog" aria-modal="true" aria-labelledby="cf-h" style="width: 440px; box-sizing: border-box; background: {{t.card}}; border: 1px solid {{t.strong}}; border-radius: 16px; box-shadow: {{t.sheetShadow}}; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+<span aria-hidden="true" style="width: 56px; height: 56px; border-radius: 15px; background: linear-gradient(160deg, #FFC56E, #F5841F); box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 6px 16px rgba(245,132,31,0.35); display: flex; align-items: center; justify-content: center">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9h11v11H9zM5 15H4V4h11v1"></path></svg>
+</span>
+<h2 id="cf-h" style="margin: 0; font-size: 17px; font-weight: 700">{{conflictTitle}}</h2>
+<p style="margin: 0; font-size: 12.5px; color: {{t.text2}}">Safari has created a new cache folder at the original place since this was quarantined. Kleari won't overwrite it, so this item stays in quarantine.</p>
+<div style="align-self: stretch; padding: 10px 12px; border-radius: 10px; background: {{t.infoBg}}; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; text-align: left; word-break: break-all">~/Library/Caches/com.apple.Safari</div>
+<div style="display: flex; gap: 8px; align-self: stretch">
+<button type="button" onClick="{{closeDialog}}" style="flex: 1; height: 34px; border-radius: 9px; border: 1px solid {{t.strong}}; background: {{t.card}}; color: {{t.text}}; font: inherit; font-weight: 600; cursor: pointer">Keep in quarantine</button>
+<button type="button" onClick="{{closeDialog}}" style="flex: 1; height: 34px; border-radius: 9px; border: 0; background: {{t.linkBg}}; color: {{t.link}}; font: inherit; font-weight: 600; cursor: pointer">Show both in Finder</button>
+</div>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{showDelete}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: {{t.scrim}}; display: flex; align-items: center; justify-content: center; z-index: 10">
+<section role="alertdialog" aria-modal="true" aria-labelledby="del-h" style="width: 480px; box-sizing: border-box; background: {{t.card}}; border: 1px solid {{t.strong}}; border-radius: 16px; box-shadow: {{t.sheetShadow}}; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 12px; align-items: center">
+<span aria-hidden="true" style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 13px; background: linear-gradient(160deg, #FF8A8A, #E03131); box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 6px 16px rgba(224,49,49,0.35); display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15M10 11v6M14 11v6"></path></svg>
+</span>
+<div style="display: flex; flex-direction: column">
+<h2 id="del-h" style="margin: 0; font-size: 17px; font-weight: 700">{{delTitle}}</h2>
+<span style="font-size: 12.5px; color: {{t.dangerText}}; font-weight: 600">This can't be undone. These items can't be restored afterwards.</span>
+</div>
+</div>
+<ul style="margin: 0; padding: 4px 12px; list-style: none; border-radius: 10px; background: {{t.infoBg}}; max-height: 150px; overflow: auto">
+<sc-for list="{{delItems}}" as="d" hint-placeholder-count="2">
+<li style="display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: {{d.divider}}; font-size: 12.5px">
+<span style="font-weight: 600">{{d.name}}</span><span style="font-variant-numeric: tabular-nums; color: {{t.text2}}">{{d.size}}</span>
+</li>
+</sc-for>
+</ul>
+<label style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; border: {{delAckBorder}}; cursor: pointer">
+<input type="checkbox" checked="{{delAck}}" onChange="{{toggleDelAck}}" style="width: 16px; height: 16px; margin: 1px 0 0; accent-color: #E03131; cursor: pointer">
+<span style="font-size: 12.5px">I understand these {{selCount}} items will be deleted for good.</span>
+</label>
+<div style="display: flex; gap: 8px">
+<button type="button" onClick="{{closeDialog}}" style="flex: 1; height: 36px; border-radius: 9px; border: 1px solid {{t.strong}}; background: {{t.card}}; color: {{t.text}}; font: inherit; font-weight: 600; cursor: pointer">Cancel</button>
+<button type="button" disabled="{{noDelAck}}" onClick="{{confirmDelete}}" style="flex: 1.2; height: 36px; border-radius: 9px; border: 0; background: {{delBtnBg}}; color: {{delBtnFg}}; font: inherit; font-weight: 600; cursor: {{delBtnCursor}}">{{delBtnText}}</button>
+</div>
+</section>
+</div>
+</sc-if>
+<sc-if value="{{showJob}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: {{t.scrim}}; display: flex; align-items: center; justify-content: center; z-index: 10">
+<section role="alertdialog" aria-modal="true" aria-labelledby="job-h" style="width: 480px; box-sizing: border-box; background: {{t.card}}; border: 1px solid {{t.strong}}; border-radius: 16px; box-shadow: {{t.sheetShadow}}; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; gap: 12px; align-items: center">
+<span aria-hidden="true" style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 13px; background: {{job.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 6px 16px {{job.glow}}; display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{job.icon}}"></path></svg>
+</span>
+<div style="display: flex; flex-direction: column; min-width: 0">
+<h2 id="job-h" style="margin: 0; font-size: 17px; font-weight: 700">{{job.title}}</h2>
+<span aria-live="polite" style="font-size: 12.5px; color: {{t.text2}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{job.sub}}</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div role="progressbar" aria-label="Permanent delete progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{job.pct}}" aria-valuetext="{{job.bytes}}" style="position: relative; height: 10px; border-radius: 6px; background: {{t.track}}; overflow: hidden; box-shadow: inset 0 1px 2px rgba(24,34,48,0.10)">
+<div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{job.width}}; border-radius: 6px; background: {{job.barBg}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); transition: width 0.55s ease-out; overflow: hidden">
+<sc-if value="{{job.running}}" hint-placeholder-val="{{ true }}">
+<span class="mp-sheen" style="position: absolute; top: 0; bottom: 0; left: 0; width: 40%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.55), rgba(255,255,255,0))"></span>
+</sc-if>
+</div>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: {{t.text2}}; font-variant-numeric: tabular-nums">
+<span>{{job.bytes}}</span><span style="font-weight: 600; color: {{t.text}}">{{job.pctText}}</span>
+</div>
+</div>
+<ul style="margin: 0; padding: 4px 12px; list-style: none; border-radius: 10px; background: {{t.infoBg}}; max-height: 170px; overflow: auto">
+<sc-for list="{{job.rows}}" as="r" hint-placeholder-count="3">
+<li style="display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: {{r.divider}}; font-size: 12.5px">
+<span aria-hidden="true" style="width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center">
+<sc-if value="{{r.isDone}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#5D6878"></circle><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+<sc-if value="{{r.isNow}}" hint-placeholder-val="{{ false }}"><span class="mp-spin" style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid {{t.track}}; border-top-color: #E03131"></span></sc-if>
+<sc-if value="{{r.isWait}}" hint-placeholder-val="{{ true }}"><span style="width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid {{t.strong}}"></span></sc-if>
+</span>
+<span style="flex: 1; min-width: 0; font-weight: 600; opacity: {{r.op}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</span>
+<span style="font-size: 11.5px; color: {{r.stFg}}">{{r.state}}</span>
+<span style="width: 58px; text-align: right; font-variant-numeric: tabular-nums; color: {{t.text2}}">{{r.size}}</span>
+</li>
+</sc-for>
+</ul>
+<sc-if value="{{job.running}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; gap: 8px; align-items: center">
+<span style="flex: 1; font-size: 12px; color: {{t.text2}}">{{job.hint}}</span>
+<button type="button" disabled="{{job.stopping}}" onClick="{{stopJob}}" style="height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid {{t.strong}}; background: {{t.card}}; color: {{t.text}}; font: inherit; font-weight: 600; cursor: pointer; opacity: {{job.stopOp}}">{{job.stopText}}</button>
+</div>
+</sc-if>
+<sc-if value="{{job.finished}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; gap: 8px; align-items: center">
+<span style="flex: 1; font-size: 12px; color: {{t.text2}}">{{job.hint}}</span>
+<button type="button" onClick="{{closeJob}}" style="height: 34px; padding: 0 22px; border-radius: 9px; border: 0; background: linear-gradient(180deg, #4C9BFF, #2468D8); color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px rgba(36,104,216,0.3)">Done</button>
+</div>
+</sc-if>
+</section>
+</div>
+</sc-if>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1260,"height":920}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sel: {}, restored: {}, deleted: {}, more: false, dialog: null, delAck: false, job: null, toast: '', toastColor: '#1FA45B' }; }
+  componentWillUnmount() { clearTimeout(this.toastTimer); clearInterval(this.jobTimer); }
+  theme() {
+    var light = {
+      wallpaper:'linear-gradient(165deg, #9FB3E0 0%, #C3B4DE 38%, #EBC2C4 66%, #B9A6CF 100%)', ridge1:'rgba(92,96,150,0.45)', ridge2:'rgba(60,62,110,0.55)',
+      windowEdge:'rgba(255,255,255,0.6)', windowShadow:'0 30px 80px rgba(30,30,70,0.35), 0 4px 14px rgba(30,30,70,0.18)',
+      glass:'rgba(244,246,252,0.62)', glassEdge:'rgba(255,255,255,0.55)', glassShine:'rgba(255,255,255,0.35)', glassChip:'rgba(255,255,255,0.55)',
+      navSel:'rgba(255,255,255,0.85)', navSelShadow:'0 1px 3px rgba(24,34,48,0.10), inset 0 1px 0 rgba(255,255,255,0.9)',
+      bg:'#F5F7FA', card:'#FFFFFF', border:'rgba(24,34,48,0.07)', borderSolid:'#EEF1F5', strong:'#C5CED9', cardShadow:'0 1px 2px rgba(24,34,48,0.04), 0 8px 24px rgba(24,34,48,0.06)',
+      edgeTop:'rgba(255,255,255,0.62)', edgeMid:'rgba(255,255,255,0.22)', edgeLine:'rgba(255,255,255,0.95)', edgeSheen:'rgba(255,255,255,0.7)', floatTop:'rgba(255,255,255,0.80)', floatBg:'rgba(244,247,252,0.56)', floatEdge:'rgba(255,255,255,0.78)', floatShadow:'0 12px 32px rgba(24,34,48,0.14), 0 2px 6px rgba(24,34,48,0.06), inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(24,34,48,0.05)', thGlass:'rgba(255,255,255,0.72)', wordmark:'linear-gradient(90deg, #2F6FED, #6D3FE0)', text:'#182230', text2:'#5D6878', track:'#EDF0F5', link:'#1F6FEB', linkBg:'rgba(47,124,246,0.10)', infoBg:'#F3F6FA', selRow:'rgba(47,124,246,0.07)', barBg:'rgba(248,250,253,0.92)',
+      menuBg:'rgba(250,251,253,0.9)', menuEdge:'rgba(24,34,48,0.10)', menuShadow:'0 12px 32px rgba(24,34,48,0.20)', scrim:'rgba(24,34,48,0.28)', sheetShadow:'0 24px 60px rgba(24,34,48,0.28)',
+      danger:'#C92A2A', dangerText:'#B42332', okText:'#15703F', okBg:'rgba(34,197,94,0.14)', warnText:'#8A5600', warnBg:'rgba(245,158,11,0.18)', mutedText:'#4B5565', mutedBg:'rgba(100,116,139,0.14)'
+    };
+    var dark = {
+      wallpaper:'linear-gradient(165deg, #1D2440 0%, #2E2546 40%, #4A2F44 70%, #1A1C30 100%)', ridge1:'rgba(10,12,28,0.55)', ridge2:'rgba(6,8,20,0.7)',
+      windowEdge:'rgba(255,255,255,0.12)', windowShadow:'0 30px 80px rgba(0,0,0,0.6)',
+      glass:'rgba(34,40,54,0.55)', glassEdge:'rgba(255,255,255,0.08)', glassShine:'rgba(255,255,255,0.05)', glassChip:'rgba(255,255,255,0.06)',
+      navSel:'rgba(255,255,255,0.12)', navSelShadow:'inset 0 1px 0 rgba(255,255,255,0.08)',
+      bg:'#14181E', card:'#1C222B', border:'rgba(255,255,255,0.06)', borderSolid:'#2A323E', strong:'#465364', cardShadow:'none',
+      edgeTop:'rgba(22,27,35,0.72)', edgeMid:'rgba(22,27,35,0.3)', edgeLine:'rgba(255,255,255,0.14)', edgeSheen:'rgba(140,170,255,0.12)', floatTop:'rgba(52,61,76,0.62)', floatBg:'rgba(30,36,46,0.5)', floatEdge:'rgba(255,255,255,0.13)', floatShadow:'0 12px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.10)', thGlass:'rgba(28,34,43,0.72)', wordmark:'linear-gradient(90deg, #7CC0FF, #B49CFF)', text:'#F0F3F7', text2:'#B5BFCC', track:'#2A323E', link:'#8BC0FF', linkBg:'rgba(108,180,255,0.14)', infoBg:'#202731', selRow:'rgba(108,180,255,0.08)', barBg:'rgba(32,39,49,0.92)',
+      menuBg:'rgba(37,45,56,0.9)', menuEdge:'rgba(255,255,255,0.10)', menuShadow:'0 12px 32px rgba(0,0,0,0.55)', scrim:'rgba(0,0,0,0.5)', sheetShadow:'0 24px 60px rgba(0,0,0,0.6)',
+      danger:'#FF7D86', dangerText:'#FF7D86', okText:'#68C995', okBg:'rgba(104,201,149,0.14)', warnText:'#F0BD63', warnBg:'rgba(240,189,99,0.14)', mutedText:'#B5BFCC', mutedBg:'rgba(181,191,204,0.12)'
+    };
+    return this.props.dark ? dark : light;
+  }
+  renderVals() {
+    var t = this.theme();
+    var self = this;
+    var st = this.state;
+    var navItem = function (n, active) {
+      var on = n.label === active;
+      return {label:n.label,href:n.href,d:n.d,current:on ? 'page' : undefined,bg:on ? t.navSel : 'transparent',shadow:on ? t.navSelShadow : 'none',icon:on ? '#2F7CF6' : t.text2,weight:on ? 600 : 500};
+    };
+    var nav = [
+      {label:'Dashboard',href:'Main.dc.html',d:'M3 13h8V3H3zM13 21h8V11h-8zM13 3v6h8V3zM3 21h8v-6H3z'},
+      {label:'Cleanup',href:'Cleanup.dc.html',d:'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3'},
+      {label:'Quarantine',href:'Quarantine.dc.html',d:'M21 8v13H3V8M1 3h22v5H1zM10 12h4'},
+      {label:'Storage',href:'Storage.dc.html',d:'M22 12H2M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1zM6 16h.01'},
+      {label:'System',href:'System.dc.html',d:'M22 12h-4l-3 9L9 3l-3 9H2'},
+      {label:'Developer',href:'Developer.dc.html',d:'M16 18l6-6-6-6M8 6l-6 6 6 6'},
+      {label:'Processes',href:'Processes.dc.html',d:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'},
+      {label:'Activity',href:'Activity.dc.html',d:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2'}
+    ].map(function (n) { return navItem(n, 'Quarantine'); });
+    var navBottom = [
+      {label:'Settings',href:'Settings.dc.html',d:'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6'}
+    ].map(function (n) { return navItem(n, 'Quarantine'); });
+    var TILE = {
+      xcode:['linear-gradient(160deg, #9D90FF, #5B4BE0)','M16 18l6-6-6-6M8 6l-6 6 6 6'],
+      cache:['linear-gradient(160deg, #6CB4FF, #2F6FED)','M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15'],
+      pkg:['linear-gradient(160deg, #67E8F9, #0891B2)','M21 16V8l-9-5-9 5v8l9 5zM3.3 7L12 12l8.7-5M12 22V12']
+    };
+    var cacheNames = [['com.apple.Safari',0.62,true],['com.microsoft.VSCode',0.48],['notion.id',0.41],['com.hnc.Discord',0.36],['com.adobe.acc',0.30],['com.apple.Music',0.24],['us.zoom.xos',0.20],['com.postmanlabs.mac',0.16],['com.raycast.macos',0.13],['org.mozilla.firefox',0.10],['com.linear',0.06],['com.openai.chat',0.04]];
+    var batchDefs = [
+      {id:'A',title:'Today, 16:44',sub:'From your standard scan · 2 items',isNew:true,items:[
+        {id:'A1',name:'Kleari-dgqxkfa',from:'~/Library/Developer/Xcode/DerivedData',gb:3.2,kind:'xcode'},
+        {id:'A2',name:'com.spotify.client',from:'~/Library/Caches',gb:1.9,kind:'cache'}]},
+      {id:'B',title:'Yesterday, 18:02',sub:'App caches · 12 items',items:cacheNames.map(function (c, i) { return {id:'B' + i,name:c[0],from:'~/Library/Caches',gb:c[1],kind:'cache',conflict:!!c[2]}; })},
+      {id:'C',title:'6 Oct, 09:15',sub:'Package caches · 1 item',items:[{id:'C1',name:'Homebrew logs',from:'~/Library/Logs/Homebrew',gb:0.3,kind:'pkg'}]}
+    ];
+    var fmt = function (gb) { return gb >= 1 ? gb.toFixed(1) + ' GB' : Math.round(gb * 1000) + ' MB'; };
+    var all = [];
+    batchDefs.forEach(function (b) { b.items.forEach(function (i) { if (!st.deleted[i.id]) all.push(i); }); });
+    var held = all.filter(function (i) { return !st.restored[i.id]; });
+    var showToast = function (msg, color) { clearTimeout(self.toastTimer); self.setState({toast:msg, toastColor:color || '#1FA45B'}); self.toastTimer = setTimeout(function () { self.setState({toast:''}); }, 3500); };
+    var restoreOne = function (i) {
+      if (i.conflict) { self.setState({dialog:'conflict'}); return false; }
+      var r = Object.assign({}, self.state.restored); r[i.id] = true;
+      var s = Object.assign({}, self.state.sel); delete s[i.id];
+      self.setState({restored:r, sel:s});
+      return true;
+    };
+    var batches = batchDefs.map(function (b) {
+      var items = b.items.filter(function (i) { return !st.deleted[i.id]; });
+      var open = items.filter(function (i) { return !st.restored[i.id]; });
+      var limit = b.id === 'B' && !st.more ? 4 : items.length;
+      var allOn = open.length > 0 && open.every(function (i) { return st.sel[i.id]; });
+      return {
+        title:b.title, sub:b.sub, isNew:!!b.isNew, aria:'Quarantined ' + b.title,
+        size:fmt(open.reduce(function (a, i) { return a + i.gb; }, 0)),
+        selectLabel:'Select all from ' + b.title, allOn:allOn,
+        toggleAll:function () { var s = Object.assign({}, self.state.sel); open.forEach(function (i) { s[i.id] = !allOn; }); self.setState({sel:s}); },
+        hasMore:b.id === 'B' && items.length > 4, moreLabel:st.more ? 'Show fewer' : 'Show ' + (items.length - 4) + ' more',
+        toggleMore:function () { self.setState({more:!self.state.more}); },
+        rows:items.slice(0, limit).map(function (i) {
+          var done = !!st.restored[i.id], on = !!st.sel[i.id] && !done;
+          var status = done ? ['Restored', t.okText, t.okBg] : (i.conflict ? ['Blocked: file exists', t.warnText, t.warnBg] : ['Restorable', t.okText, t.okBg]);
+          return {name:i.name, from:i.from, size:fmt(i.gb), tile:TILE[i.kind][0], d:TILE[i.kind][1], checked:on, done:done,
+            bg:on ? t.selRow : 'transparent', op:done ? 0.55 : 1, status:status[0], stFg:status[1], stBg:status[2],
+            canRestore:!done, selectLabel:'Select ' + i.name, restoreLabel:'Restore ' + i.name,
+            toggle:function () { var s = Object.assign({}, self.state.sel); s[i.id] = !s[i.id]; self.setState({sel:s}); },
+            restore:function () { if (restoreOne(i)) showToast('Restored ' + i.name + ' to ' + i.from); }};
+        })
+      };
+    }).filter(function (b) { return b.rows.length > 0; });
+    var picked = held.filter(function (i) { return st.sel[i.id]; });
+    var pickedGb = picked.reduce(function (a, i) { return a + i.gb; }, 0);
+    var has = picked.length > 0;
+    var oldestDays = all.some(function (i) { return i.id === 'C1' && !st.restored[i.id]; }) ? '12 days' : '1 day';
+    var job = st.job, jobView = null;
+    if (job) {
+      var total = job.items.length, totGb = job.items.reduce(function (a, i) { return a + i.gb; }, 0);
+      var doneGb = job.items.slice(0, job.idx).reduce(function (a, i) { return a + i.gb; }, 0);
+      var left = total - job.idx, partial = job.done && left > 0;
+      var pct = job.done && !partial ? 100 : Math.round(totGb ? doneGb / totGb * 100 : 0);
+      var shown = job.done ? pct : Math.max(pct, 4);
+      var cur = job.items[job.idx];
+      var plural = function (n) { return n + (n === 1 ? ' item' : ' items'); };
+      jobView = {
+        running:!job.done, finished:job.done, stopping:job.stop && !job.done, stopOp:job.stop ? 0.55 : 1,
+        stopText:job.stop ? 'Stopping after this item…' : 'Stop after this item',
+        title:job.done ? (partial ? 'Stopped: deleted ' + job.idx + ' of ' + total : 'Deleted ' + plural(total)) : 'Deleting ' + plural(total) + '…',
+        sub:job.done ? (partial ? plural(left) + ' still in quarantine, nothing else changed' : fmt(doneGb) + ' freed for good') : 'Deleting ' + cur.name + ' · ' + (job.idx + 1) + ' of ' + total,
+        hint:job.done ? 'Recorded in Activity' : 'Items already deleted can’t come back.',
+        tile:job.done ? (partial ? 'linear-gradient(160deg, #FFC56E, #F5841F)' : 'linear-gradient(160deg, #8C97A8, #5D6878)') : 'linear-gradient(160deg, #FF8A8A, #E03131)',
+        glow:job.done ? (partial ? 'rgba(245,132,31,0.35)' : 'rgba(93,104,120,0.35)') : 'rgba(224,49,49,0.35)',
+        icon:job.done ? (partial ? 'M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z' : 'M20 6L9 17l-5-5') : 'M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15M10 11v6M14 11v6',
+        barBg:job.done ? (partial ? 'linear-gradient(180deg, #FFC56E, #F5841F)' : 'linear-gradient(180deg, #8C97A8, #5D6878)') : 'linear-gradient(180deg, #FF6B6B, #C92A2A)',
+        pct:pct, pctText:pct + '%', width:shown + '%',
+        bytes:fmt(doneGb) + ' of ' + fmt(totGb) + ' deleted',
+        rows:job.items.map(function (i, k) {
+          var isDone = k < job.idx, isNow = k === job.idx && !job.done;
+          return {name:i.name, size:fmt(i.gb), divider:k ? '1px solid ' + t.borderSolid : '0',
+            isDone:isDone, isNow:isNow, isWait:!isDone && !isNow,
+            state:isDone ? 'Deleted' : (isNow ? 'Deleting…' : (job.done ? 'Kept in quarantine' : 'Waiting')),
+            stFg:isNow ? t.dangerText : (!isDone && job.done ? t.warnText : t.text2), op:isDone ? 0.6 : 1};
+        })
+      };
+    }
+    return {
+      t:t, nav:nav, navBottom:navBottom, batches:batches,
+      stats:[
+        {label:'Held in quarantine',value:fmt(held.reduce(function (a, i) { return a + i.gb; }, 0)),sub:'Still using space on this Mac',tile:'linear-gradient(160deg, #FFC56E, #F5841F)',glow:'rgba(245,132,31,0.35)',d:'M21 8v13H3V8M1 3h22v5H1zM10 12h4'},
+        {label:'Items',value:String(held.length),sub:'Across ' + batches.length + ' cleanups',tile:'linear-gradient(160deg, #6CB4FF, #2F6FED)',glow:'rgba(47,111,237,0.35)',d:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'},
+        {label:'Oldest item',value:oldestDays,sub:'Kept until you decide',tile:'linear-gradient(160deg, #9D90FF, #5B4BE0)',glow:'rgba(91,75,224,0.35)',d:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2'}
+      ],
+      selText: has ? picked.length + ' selected · ' + fmt(pickedGb) : 'Nothing selected',
+      noSel:!has, selCursor:has ? 'pointer' : 'default',
+      delBorder: has ? t.danger : t.border, delFg: has ? t.danger : t.text2,
+      restoreBg: has ? 'linear-gradient(180deg, #4C9BFF, #2468D8)' : t.track, restoreFg: has ? '#FFFFFF' : t.text2,
+      restoreShadow: has ? 'inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px rgba(36,104,216,0.3)' : 'none',
+      restoreText: has ? 'Restore ' + picked.length + (picked.length === 1 ? ' item' : ' items') : 'Restore',
+      restoreSelected:function () {
+        var r = Object.assign({}, self.state.restored), blocked = 0, ok = 0;
+        picked.forEach(function (i) { if (i.conflict) blocked++; else { r[i.id] = true; ok++; } });
+        self.setState({restored:r, sel:{}});
+        showToast(blocked ? 'Restored ' + ok + ' · ' + blocked + ' kept in quarantine because a file already exists' : 'Restored ' + ok + (ok === 1 ? ' item' : ' items') + ' to their original places', blocked ? '#E08A00' : '#1FA45B');
+      },
+      toast:st.toast, toastColor:st.toastColor,
+      showConflict:st.dialog === 'conflict', showDelete:st.dialog === 'delete', showJob:st.dialog === 'deleting' && !!st.job, job:jobView,
+      conflictTitle:'Can’t restore com.apple.Safari yet',
+      closeDialog:function () { self.setState({dialog:null, delAck:false}); },
+      openDelete:function () { if (has) self.setState({dialog:'delete', delAck:false}); },
+      delTitle:'Permanently delete ' + picked.length + (picked.length === 1 ? ' item' : ' items') + '?',
+      delItems:picked.map(function (i, k) { return {name:i.name, size:fmt(i.gb), divider:k ? '1px solid ' + t.borderSolid : '0'}; }),
+      selCount:picked.length, delAck:st.delAck, noDelAck:!st.delAck,
+      delAckBorder: st.delAck ? '1px solid ' + t.danger : '1px solid ' + t.border,
+      toggleDelAck:function () { self.setState({delAck:!self.state.delAck}); },
+      delBtnBg: st.delAck ? 'linear-gradient(180deg, #FF6B6B, #C92A2A)' : t.track, delBtnFg: st.delAck ? '#FFFFFF' : t.text2, delBtnCursor: st.delAck ? 'pointer' : 'default',
+      delBtnText:'Delete ' + fmt(pickedGb) + ' permanently',
+      confirmDelete:function () {
+        if (!self.state.delAck || self.state.job) return;
+        var items = picked.map(function (i) { return {id:i.id, name:i.name, gb:i.gb}; });
+        self.setState({dialog:'deleting', delAck:false, sel:{}, job:{items:items, idx:0, stop:false, done:false}});
+        clearInterval(self.jobTimer);
+        self.jobTimer = setInterval(function () {
+          var j = self.state.job;
+          if (!j || j.done) { clearInterval(self.jobTimer); return; }
+          var d = Object.assign({}, self.state.deleted); d[j.items[j.idx].id] = true;
+          var idx = j.idx + 1, done = idx >= j.items.length || j.stop;
+          if (done) clearInterval(self.jobTimer);
+          self.setState({deleted:d, job:Object.assign({}, j, {idx:idx, done:done})});
+        }, 700);
+      },
+      stopJob:function () { var j = self.state.job; if (j && !j.done) self.setState({job:Object.assign({}, j, {stop:true})}); },
+      closeJob:function () { clearInterval(self.jobTimer); self.setState({job:null, dialog:null}); }
+    };
+  }
+}
+</script>
+</body>
+</html>

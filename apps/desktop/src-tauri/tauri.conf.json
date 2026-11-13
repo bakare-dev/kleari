@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Kleari",
+  "version": "0.1.0-beta.1",
+  "identifier": "dev.bakare.kleari",
+  "build": {
+    "beforeDevCommand": "pnpm dev --host 127.0.0.1",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Kleari",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 900,
+        "minHeight": 520,
+        "resizable": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "transparent": true,
+        "windowEffects": {
+          "effects": ["liquidGlassRegular", "sidebar"],
+          "state": "followsWindowActiveState"
+        }
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEExMTBBQ0JDMkNEMkMyNEMKUldSTXd0SXN2S3dRb1QrTE1WQStVZjdJY1FnYzdaUzFZcmxSNVdTMWV3VFloOU9FWkZId0wyVFoK",
+      "endpoints": ["https://github.com/bakare-dev/kleari/releases/latest/download/latest.json"],
+      "requireSignedVersion": true
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg"],
+    "icon": ["icons/icon.png", "icons/icon.icns"],
+    "category": "Utility",
+    "shortDescription": "Local-first Mac maintenance",
+    "longDescription": "Kleari keeps your Mac clean and fast, on this Mac only: storage, cleanup with quarantine, system readings, developer caches and your mouse.",
+    "macOS": {
+      "signingIdentity": "-",
+      "minimumSystemVersion": "14.0"
+    }
+  }
+}

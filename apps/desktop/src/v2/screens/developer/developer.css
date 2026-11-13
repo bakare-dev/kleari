@@ -1,0 +1,249 @@
+/* Only the list scrolls; header, totals and the side cards stay put, as on Processes. */
+.dev-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+  padding: 4px 28px 22px;
+}
+
+/* The selection bar sits below the fixed body, so the body leaves less space under it. */
+.dev-body-above-bar {
+  padding-bottom: 12px;
+}
+
+.dev-grid {
+  display: grid;
+  min-height: 0;
+  flex: 1 1 auto;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.dev-list {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 12px 6px;
+}
+
+.dev-list-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 6px 2px;
+}
+
+.dev-list-head h2 {
+  flex: 1;
+}
+
+.dev-list-note {
+  margin: 0 6px 2px;
+}
+
+.dev-status {
+  margin: 0 2px;
+}
+
+.dev-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.dev-empty .v2-card-note {
+  max-width: 420px;
+}
+
+.dev-rows {
+  min-height: 0;
+  flex: 1 1 auto;
+  margin: 0 -4px 0 0;
+  padding: 0 4px 0 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.dev-rows .v2-edge {
+  margin-bottom: -40px;
+}
+
+.dev-rows li:not(.v2-edge) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 6px;
+  border-top: 1px solid var(--mp-border-solid);
+  border-radius: 8px;
+}
+
+.dev-rows li.focused {
+  background: var(--mp-sel-row);
+}
+
+.dev-row-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.dev-size {
+  width: 60px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+.dev-pill {
+  display: flex;
+  width: 108px;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+/* Scrolls only when the window is too short for both cards; the padding keeps shadows unclipped. */
+.dev-side {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 14px;
+  margin: -6px;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dev-detail,
+.dev-docker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+
+.dev-detail-head,
+.dev-docker-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dev-docker-head {
+  gap: 10px;
+}
+
+.dev-docker-head h2 {
+  flex: 1;
+}
+
+.dev-detail-meta {
+  font-size: 12px;
+}
+
+.dev-detail-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+}
+
+.dev-parts > li {
+  font-size: 12px;
+}
+
+.dev-path {
+  color: var(--mp-text-2);
+  font-size: 11px;
+}
+
+.dev-docker-bar {
+  display: flex;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--mp-track);
+}
+
+.dev-docker-bar span {
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.7);
+}
+
+.dev-docker-legend {
+  display: grid;
+  gap: 6px 12px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.dev-docker-legend > span {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.dev-docker-legend .v2-ellipsis {
+  flex: 1;
+}
+
+.dev-docker-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+}
+
+.dev-docker-note {
+  font-size: 12px;
+}
+
+.dev-command {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--mp-border);
+  border-radius: 9px;
+  background: var(--mp-info-bg);
+}
+
+.dev-command code {
+  flex: 1;
+  font-family: var(--v2-mono);
+  font-size: 12px;
+}
+
+.dev-copy {
+  height: 24px;
+  border-radius: 6px;
+  font-size: 11.5px;
+}
+
+.dev-select-low {
+  height: 34px;
+  padding: 0 14px;
+}
+
+.dev-toast-link {
+  margin-left: 4px;
+  font-size: 13px;
+}

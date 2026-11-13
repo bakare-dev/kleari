@@ -1,0 +1,193 @@
+.set-saved {
+  display: flex;
+  height: 26px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--mp-text-2);
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.3s, color 0.3s;
+}
+
+.set-saved.on {
+  background: var(--mp-ok-bg);
+  color: var(--mp-ok-text);
+}
+
+.set-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  gap: 14px;
+  padding: 4px 28px 22px;
+}
+
+.set-sections {
+  display: flex;
+  width: 196px;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 8px;
+  border: 1px solid var(--mp-float-edge);
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--mp-float-top), var(--mp-float-bg));
+  box-shadow: var(--mp-float-shadow);
+  -webkit-backdrop-filter: blur(24px) saturate(1.9);
+  backdrop-filter: blur(24px) saturate(1.9);
+}
+
+.set-section {
+  display: flex;
+  height: 36px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font-weight: 500;
+  text-align: left;
+}
+
+.set-section[aria-current="page"] {
+  background: var(--mp-nav-sel);
+  box-shadow: var(--mp-nav-sel-shadow);
+  font-weight: 600;
+}
+
+.set-content {
+  margin: 0 -28px 0 0;
+  padding: 0 28px 0 0;
+}
+
+.set-content-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 2px 0;
+}
+
+.set-content-head h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.set-banner {
+  margin-top: 4px;
+}
+
+.set-content-head .v2-muted {
+  font-size: 12px;
+}
+
+.set-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.set-group h3 {
+  margin: 0 4px;
+  color: var(--mp-text-2);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.set-card {
+  padding: 2px 14px;
+}
+
+.set-row {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.set-row:first-child {
+  border-top: 0;
+}
+
+.set-row-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.set-lock {
+  display: flex;
+  color: var(--mp-text-2);
+}
+
+.set-row-sub {
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+}
+
+.set-row-mono {
+  color: var(--mp-text-2);
+  font-size: 11px;
+}
+
+.set-row .v2-btn-sm {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 8px;
+}
+
+.set-badge {
+  padding: 3px 9px;
+  font-size: 11.5px;
+}
+
+.set-danger {
+  border-color: var(--mp-danger);
+  background: transparent;
+  color: var(--mp-danger-text);
+}
+
+.set-note {
+  margin: 0 4px;
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+}
+
+.set-end {
+  height: 8px;
+  flex-shrink: 0;
+}
+
+.set-dialog {
+  width: 420px;
+}
+
+/* Release notes: kept to a readable height, scrolling if long. */
+.set-update-notes {
+  max-height: 160px;
+  overflow-y: auto;
+  text-align: left;
+  white-space: pre-line;
+}
+
+/* A Terminal command to copy: selectable, wrapped rather than cut off. */
+.set-command {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--mp-border);
+  border-radius: 8px;
+  background: var(--mp-glass-chip);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  user-select: all;
+  -webkit-user-select: all;
+}

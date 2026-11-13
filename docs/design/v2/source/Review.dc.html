@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kleari Scan results</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}
+@keyframes mp-glass-in{from{opacity:0}to{opacity:1}}
+@supports (animation-timeline: scroll()){.mp-glass-edge{animation:mp-glass-in linear both;animation-timeline:scroll(nearest block);animation-range:0 28px}}
+</style>
+</helmet>
+<div style="width: 1260px; height: 920px; position: relative; overflow: hidden; background: {{t.wallpaper}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; line-height: 1.45; color: {{t.text}}">
+
+<svg aria-hidden="true" width="1260" height="420" viewBox="0 0 1260 420" style="position: absolute; left: 0; bottom: 0">
+<path d="M0 260 L140 170 L240 230 L380 110 L520 220 L640 150 L780 240 L920 120 L1060 210 L1260 140 L1260 420 L0 420 Z" fill="{{t.ridge1}}"></path>
+<path d="M0 330 L180 250 L330 310 L470 230 L640 320 L820 240 L980 310 L1120 250 L1260 300 L1260 420 L0 420 Z" fill="{{t.ridge2}}"></path>
+</svg>
+
+<div style="position: absolute; left: 70px; top: 60px; width: 1120px; height: 800px; display: flex; border-radius: 14px; overflow: hidden; border: 1px solid {{t.windowEdge}}; box-shadow: {{t.windowShadow}}">
+
+<nav aria-label="Main" style="width: 232px; flex-shrink: 0; box-sizing: border-box; padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; background: {{t.glass}}; backdrop-filter: blur(40px) saturate(1.8); -webkit-backdrop-filter: blur(40px) saturate(1.8); border-right: 1px solid {{t.glassEdge}}; box-shadow: inset -1px 0 0 {{t.glassShine}}">
+<div aria-hidden="true" style="display: flex; gap: 8px; height: 20px; align-items: center; padding: 0 4px">
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FF5F57"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FEBC2E"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #28C840"></span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 18px 6px 16px">
+<span style="width: 36px; height: 37px; flex-shrink: 0; display: flex"><svg width="36" height="37" viewBox="-6 -4 112 116" aria-hidden="true" style="display: block; overflow: visible"><defs><linearGradient id="bgAsb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6CC4FF"></stop><stop offset="0.55" stop-color="#2F6FED"></stop><stop offset="1" stop-color="#6D3FE0"></stop></linearGradient><linearGradient id="hlAsb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"></stop><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.06"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></linearGradient><radialGradient id="glAsb" cx="0.3" cy="0.15" r="0.7"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.45"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></radialGradient><filter id="shAsb" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#2F6FED" flood-opacity="0.45"></feDropShadow></filter><filter id="gsAsb"><feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.22"></feDropShadow></filter></defs><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#bgAsb)" filter="url(#shAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#glAsb)"></path><g filter="url(#gsAsb)"><ellipse cx="50" cy="52" rx="36" ry="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="2.6" transform="rotate(-24 50 52)"></ellipse><path d="M30.6 46.2 L70.2 28.6 L52.6 68.2 L48.2 50.6 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"></path><circle cx="80.5" cy="38.5" r="3.6" fill="#FFFFFF"></circle></g><path d="M50,1.5 C86,1.5 98.5,11 98.5,44 C80,36 20,36 1.5,44 C1.5,11 14,1.5 50,1.5 Z" fill="url(#hlAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="1"></path></svg></span>
+<span style="display: flex; flex-direction: column; line-height: 1.2">
+<span style="font-size: 15px; font-weight: 800; letter-spacing: -0.02em">Mac<span style="background: {{t.wordmark}}; -webkit-background-clip: text; background-clip: text; color: transparent">Pilot</span></span>
+<span style="font-size: 11px; color: {{t.text2}}">Scan · Explain · Approve</span>
+</span>
+</div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}; background: {{n.bg}}; box-shadow: {{n.shadow}}; font-weight: {{n.weight}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{n.icon}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="flex-grow: 1"></div>
+<sc-for list="{{navBottom}}" as="n" hint-placeholder-count="2">
+<a href="{{n.href}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{t.text2}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="margin-top: 8px; padding: 10px; border-radius: 10px; background: {{t.glassChip}}; display: flex; gap: 8px; align-items: center; font-size: 11.5px; color: {{t.text2}}">
+<span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,0.2)"></span>
+<span>Offline. Nothing leaves this Mac.</span>
+</div>
+</nav>
+
+<main style="position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: {{t.bg}}; overflow: hidden">
+<header style="display: flex; flex-direction: column; gap: 16px; padding: 26px 28px 14px">
+<div role="tablist" aria-label="Cleanup steps" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; border-radius: 11px; background: {{t.segBg}}; gap: 3px">
+<a role="tab" aria-selected="false" href="Cleanup.dc.html" style="height: 30px; display: flex; align-items: center; justify-content: center; gap: 7px; border-radius: 8px; text-decoration: none; font-size: 12.5px; color: {{t.text2}}; font-weight: 500"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#1FA45B"></circle><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>1 · Scan</a>
+<span role="tab" aria-selected="true" aria-current="step" style="height: 30px; display: flex; align-items: center; justify-content: center; gap: 7px; border-radius: 8px; text-decoration: none; font-size: 12.5px; background: {{t.card}}; box-shadow: {{t.segShadow}}; font-weight: 600"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 8px; background: linear-gradient(160deg, #6CB4FF, #2468D8); color: #FFFFFF; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">2</span>Review results</span>
+<span role="tab" aria-selected="false" aria-disabled="true" style="height: 30px; display: flex; align-items: center; justify-content: center; gap: 7px; border-radius: 8px; text-decoration: none; font-size: 12.5px; color: {{t.text2}}; font-weight: 500"><span aria-hidden="true" style="width: 14px; height: 14px; box-sizing: border-box; border-radius: 7px; border: 1.5px solid {{t.strong}}; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center">3</span>Preview and approve</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 3px">
+<h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">Review results</h1>
+<span style="color: {{t.text2}}; font-size: 12.5px">Standard and developer scans, today 14:12 · 45 items · 1 folder skipped</span>
+</div>
+</header>
+
+<div style="display: flex; align-items: center; gap: 8px; padding: 2px 28px 12px; flex-wrap: wrap">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="6">
+<button type="button" aria-pressed="{{c.pressed}}" onClick="{{c.pick}}" style="display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 15px; border: {{c.border}}; background: {{c.bg}}; color: {{c.fg}}; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; box-shadow: {{c.shadow}}">
+<span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: {{c.dot}}"></span>
+<span>{{c.label}}</span>
+<span style="font-weight: 500; opacity: 0.75">{{c.count}}</span>
+</button>
+</sc-for>
+<div style="flex: 1"></div>
+<label style="display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border-radius: 9px; background: {{t.card}}; border: 1px solid {{t.border}}; width: 190px; box-sizing: border-box">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{t.text2}}" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"></path></svg>
+<input type="search" aria-label="Search results" placeholder="Search results" value="{{query}}" onInput="{{onSearch}}" style="flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: {{t.text}}; font: inherit; font-size: 12.5px">
+</label>
+</div>
+
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 28px 10px">
+<label style="display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer">
+<button type="button" role="switch" aria-checked="{{eligOnlyStr}}" aria-label="Show eligible items only" onClick="{{toggleElig}}" style="width: 32px; height: 18px; border-radius: 9px; border: 0; padding: 0; background: {{switchBg}}; position: relative; cursor: pointer">
+<span style="position: absolute; top: 2px; left: {{switchLeft}}; width: 14px; height: 14px; border-radius: 7px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.25)"></span>
+</button>
+<span>Eligible only</span>
+</label>
+<div role="navigation" aria-label="Result pages" style="margin-left: auto; display: flex; align-items: center; gap: 10px">
+<span role="status" style="font-size: 12px; color: {{t.text2}}; font-variant-numeric: tabular-nums">{{shownText}}</span>
+<div style="display: flex; align-items: center; gap: 4px">
+<button type="button" aria-label="Previous page" disabled="{{prevDisabled}}" onClick="{{prev}}" style="width: 28px; height: 28px; border-radius: 8px; border: 1px solid {{t.border}}; background: {{t.card}}; color: {{prevColor}}; cursor: {{prevCursor}}; display: flex; align-items: center; justify-content: center">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+</button>
+<sc-for list="{{pages}}" as="p" hint-placeholder-count="5">
+<button type="button" aria-label="{{p.aria}}" aria-current="{{p.current}}" onClick="{{p.go}}" style="min-width: 28px; height: 28px; padding: 0 6px; border-radius: 8px; border: {{p.border}}; background: {{p.bg}}; color: {{p.fg}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums">{{p.n}}</button>
+</sc-for>
+<button type="button" aria-label="Next page" disabled="{{nextDisabled}}" onClick="{{next}}" style="width: 28px; height: 28px; border-radius: 8px; border: 1px solid {{t.border}}; background: {{t.card}}; color: {{nextColor}}; cursor: {{nextCursor}}; display: flex; align-items: center; justify-content: center">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>
+</button>
+</div>
+</div>
+</div>
+
+<div style="flex: 1 1 auto; overflow: auto; margin: 0 28px -62px; padding-bottom: 62px; background: {{t.card}}; border: 1px solid {{t.border}}; border-bottom: 0; border-radius: 14px 14px 0 0; box-shadow: {{t.cardShadow}}">
+<table style="width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums">
+<thead>
+<tr style="text-align: left; color: {{t.text2}}; font-size: 11.5px">
+<th scope="col" style="width: 34px; padding: 10px 0 8px 14px; font-weight: 600; position: sticky; top: 0; background: {{t.thGlass}}; backdrop-filter: blur(16px) saturate(1.9); -webkit-backdrop-filter: blur(16px) saturate(1.9); border-bottom: 1px solid {{t.borderSolid}}; z-index: 1">
+<input type="checkbox" aria-label="Select all eligible items" checked="{{allOn}}" onChange="{{toggleAll}}" style="width: 15px; height: 15px; margin: 0; accent-color: #2F7CF6; cursor: pointer">
+</th>
+<th scope="col" style="padding: 10px 10px 8px; font-weight: 600; position: sticky; top: 0; background: {{t.thGlass}}; backdrop-filter: blur(16px) saturate(1.9); -webkit-backdrop-filter: blur(16px) saturate(1.9); border-bottom: 1px solid {{t.borderSolid}}; z-index: 1">Item</th>
+<th scope="col" style="padding: 10px 10px 8px; font-weight: 600; position: sticky; top: 0; background: {{t.thGlass}}; backdrop-filter: blur(16px) saturate(1.9); -webkit-backdrop-filter: blur(16px) saturate(1.9); border-bottom: 1px solid {{t.borderSolid}}; z-index: 1">Category</th>
+<th scope="col" aria-sort="descending" style="padding: 10px 10px 8px; font-weight: 600; text-align: right; position: sticky; top: 0; background: {{t.thGlass}}; backdrop-filter: blur(16px) saturate(1.9); -webkit-backdrop-filter: blur(16px) saturate(1.9); border-bottom: 1px solid {{t.borderSolid}}; z-index: 1">Size ↓</th>
+<th scope="col" style="padding: 10px 10px 8px; font-weight: 600; position: sticky; top: 0; background: {{t.thGlass}}; backdrop-filter: blur(16px) saturate(1.9); -webkit-backdrop-filter: blur(16px) saturate(1.9); border-bottom: 1px solid {{t.borderSolid}}; z-index: 1">Risk</th>
+<th scope="col" style="padding: 10px 10px 8px; font-weight: 600; position: sticky; top: 0; background: {{t.thGlass}}; backdrop-filter: blur(16px) saturate(1.9); -webkit-backdrop-filter: blur(16px) saturate(1.9); border-bottom: 1px solid {{t.borderSolid}}; z-index: 1">Eligibility</th>
+<th scope="col" style="width: 36px; padding: 10px 12px 8px 4px; position: sticky; top: 0; background: {{t.thGlass}}; backdrop-filter: blur(16px) saturate(1.9); -webkit-backdrop-filter: blur(16px) saturate(1.9); border-bottom: 1px solid {{t.borderSolid}}; z-index: 1"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Details</span></th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+<tr style="background: {{r.rowBg}}">
+<td style="padding: 9px 0 9px 14px; border-bottom: 1px solid {{t.borderSolid}}">
+<input type="checkbox" checked="{{r.checked}}" disabled="{{r.disabled}}" onChange="{{r.toggle}}" aria-label="{{r.selectLabel}}" style="width: 15px; height: 15px; margin: 0; accent-color: #2F7CF6; cursor: {{r.cursor}}">
+</td>
+<td style="padding: 9px 10px; border-bottom: 1px solid {{t.borderSolid}}; max-width: 260px">
+<div style="display: flex; align-items: center; gap: 10px; min-width: 0">
+<span aria-hidden="true" style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; background: {{r.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); display: flex; align-items: center; justify-content: center; opacity: {{r.op}}">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="{{r.d}}"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; min-width: 0; line-height: 1.3">
+<button type="button" onClick="{{r.open}}" style="padding: 0; border: 0; background: transparent; font: inherit; font-weight: 600; color: {{t.text}}; text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</button>
+<span style="font-size: 11.5px; color: {{t.text2}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.reason}}</span>
+</span>
+</div>
+</td>
+<td style="padding: 9px 10px; border-bottom: 1px solid {{t.borderSolid}}"><span style="font-size: 11px; font-weight: 600; color: {{r.catFg}}; background: {{r.catBg}}; border-radius: 6px; padding: 2px 8px; white-space: nowrap">{{r.cat}}</span></td>
+<td style="padding: 9px 10px; border-bottom: 1px solid {{t.borderSolid}}; text-align: right; font-weight: 600; white-space: nowrap">{{r.size}}</td>
+<td style="padding: 9px 10px; border-bottom: 1px solid {{t.borderSolid}}"><span style="font-size: 11px; font-weight: 600; color: {{r.riskFg}}; background: {{r.riskBg}}; border-radius: 6px; padding: 2px 8px; white-space: nowrap">{{r.risk}}</span></td>
+<td style="padding: 9px 10px; border-bottom: 1px solid {{t.borderSolid}}">
+<span style="display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: {{r.eligFg}}; white-space: nowrap">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{r.eligIcon}}"></path></svg>{{r.elig}}</span>
+</td>
+<td style="padding: 9px 12px 9px 4px; border-bottom: 1px solid {{t.borderSolid}}">
+<button type="button" onClick="{{r.open}}" aria-label="{{r.detailsLabel}}" style="width: 26px; height: 26px; border-radius: 7px; border: 0; background: {{r.moreBg}}; color: {{t.text2}}; cursor: pointer; display: flex; align-items: center; justify-content: center">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>
+</button>
+</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 40px 20px; text-align: center; color: {{t.text2}}">
+<div style="font-weight: 600; color: {{t.text}}">No items match these filters</div>
+<div style="font-size: 12px">The scan found 45 items. Clear the search or pick another category.</div>
+</div>
+</sc-if>
+</div>
+
+<div style="position: relative; z-index: 4; display: flex; align-items: center; gap: 12px; margin: 0 28px 22px; padding: 12px 14px; border-radius: 0 0 14px 14px; background: linear-gradient(180deg, {{t.floatTop}}, {{t.floatBg}}); backdrop-filter: blur(24px) saturate(1.9); -webkit-backdrop-filter: blur(24px) saturate(1.9); border: 1px solid {{t.floatEdge}}; box-shadow: {{t.floatShadow}}">
+<span aria-hidden="true" style="width: 34px; height: 34px; border-radius: 9px; background: {{selTile}}; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45)">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path></svg>
+</span>
+<div style="display: flex; flex-direction: column; line-height: 1.3">
+<span role="status" style="font-weight: 700; font-variant-numeric: tabular-nums">{{selText}}</span>
+<span style="font-size: 11.5px; color: {{t.text2}}">Selecting does nothing on its own. You'll see an exact preview first.</span>
+</div>
+<div style="margin-left: auto; display: flex; gap: 8px">
+<button type="button" onClick="{{clear}}" style="height: 34px; padding: 0 14px; border-radius: 9px; border: 0; background: {{t.linkBg}}; color: {{t.link}}; font: inherit; font-weight: 600; cursor: pointer">Clear selection</button>
+<sc-if value="{{hasSel}}" hint-placeholder-val="{{ true }}">
+<a href="Preview.dc.html" style="display: inline-flex; align-items: center; height: 34px; padding: 0 16px; border-radius: 9px; background: linear-gradient(180deg, #4C9BFF, #2468D8); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px rgba(36,104,216,0.3); color: #FFFFFF; font-weight: 600; text-decoration: none">Create preview →</a>
+</sc-if>
+<sc-if value="{{noSel}}" hint-placeholder-val="{{ false }}">
+<button type="button" disabled="{{ true }}" style="height: 34px; padding: 0 16px; border-radius: 9px; border: 0; background: {{t.track}}; color: {{t.text2}}; font: inherit; font-weight: 600">Create preview →</button>
+</sc-if>
+</div>
+</div>
+
+<sc-if value="{{drawer}}" hint-placeholder-val="{{ false }}">
+<div onClick="{{closeDrawer}}" aria-hidden="true" style="position: absolute; inset: 0; background: {{t.scrim}}; z-index: 4"></div>
+<aside role="dialog" aria-modal="true" aria-labelledby="dt-h" style="position: absolute; top: 0; right: 0; bottom: 0; width: 360px; box-sizing: border-box; background: {{t.drawerBg}}; backdrop-filter: blur(30px) saturate(1.6); -webkit-backdrop-filter: blur(30px) saturate(1.6); border-left: 1px solid {{t.menuEdge}}; box-shadow: {{t.drawerShadow}}; z-index: 5; display: flex; flex-direction: column; overflow: auto">
+<div style="padding: 18px 18px 12px; display: flex; gap: 12px; align-items: flex-start">
+<span aria-hidden="true" style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 13px; background: {{d.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 4px 12px {{d.glow}}; display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{d.d}}"></path></svg>
+</span>
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1">
+<h2 id="dt-h" style="margin: 0; font-size: 17px; font-weight: 700; word-break: break-word">{{d.name}}</h2>
+<span style="align-self: flex-start; font-size: 11px; font-weight: 600; color: {{d.catFg}}; background: {{d.catBg}}; border-radius: 6px; padding: 2px 8px">{{d.cat}}</span>
+</div>
+<button type="button" onClick="{{closeDrawer}}" aria-label="Close details" style="width: 28px; height: 28px; border-radius: 8px; border: 0; background: {{t.track}}; color: {{t.text2}}; cursor: pointer; display: flex; align-items: center; justify-content: center">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+</button>
+</div>
+
+<div style="margin: 0 18px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-variant-numeric: tabular-nums">
+<sc-for list="{{d.stats}}" as="s" hint-placeholder-count="3">
+<div style="padding: 10px; border-radius: 10px; background: {{t.card}}; border: 1px solid {{t.border}}; display: flex; flex-direction: column; gap: 1px">
+<span style="font-size: 16px; font-weight: 700">{{s.value}}</span>
+<span style="font-size: 11px; color: {{t.text2}}">{{s.label}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="margin: 14px 18px 0; display: flex; flex-direction: column; gap: 8px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 700">Why Kleari found this</h3>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{d.evidence}}" as="e" hint-placeholder-count="3">
+<li style="display: flex; gap: 8px; font-size: 12.5px">
+<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><circle cx="12" cy="12" r="10" fill="{{e.color}}"></circle><path d="{{e.mark}}" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span>{{e.text}}</span>
+</li>
+</sc-for>
+</ul>
+</div>
+
+<dl style="margin: 14px 18px 0; padding: 12px; border-radius: 10px; background: {{t.card}}; border: 1px solid {{t.border}}; display: grid; grid-template-columns: 84px 1fr; row-gap: 8px; column-gap: 10px; font-size: 12.5px">
+<dt style="color: {{t.text2}}">Certainty</dt><dd style="margin: 0; font-weight: 600">{{d.certainty}}</dd>
+<dt style="color: {{t.text2}}">Risk</dt><dd style="margin: 0"><span style="font-size: 11px; font-weight: 600; color: {{d.riskFg}}; background: {{d.riskBg}}; border-radius: 6px; padding: 2px 8px">{{d.risk}}</span></dd>
+<dt style="color: {{t.text2}}">Eligibility</dt><dd style="margin: 0; color: {{d.eligFg}}; font-weight: 600">{{d.eligLong}}</dd>
+<dt style="color: {{t.text2}}">Location</dt><dd style="margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; word-break: break-all">{{d.path}}</dd>
+</dl>
+
+<div style="margin: 14px 18px 18px; display: flex; flex-direction: column; gap: 6px">
+<sc-if value="{{d.canAdd}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{d.toggle}}" style="height: 34px; border-radius: 9px; border: 0; background: {{d.addBg}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.35); color: {{d.addFg}}; font: inherit; font-weight: 600; cursor: pointer">{{d.addLabel}}</button>
+</sc-if>
+<sc-if value="{{d.cannotAdd}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 9px 12px; border-radius: 9px; background: {{t.track}}; font-size: 12px; color: {{t.text2}}">{{d.whyNot}}</div>
+</sc-if>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+<sc-for list="{{drawerActions}}" as="a" hint-placeholder-count="3">
+<button type="button" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 4px; border-radius: 9px; border: 0; background: {{t.linkBg}}; color: {{t.link}}; font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{a.d}}"></path></svg>
+{{a.label}}
+</button>
+</sc-for>
+</div>
+</div>
+</aside>
+</sc-if>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1260,"height":920}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sel: { a: true, c: true, e: true }, cat: 'all', eligOnly: false, query: '', open: null, page: 1 }; }
+  theme() {
+    var light = {
+      wallpaper:'linear-gradient(165deg, #9FB3E0 0%, #C3B4DE 38%, #EBC2C4 66%, #B9A6CF 100%)', ridge1:'rgba(92,96,150,0.45)', ridge2:'rgba(60,62,110,0.55)',
+      windowEdge:'rgba(255,255,255,0.6)', windowShadow:'0 30px 80px rgba(30,30,70,0.35), 0 4px 14px rgba(30,30,70,0.18)',
+      glass:'rgba(244,246,252,0.62)', glassEdge:'rgba(255,255,255,0.55)', glassShine:'rgba(255,255,255,0.35)', glassChip:'rgba(255,255,255,0.55)',
+      navSel:'rgba(255,255,255,0.85)', navSelShadow:'0 1px 3px rgba(24,34,48,0.10), inset 0 1px 0 rgba(255,255,255,0.9)',
+      bg:'#F5F7FA', card:'#FFFFFF', border:'rgba(24,34,48,0.07)', borderSolid:'#EEF1F5', strong:'#C5CED9', cardShadow:'0 1px 2px rgba(24,34,48,0.04), 0 8px 24px rgba(24,34,48,0.06)',
+      edgeTop:'rgba(255,255,255,0.62)', edgeMid:'rgba(255,255,255,0.22)', edgeLine:'rgba(255,255,255,0.95)', edgeSheen:'rgba(255,255,255,0.7)', floatTop:'rgba(255,255,255,0.80)', floatBg:'rgba(244,247,252,0.56)', floatEdge:'rgba(255,255,255,0.78)', floatShadow:'0 12px 32px rgba(24,34,48,0.14), 0 2px 6px rgba(24,34,48,0.06), inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(24,34,48,0.05)', thGlass:'rgba(255,255,255,0.72)', wordmark:'linear-gradient(90deg, #2F6FED, #6D3FE0)', text:'#182230', text2:'#5D6878', track:'#EDF0F5', link:'#1F6FEB', linkBg:'rgba(47,124,246,0.10)', selRow:'rgba(47,124,246,0.07)', moreBg:'rgba(47,124,246,0.10)',
+      segBg:'#E9EDF3', segShadow:'0 1px 3px rgba(24,34,48,0.12)', barBg:'rgba(248,250,253,0.92)',
+      menuEdge:'rgba(24,34,48,0.10)', scrim:'rgba(24,34,48,0.18)', drawerBg:'rgba(246,248,252,0.94)', drawerShadow:'-16px 0 40px rgba(24,34,48,0.16)',
+      okText:'#15703F', okBg:'rgba(34,197,94,0.14)', warnText:'#8A5600', warnBg:'rgba(245,158,11,0.18)', mutedText:'#4B5565', mutedBg:'rgba(100,116,139,0.14)'
+    };
+    var dark = {
+      wallpaper:'linear-gradient(165deg, #1D2440 0%, #2E2546 40%, #4A2F44 70%, #1A1C30 100%)', ridge1:'rgba(10,12,28,0.55)', ridge2:'rgba(6,8,20,0.7)',
+      windowEdge:'rgba(255,255,255,0.12)', windowShadow:'0 30px 80px rgba(0,0,0,0.6)',
+      glass:'rgba(34,40,54,0.55)', glassEdge:'rgba(255,255,255,0.08)', glassShine:'rgba(255,255,255,0.05)', glassChip:'rgba(255,255,255,0.06)',
+      navSel:'rgba(255,255,255,0.12)', navSelShadow:'inset 0 1px 0 rgba(255,255,255,0.08)',
+      bg:'#14181E', card:'#1C222B', border:'rgba(255,255,255,0.06)', borderSolid:'#2A323E', strong:'#465364', cardShadow:'none',
+      edgeTop:'rgba(22,27,35,0.72)', edgeMid:'rgba(22,27,35,0.3)', edgeLine:'rgba(255,255,255,0.14)', edgeSheen:'rgba(140,170,255,0.12)', floatTop:'rgba(52,61,76,0.62)', floatBg:'rgba(30,36,46,0.5)', floatEdge:'rgba(255,255,255,0.13)', floatShadow:'0 12px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.10)', thGlass:'rgba(28,34,43,0.72)', wordmark:'linear-gradient(90deg, #7CC0FF, #B49CFF)', text:'#F0F3F7', text2:'#B5BFCC', track:'#2A323E', link:'#8BC0FF', linkBg:'rgba(108,180,255,0.14)', selRow:'rgba(108,180,255,0.08)', moreBg:'rgba(108,180,255,0.14)',
+      segBg:'#252D38', segShadow:'0 1px 3px rgba(0,0,0,0.4)', barBg:'rgba(32,39,49,0.92)',
+      menuEdge:'rgba(255,255,255,0.10)', scrim:'rgba(0,0,0,0.35)', drawerBg:'rgba(30,36,46,0.94)', drawerShadow:'-16px 0 40px rgba(0,0,0,0.5)',
+      okText:'#68C995', okBg:'rgba(104,201,149,0.14)', warnText:'#F0BD63', warnBg:'rgba(240,189,99,0.14)', mutedText:'#B5BFCC', mutedBg:'rgba(181,191,204,0.12)'
+    };
+    return this.props.dark ? dark : light;
+  }
+  renderVals() {
+    var t = this.theme();
+    var self = this;
+    var dark = !!this.props.dark;
+    var nav = [
+      {label:'Dashboard',href:'Main.dc.html',d:'M3 13h8V3H3zM13 21h8V11h-8zM13 3v6h8V3zM3 21h8v-6H3z'},
+      {label:'Cleanup',href:'Cleanup.dc.html',d:'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3'},
+      {label:'Quarantine',href:'Quarantine.dc.html',d:'M21 8v13H3V8M1 3h22v5H1zM10 12h4'},
+      {label:'Storage',href:'Storage.dc.html',d:'M22 12H2M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1zM6 16h.01'},
+      {label:'System',href:'System.dc.html',d:'M22 12h-4l-3 9L9 3l-3 9H2'},
+      {label:'Developer',href:'Developer.dc.html',d:'M16 18l6-6-6-6M8 6l-6 6 6 6'},
+      {label:'Processes',href:'Processes.dc.html',d:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'},
+      {label:'Activity',href:'Activity.dc.html',d:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2'}
+    ].map(function (n) {
+      var on = n.label === 'Cleanup';
+      return {label:n.label,href:n.href,d:n.d,current:on ? 'page' : undefined,bg:on ? t.navSel : 'transparent',shadow:on ? t.navSelShadow : 'none',icon:on ? '#2F7CF6' : t.text2,weight:on ? 600 : 500};
+    });
+    var navBottom = [
+      {label:'Settings',href:'Settings.dc.html',d:'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6'}
+    ];
+    var CATS = {
+      cache:{label:'App caches',count:18,c1:'#6CB4FF',c2:'#2F6FED',dot:'#3B82F6',fg:dark ? '#8BC0FF' : '#1D5FD1',d:'M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15'},
+      xcode:{label:'Xcode',count:6,c1:'#9D90FF',c2:'#5B4BE0',dot:'#6366F1',fg:dark ? '#AFA8FF' : '#4338CA',d:'M16 18l6-6-6-6M8 6l-6 6 6 6'},
+      pkg:{label:'Package caches',count:7,c1:'#67E8F9',c2:'#0891B2',dot:'#06B6D4',fg:dark ? '#67E8F9' : '#0E7490',d:'M21 16V8l-9-5-9 5v8l9 5zM3.3 7L12 12l8.7-5M12 22V12'},
+      node:{label:'node_modules',count:5,c1:'#C38BFF',c2:'#8B3FE0',dot:'#A855F7',fg:dark ? '#D4B0FF' : '#7E22CE',d:'M12 2l9 5v10l-9 5-9-5V7z'},
+      large:{label:'Large files',count:9,c1:'#FFC56E',c2:'#F5841F',dot:'#F97316',fg:dark ? '#FFB86B' : '#B4530A',d:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6'}
+    };
+    var soft = function (hex, a) { var n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
+    var tone = function (k) { return k === 'ok' ? [t.okText, t.okBg] : (k === 'warn' ? [t.warnText, t.warnBg] : [t.mutedText, t.mutedBg]); };
+    var CHECK = 'M20 6L9 17l-5-5', NO = 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM4.9 4.9l14.2 14.2', CLOCK = 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2', EYE = 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z';
+    var data = [
+      {id:'a',name:'Kleari-dgqxkfa',cat:'xcode',path:'~/Library/Developer/Xcode/DerivedData/Kleari-dgqxkfa',gb:3.2,files:'12,482',modified:'2 days ago',reason:'Build output Xcode recreates on the next build',certainty:'High',risk:'Low',ok:true,kind:'ok',elig:'Eligible',eligLong:'Eligible for quarantine',
+        evidence:[['ok','Inside Xcode’s DerivedData folder'],['ok','Xcode is not using it right now'],['ok','Project Kleari still exists, so Xcode can rebuild it'],['info','Your next build will take longer while Xcode rebuilds']]},
+      {id:'b',name:'Atlas-hbcmzqe',cat:'xcode',path:'~/Library/Developer/Xcode/DerivedData/Atlas-hbcmzqe',gb:2.7,files:'9,104',modified:'3 weeks ago',reason:'Build output Xcode recreates on the next build',certainty:'High',risk:'Low',ok:true,kind:'ok',elig:'Eligible',eligLong:'Eligible for quarantine',
+        evidence:[['ok','Inside Xcode’s DerivedData folder'],['ok','Not changed for 3 weeks'],['info','The Atlas project was not found, so this may be left over']]},
+      {id:'c',name:'com.spotify.client',cat:'cache',path:'~/Library/Caches/com.spotify.client',gb:1.9,files:'3,210',modified:'Today',reason:'App cache the app downloads again',certainty:'High',risk:'Low',ok:true,kind:'ok',elig:'Eligible',eligLong:'Eligible for quarantine',
+        evidence:[['ok','In ~/Library/Caches, where apps keep rebuildable data'],['ok','Spotify is not running'],['info','Offline songs may need to download again']]},
+      {id:'d',name:'com.google.Chrome',cat:'cache',path:'~/Library/Caches/com.google.Chrome',gb:1.1,files:'8,977',modified:'Just now',reason:'App cache, but the app is open',certainty:'High',risk:'Low',ok:false,kind:'no',elig:'Not now',eligLong:'Not eligible while Chrome is open',
+        evidence:[['ok','In ~/Library/Caches'],['warn','Chrome is running and writing to this folder']],whyNot:'Quit Chrome and scan again to include this.'},
+      {id:'e',name:'Homebrew downloads',cat:'pkg',path:'~/Library/Caches/Homebrew/downloads',gb:0.8,files:'214',modified:'1 week ago',reason:'Package archives already installed',certainty:'High',risk:'Low',ok:true,kind:'ok',elig:'Eligible',eligLong:'Eligible for quarantine',
+        evidence:[['ok','Homebrew’s download cache'],['ok','Every archive matches a package that is already installed']]},
+      {id:'f',name:'atlas-web/node_modules',cat:'node',path:'~/Developer/atlas-web/node_modules',gb:0.64,files:'48,311',modified:'1 month ago',reason:'Dependencies, lockfile not yet verified',certainty:'Medium',risk:'Medium',ok:false,kind:'no',elig:'Needs check',eligLong:'Not eligible until the lockfile is checked',
+        evidence:[['ok','A package-lock.json was found next to it'],['warn','The lockfile has not been verified yet'],['warn','The project has uncommitted changes']],whyNot:'Kleari only offers node_modules after confirming the lockfile can restore it.'},
+      {id:'g',name:'com.figma.Desktop',cat:'cache',path:'~/Library/Caches/com.figma.Desktop',gb:0.42,files:'1,033',modified:'Changed after scan',reason:'App cache, changed since the scan',certainty:'High',risk:'Low',ok:false,kind:'stale',elig:'Rescan',eligLong:'Changed since the scan',
+        evidence:[['ok','In ~/Library/Caches'],['warn','Its contents changed after the scan finished']],whyNot:'Scan again to review the current contents.'},
+      {id:'h',name:'train.parquet',cat:'large',path:'~/Developer/old-ml/data/train.parquet',gb:4.8,files:'1',modified:'8 months ago',reason:'Large file Kleari can’t classify',certainty:'Unknown',risk:'Unknown',ok:false,kind:'eye',elig:'Inspect only',eligLong:'Inspect only, never offered for quarantine',
+        evidence:[['info','Larger than 1 GB'],['info','Not opened for 8 months'],['warn','Not a known cache, so only you can decide']],whyNot:'Large files are listed for you to look at in Finder. Kleari won’t move them.'}
+    ];
+    var GEN = {
+      cache:{names:['com.apple.Safari','com.microsoft.VSCode','com.tinyspeck.slackmacgap','com.hnc.Discord','com.adobe.acc','com.linear','com.apple.Music','us.zoom.xos','com.figma.agent','notion.id','com.postmanlabs.mac','com.jetbrains.toolbox','com.openai.chat','org.mozilla.firefox','com.raycast.macos'],
+        path:function (n) { return '~/Library/Caches/' + n; }, reason:'App cache the app downloads again', ok:true, kind:'ok', risk:'Low', certainty:'High',
+        evidence:[['ok','In ~/Library/Caches, where apps keep rebuildable data'],['ok','The app is not running']]},
+      xcode:{names:['Weather-akdjqzx','Notes-pqmxvbe','Archive 2026-08-12','iOS 17.5 device support'],
+        path:function (n) { return '~/Library/Developer/Xcode/DerivedData/' + n; }, reason:'Build output Xcode recreates', ok:true, kind:'ok', risk:'Low', certainty:'High',
+        evidence:[['ok','Inside Xcode’s developer folder'],['ok','Xcode is not using it right now']]},
+      pkg:{names:['npm cache','pip cache','Homebrew logs','CocoaPods cache','Yarn cache','Gradle caches'],
+        path:function (n) { return '~/Library/Caches/' + n.split(' ')[0]; }, reason:'Package downloads the tool can fetch again', ok:true, kind:'ok', risk:'Low', certainty:'High',
+        evidence:[['ok','A package manager’s download cache'],['ok','The tool rebuilds it on the next install']]},
+      node:{names:['shop-api/node_modules','portfolio/node_modules','cli-tools/node_modules','old-landing/node_modules'],
+        path:function (n) { return '~/Developer/' + n; }, reason:'Dependencies, lockfile not yet verified', ok:false, kind:'no', risk:'Medium', certainty:'Medium', elig:'Needs check', eligLong:'Not eligible until the lockfile is checked',
+        whyNot:'Kleari only offers node_modules after confirming the lockfile can restore it.',
+        evidence:[['ok','A lockfile was found next to it'],['warn','The lockfile has not been verified yet']]},
+      large:{names:['macOS-Installer.dmg','screen-recording-0812.mov','backup-2025.zip','dataset-v2.csv','vm-ubuntu.qcow2','photos-export.zip','Xcode_15.4.xip','raw-footage-01.mov'],
+        path:function (n) { return '~/Developer/archive/' + n; }, reason:'Large file Kleari can’t classify', ok:false, kind:'eye', risk:'Unknown', certainty:'Unknown', elig:'Inspect only', eligLong:'Inspect only, never offered for quarantine',
+        whyNot:'Large files are listed for you to look at in Finder. Kleari won’t move them.',
+        evidence:[['info','Larger than 1 GB'],['warn','Not a known cache, so only you can decide']]}
+    };
+    var ages = ['Today','Yesterday','3 days ago','1 week ago','2 weeks ago','1 month ago','2 months ago','5 months ago'];
+    var gi = 0;
+    Object.keys(GEN).forEach(function (k) {
+      var g = GEN[k];
+      g.names.forEach(function (nm, i) {
+        var gb = k === 'large' ? 3.9 - i * 0.42 : (k === 'xcode' ? 1.4 - i * 0.3 : 0.38 - i * (k === 'cache' ? 0.024 : 0.05));
+        var running = k === 'cache' && nm === 'com.tinyspeck.slackmacgap';
+        data.push({id:'g' + (gi++), name:nm, cat:k, path:g.path(nm), gb:Math.max(gb, 0.012), files:String(120 + i * 337), modified:ages[(i + gi) % ages.length],
+          reason:running ? 'App cache, but the app is open' : g.reason, certainty:g.certainty, risk:g.risk, ok:running ? false : g.ok, kind:running ? 'no' : g.kind,
+          elig:running ? 'Not now' : (g.elig || 'Eligible'), eligLong:running ? 'Not eligible while Slack is open' : (g.eligLong || 'Eligible for quarantine'),
+          whyNot:running ? 'Quit Slack and scan again to include this.' : g.whyNot,
+          evidence:running ? [['ok','In ~/Library/Caches'],['warn','Slack is running and writing to this folder']] : g.evidence});
+      });
+    });
+    data.sort(function (x, y) { return y.gb - x.gb; });
+    var fmt = function (gb) { return gb >= 1 ? gb.toFixed(1) + ' GB' : Math.round(gb * 1000) + ' MB'; };
+    var sel = this.state.sel, cat = this.state.cat, eligOnly = this.state.eligOnly, q = this.state.query.toLowerCase();
+    var riskTone = {Low:'ok',Medium:'warn',Unknown:'muted'};
+    var eligTone = {ok:t.okText,no:t.text2,stale:t.warnText,eye:t.text2};
+    var eligIcon = {ok:CHECK,no:NO,stale:CLOCK,eye:EYE};
+    var dress = function (r) {
+      var C = CATS[r.cat], rt = tone(riskTone[r.risk]);
+      return {tile:'linear-gradient(160deg, ' + C.c1 + ', ' + C.c2 + ')',glow:soft(C.c2, 0.35),d:C.d,cat:C.label,catFg:C.fg,catBg:soft(C.dot, dark ? 0.16 : 0.12),
+        risk:r.risk + ' risk',riskFg:rt[0],riskBg:rt[1],eligFg:eligTone[r.kind],eligIcon:eligIcon[r.kind]};
+    };
+    var shown = data.filter(function (r) {
+      return (cat === 'all' || r.cat === cat) && (!eligOnly || r.ok) && (!q || (r.name + ' ' + r.path).toLowerCase().indexOf(q) >= 0);
+    });
+    var PER = 10;
+    var pageCount = Math.max(1, Math.ceil(shown.length / PER));
+    var page = Math.min(this.state.page, pageCount);
+    var pageRows = shown.slice((page - 1) * PER, page * PER);
+    var rows = pageRows.map(function (r) {
+      var on = !!sel[r.id] && r.ok, x = dress(r);
+      return Object.assign(x, {name:r.name,reason:r.reason,size:fmt(r.gb),elig:r.elig,checked:on,disabled:!r.ok,cursor:r.ok ? 'pointer' : 'not-allowed',
+        rowBg:self.state.open === r.id ? t.linkBg : (on ? t.selRow : 'transparent'),op:r.ok ? 1 : 0.6,moreBg:self.state.open === r.id ? t.moreBg : 'transparent',
+        selectLabel:(r.ok ? 'Select ' : 'Cannot select ') + r.name,detailsLabel:'Details for ' + r.name,
+        toggle:function () { var s = Object.assign({}, self.state.sel); s[r.id] = !s[r.id]; self.setState({sel:s}); },
+        open:function () { self.setState({open:r.id}); }});
+    });
+    var chipDefs = [['all','All results',45,'#94A3B8',t.text]].concat(Object.keys(CATS).map(function (k) { return [k, CATS[k].label, CATS[k].count, CATS[k].dot, CATS[k].fg]; }));
+    var chips = chipDefs.map(function (c) {
+      var on = cat === c[0];
+      return {label:c[1],count:c[2],dot:c[3],pressed:on ? 'true' : 'false',
+        bg:on ? (c[0] === 'all' ? (dark ? '#F0F3F7' : '#182230') : soft(c[3], dark ? 0.22 : 0.14)) : t.card,
+        fg:on ? (c[0] === 'all' ? (dark ? '#14181E' : '#FFFFFF') : c[4]) : t.text,
+        border:on ? '1px solid transparent' : '1px solid ' + t.border,shadow:on ? 'none' : t.cardShadow,
+        pick:function () { self.setState({cat:c[0], page:1}); }};
+    });
+    var picked = data.filter(function (r) { return sel[r.id] && r.ok; });
+    var total = picked.reduce(function (a, r) { return a + r.gb; }, 0);
+    var eligibleShown = shown.filter(function (r) { return r.ok; });
+    var allOn = eligibleShown.length > 0 && eligibleShown.every(function (r) { return sel[r.id]; });
+    var o = data.filter(function (r) { return r.id === self.state.open; })[0];
+    var d = null;
+    if (o) {
+      var mk = {ok:['#1FA45B',CHECK],warn:['#E08A00','M12 7v6M12 17h.01'],info:['#2F7CF6','M12 11v6M12 7h.01']};
+      var inSel = !!sel[o.id];
+      d = Object.assign(dress(o), {name:o.name,path:o.path,certainty:o.certainty,eligLong:o.eligLong,
+        stats:[{value:fmt(o.gb),label:'Size'},{value:o.files,label:'Files'},{value:o.modified,label:'Last changed'}],
+        evidence:o.evidence.map(function (e) { return {text:e[1],color:mk[e[0]][0],mark:mk[e[0]][1]}; }),
+        canAdd:o.ok,cannotAdd:!o.ok,whyNot:o.whyNot || '',
+        addLabel:inSel ? 'Remove from selection' : 'Add to selection',
+        addBg:inSel ? t.linkBg : 'linear-gradient(180deg, #4C9BFF, #2468D8)',addFg:inSel ? t.link : '#FFFFFF',
+        toggle:function () { var s = Object.assign({}, self.state.sel); s[o.id] = !s[o.id]; self.setState({sel:s}); }});
+    }
+    return {
+      t:t, nav:nav, navBottom:navBottom, rows:rows, chips:chips, query:this.state.query, d:d || {}, drawer:!!d,
+      drawerActions:[{label:'Show in Finder',d:'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z'},{label:'Copy path',d:'M9 9h11v11H9zM5 15H4V4h11v1'},{label:'Hide from results',d:'M17.9 17.9A10 10 0 0 1 12 20c-7 0-11-8-11-8a18 18 0 0 1 5.1-5.9M9.9 4.2A9 9 0 0 1 12 4c7 0 11 8 11 8a18 18 0 0 1-2.2 3.2M1 1l22 22'}],
+      onSearch:function (e) { self.setState({query:e.target.value, page:1}); },
+      eligOnlyStr:eligOnly ? 'true' : 'false', switchBg:eligOnly ? '#2F7CF6' : t.strong, switchLeft:eligOnly ? '16px' : '2px',
+      toggleElig:function () { self.setState({eligOnly:!self.state.eligOnly, page:1}); },
+      shownText:shown.length ? 'Showing ' + ((page - 1) * PER + 1) + '\u2013' + ((page - 1) * PER + rows.length) + ' of ' + shown.length : 'Showing 0 of 0', empty:rows.length === 0,
+      pages:Array.from({length:pageCount}, function (_, i) { var on = i + 1 === page; return {n:i + 1,aria:'Page ' + (i + 1),current:on ? 'page' : undefined,
+        bg:on ? 'linear-gradient(180deg, #4C9BFF, #2468D8)' : t.card,fg:on ? '#FFFFFF' : t.text,border:on ? '1px solid transparent' : '1px solid ' + t.border,
+        go:function () { self.setState({page:i + 1}); }}; }),
+      prevDisabled:page <= 1, nextDisabled:page >= pageCount,
+      prevColor:page <= 1 ? t.strong : t.link, nextColor:page >= pageCount ? t.strong : t.link,
+      prevCursor:page <= 1 ? 'default' : 'pointer', nextCursor:page >= pageCount ? 'default' : 'pointer',
+      prev:function () { self.setState({page:Math.max(1, page - 1)}); }, next:function () { self.setState({page:Math.min(pageCount, page + 1)}); },
+      allOn:allOn, toggleAll:function () { var s = Object.assign({}, self.state.sel); eligibleShown.forEach(function (r) { s[r.id] = !allOn; }); self.setState({sel:s}); },
+      selText:picked.length ? picked.length + ' selected · ' + fmt(total) : 'Nothing selected',
+      selTile:picked.length ? 'linear-gradient(160deg, #6CB4FF, #2F6FED)' : 'linear-gradient(160deg, #B4BDC9, #7D8897)',
+      hasSel:picked.length > 0, noSel:picked.length === 0,
+      clear:function () { self.setState({sel:{}}); },
+      closeDrawer:function () { self.setState({open:null}); }
+    };
+  }
+}
+</script>
+</body>
+</html>

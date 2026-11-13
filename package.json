@@ -1,0 +1,17 @@
+{
+  "name": "kleari",
+  "private": true,
+  "version": "0.1.0",
+  "license": "GPL-3.0-or-later",
+  "packageManager": "pnpm@10.12.1",
+  "engines": { "node": "^22.13.0 || >=24 <26" },
+  "pnpm": { "onlyBuiltDependencies": ["esbuild"] },
+  "scripts": {
+    "dev": "pnpm --filter @kleari/desktop dev",
+    "build": "pnpm --filter @kleari/desktop build",
+    "check:release-bundle": "pnpm --filter @kleari/desktop check:release-bundle",
+    "typecheck": "pnpm --filter @kleari/desktop typecheck",
+    "lint": "pnpm --filter @kleari/desktop lint",
+    "tauri": "pnpm --filter @kleari/desktop tauri"
+  }
+}

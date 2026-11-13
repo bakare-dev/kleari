@@ -1,0 +1,520 @@
+.st-volume {
+  display: flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--mp-border);
+  border-radius: 8px;
+  background: var(--mp-card);
+  box-shadow: var(--mp-card-shadow);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.st-volume svg {
+  color: var(--mp-text-2);
+}
+
+.st-capacity {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.st-cap-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+}
+
+.st-cap-total {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.st-cap-total h2 {
+  color: var(--mp-text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.st-cap-total > span {
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.st-cap-total > span span {
+  color: var(--mp-text-2);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.st-chips {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.st-chip {
+  display: flex;
+  flex-direction: column;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: var(--mp-info-bg);
+  line-height: 1.25;
+}
+
+.st-chip span {
+  color: var(--mp-text-2);
+  font-size: 11px;
+}
+
+.st-chip strong {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.st-ok { color: var(--mp-ok-text); }
+.st-warn { color: var(--mp-warn-text); }
+
+.st-bar {
+  display: flex;
+  height: 22px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--mp-track);
+  box-shadow: inset 0 1px 2px rgba(24, 34, 48, 0.08);
+}
+
+.st-bar span {
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset -1px 0 0 rgba(255, 255, 255, 0.7);
+  opacity: 0.55;
+  transition: opacity 0.2s;
+}
+
+.st-bar span.on {
+  opacity: 1;
+}
+
+:root[data-theme="dark"] .st-bar span:not(.on) {
+  opacity: 0.75;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .st-bar span:not(.on) {
+    opacity: 0.75;
+  }
+}
+
+.st-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.st-cat {
+  display: flex;
+  height: 28px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid var(--mp-border);
+  border-radius: 8px;
+  background: var(--mp-card);
+  font-size: 12px;
+}
+
+.st-cat.on {
+  border: 1.5px solid var(--mp-link);
+  background: var(--mp-link-bg);
+}
+
+.st-cat-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+}
+
+.st-cat-label {
+  font-weight: 600;
+}
+
+.st-access {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--mp-border);
+  border-radius: 10px;
+  color: var(--mp-text-2);
+  font-size: 12px;
+}
+
+.st-access svg {
+  flex-shrink: 0;
+}
+
+.st-access > span {
+  flex: 1;
+}
+
+.st-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.st-empty .v2-card-note {
+  max-width: 360px;
+}
+
+/* Only the folder or file list scrolls; the capacity card and side cards stay put, as on Processes. */
+.st-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+  padding: 4px 28px 22px;
+}
+
+.st-grid {
+  display: grid;
+  min-height: 0;
+  flex: 1 1 auto;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.st-explore {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 12px 8px;
+}
+
+.st-explore-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 6px;
+}
+
+.st-explore-head h2 {
+  flex: 1;
+}
+
+.st-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin: 0 4px;
+  font-size: 12px;
+}
+
+.st-crumb {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--mp-text-2);
+}
+
+.st-crumb-link {
+  padding: 2px 5px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--mp-link);
+  font-weight: 600;
+}
+
+.st-crumb-here {
+  padding: 2px 5px;
+  color: var(--mp-text);
+  font-weight: 700;
+}
+
+.st-crumb-total {
+  margin-left: auto;
+  color: var(--mp-text-2);
+}
+
+.st-folders,
+.st-files {
+  min-height: 0;
+  flex: 1 1 auto;
+  margin: 0 -4px 0 0;
+  padding: 0 4px 0 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.st-folders .v2-edge,
+.st-files .v2-edge {
+  margin-bottom: -40px;
+}
+
+.st-folders li:not(.v2-edge) {
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.st-folder {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+}
+
+.st-folder:not(:disabled):hover {
+  background: var(--mp-sel-row);
+}
+
+.st-folder-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.st-folder-name {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.st-tag {
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 10.5px;
+}
+
+.st-folder-track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--mp-track);
+}
+
+.st-folder-track span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+}
+
+.st-folder-size {
+  width: 62px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+.st-folder-chevron {
+  display: flex;
+  width: 14px;
+  flex-shrink: 0;
+  color: var(--mp-text-2);
+}
+
+.st-files-note {
+  margin: 0 6px;
+}
+
+.st-files li:not(.v2-edge) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.st-file-size {
+  width: 58px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+.st-file-action {
+  display: flex;
+  width: 118px;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  padding-left: 6px;
+}
+
+/* Scrolls only when the window is too short for both cards; the padding keeps shadows unclipped. */
+.st-side {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 14px;
+  margin: -6px;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.st-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+
+.st-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.st-detail-sub {
+  font-size: 12px;
+}
+
+.st-blurb {
+  font-size: 12.5px;
+}
+
+.st-detail-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.st-detail-foot > :nth-child(2) {
+  margin-left: auto;
+}
+
+.st-managed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+}
+
+.st-managed-note {
+  margin-top: -4px;
+}
+
+.st-managed-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.st-managed-label {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* Analyze dialog */
+
+.st-an {
+  width: 460px;
+}
+
+.st-an-body {
+  gap: 14px;
+}
+
+.st-an-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.st-an-numbers {
+  display: flex;
+  justify-content: space-between;
+  color: var(--mp-text-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.st-an-numbers strong {
+  color: var(--mp-text);
+}
+
+.st-an-steps > li {
+  align-items: center;
+}
+
+.st-an-steps > li.wait .st-an-label {
+  color: var(--mp-text-2);
+}
+
+.st-an-icon {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.st-an-wait {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--mp-strong);
+  border-radius: 50%;
+}
+
+.st-an-label {
+  flex: 1;
+  font-weight: 500;
+}
+
+.st-an-label.now {
+  font-weight: 600;
+}
+
+.st-an-size {
+  font-size: 11.5px;
+}
+
+.st-an-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--mp-border);
+  border-radius: 10px;
+  color: var(--mp-text-2);
+  font-size: 12px;
+}
+
+.st-an-note svg {
+  flex-shrink: 0;
+  color: var(--mp-ok-text);
+}

@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kleari System</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}
+@keyframes mp-spin{to{transform:rotate(360deg)}}
+.mp-spin{animation:mp-spin 0.9s linear infinite}
+@keyframes mp-sheen{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+.mp-sheen{animation:mp-sheen 1.3s ease-in-out infinite}
+@keyframes mp-pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,0.5)}100%{box-shadow:0 0 0 7px rgba(34,197,94,0)}}
+.mp-pulse{animation:mp-pulse 1.6s ease-out infinite}
+@keyframes mp-glass-in{from{opacity:0}to{opacity:1}}
+@supports (animation-timeline: scroll()){.mp-glass-edge{animation:mp-glass-in linear both;animation-timeline:scroll(nearest block);animation-range:0 28px}}
+@media (prefers-reduced-motion: reduce){.mp-spin,.mp-sheen,.mp-pulse{animation:none}}
+</style>
+</helmet>
+<div style="width: 1260px; height: 920px; position: relative; overflow: hidden; background: {{t.wallpaper}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; line-height: 1.45; color: {{t.text}}">
+
+<svg aria-hidden="true" width="1260" height="420" viewBox="0 0 1260 420" style="position: absolute; left: 0; bottom: 0">
+<path d="M0 260 L140 170 L240 230 L380 110 L520 220 L640 150 L780 240 L920 120 L1060 210 L1260 140 L1260 420 L0 420 Z" fill="{{t.ridge1}}"></path>
+<path d="M0 330 L180 250 L330 310 L470 230 L640 320 L820 240 L980 310 L1120 250 L1260 300 L1260 420 L0 420 Z" fill="{{t.ridge2}}"></path>
+</svg>
+
+<div style="position: absolute; left: 70px; top: 60px; width: 1120px; height: 800px; display: flex; border-radius: 14px; overflow: hidden; border: 1px solid {{t.windowEdge}}; box-shadow: {{t.windowShadow}}">
+
+<nav aria-label="Main" style="width: 232px; flex-shrink: 0; box-sizing: border-box; padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; background: {{t.glass}}; backdrop-filter: blur(40px) saturate(1.8); -webkit-backdrop-filter: blur(40px) saturate(1.8); border-right: 1px solid {{t.glassEdge}}; box-shadow: inset -1px 0 0 {{t.glassShine}}">
+<div aria-hidden="true" style="display: flex; gap: 8px; height: 20px; align-items: center; padding: 0 4px">
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FF5F57"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FEBC2E"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #28C840"></span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 18px 6px 16px">
+<span style="width: 36px; height: 37px; flex-shrink: 0; display: flex"><svg width="36" height="37" viewBox="-6 -4 112 116" aria-hidden="true" style="display: block; overflow: visible"><defs><linearGradient id="bgAsb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6CC4FF"></stop><stop offset="0.55" stop-color="#2F6FED"></stop><stop offset="1" stop-color="#6D3FE0"></stop></linearGradient><linearGradient id="hlAsb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"></stop><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.06"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></linearGradient><radialGradient id="glAsb" cx="0.3" cy="0.15" r="0.7"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.45"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></radialGradient><filter id="shAsb" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#2F6FED" flood-opacity="0.45"></feDropShadow></filter><filter id="gsAsb"><feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.22"></feDropShadow></filter></defs><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#bgAsb)" filter="url(#shAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#glAsb)"></path><g filter="url(#gsAsb)"><ellipse cx="50" cy="52" rx="36" ry="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="2.6" transform="rotate(-24 50 52)"></ellipse><path d="M30.6 46.2 L70.2 28.6 L52.6 68.2 L48.2 50.6 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"></path><circle cx="80.5" cy="38.5" r="3.6" fill="#FFFFFF"></circle></g><path d="M50,1.5 C86,1.5 98.5,11 98.5,44 C80,36 20,36 1.5,44 C1.5,11 14,1.5 50,1.5 Z" fill="url(#hlAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="1"></path></svg></span>
+<span style="display: flex; flex-direction: column; line-height: 1.2">
+<span style="font-size: 15px; font-weight: 800; letter-spacing: -0.02em">Mac<span style="background: {{t.wordmark}}; -webkit-background-clip: text; background-clip: text; color: transparent">Pilot</span></span>
+<span style="font-size: 11px; color: {{t.text2}}">Scan · Explain · Approve</span>
+</span>
+</div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}; background: {{n.bg}}; box-shadow: {{n.shadow}}; font-weight: {{n.weight}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{n.icon}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="flex-grow: 1"></div>
+<sc-for list="{{navBottom}}" as="n" hint-placeholder-count="2">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}; background: {{n.bg}}; box-shadow: {{n.shadow}}; font-weight: {{n.weight}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{n.icon}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="margin-top: 8px; padding: 10px; border-radius: 10px; background: {{t.glassChip}}; display: flex; gap: 8px; align-items: center; font-size: 11.5px; color: {{t.text2}}">
+<span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,0.2)"></span>
+<span>Offline. Nothing leaves this Mac.</span>
+</div>
+</nav>
+
+<main style="position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: {{t.bg}}; overflow: hidden">
+<header style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 30px 28px 14px">
+<div style="display: flex; flex-direction: column; gap: 3px">
+<h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">System</h1>
+<span style="color: {{t.text2}}; font-size: 12.5px">Live readings from this Mac. Kleari only reads these; it doesn’t change system settings.</span>
+</div>
+<div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0">
+<span role="status" style="display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px; border-radius: 8px; background: {{t.card}}; border: 1px solid {{t.border}}; box-shadow: {{t.cardShadow}}; font-size: 12px; font-weight: 600">
+<span class="{{liveClass}}" aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: {{liveDot}}"></span>{{liveText}}</span>
+<button type="button" onClick="{{togglePause}}" style="height: 28px; padding: 0 10px; border-radius: 7px; border: 0; background: {{t.linkBg}}; color: {{t.link}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer">{{pauseText}}</button>
+</div>
+</header>
+
+<div style="flex: 1 1 auto; overflow: auto; padding: 4px 28px 22px; display: flex; flex-direction: column; gap: 14px">
+<div class="mp-glass-edge" aria-hidden="true" style="position: sticky; top: 0; z-index: 3; flex-shrink: 0; height: 40px; margin: 0 -28px -54px; pointer-events: none; opacity: 0">
+<div style="position: absolute; inset: 0; backdrop-filter: blur(16px) saturate(1.9) brightness(1.04); -webkit-backdrop-filter: blur(16px) saturate(1.9) brightness(1.04); background: linear-gradient(180deg, {{t.edgeTop}} 0%, {{t.edgeMid}} 55%, rgba(255,255,255,0) 100%); -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0), {{t.edgeLine}} 20%, {{t.edgeLine}} 80%, rgba(255,255,255,0))"></div>
+<div style="position: absolute; left: 28px; right: 28px; top: 1px; height: 14px; border-radius: 0 0 50% 50% / 0 0 100% 100%; background: radial-gradient(ellipse at 50% 0%, {{t.edgeSheen}}, rgba(255,255,255,0) 70%)"></div>
+</div>
+
+
+<section aria-label="Live readings" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px">
+<sc-for list="{{gauges}}" as="g" hint-placeholder-count="4">
+<div style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; overflow: hidden">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap">
+<span style="font-size: 12.5px; font-weight: 600; color: {{t.text2}}">{{g.label}}</span>
+<span style="font-size: 10.5px; font-weight: 600; color: {{g.pillFg}}; background: {{g.pillBg}}; border-radius: 5px; padding: 1px 6px; white-space: nowrap">{{g.pill}}</span>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; min-width: 0">
+<div style="position: relative; width: 62px; height: 62px; flex-shrink: 0">
+<svg role="img" aria-label="{{g.aria}}" width="62" height="62" viewBox="0 0 72 72">
+<defs><linearGradient id="{{g.gid}}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{{g.c1}}"></stop><stop offset="1" stop-color="{{g.c2}}"></stop></linearGradient></defs>
+<circle cx="36" cy="36" r="30" fill="none" stroke="{{t.track}}" stroke-width="8"></circle>
+<circle cx="36" cy="36" r="30" fill="none" stroke="{{g.gurl}}" stroke-width="8" stroke-linecap="round" stroke-dasharray="{{g.dash}}" transform="rotate(-90 36 36)" style="transition: stroke-dasharray 0.6s ease-out"></circle>
+</svg>
+<span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums">{{g.center}}</span>
+</div>
+<span style="display: flex; flex-direction: column; line-height: 1.25; min-width: 0">
+<span style="font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{g.value}}</span>
+<span style="font-size: 11.5px; color: {{t.text2}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{g.sub}}</span>
+</span>
+</div>
+</div>
+</sc-for>
+</section>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; align-items: stretch">
+
+<section aria-labelledby="ch-h" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 10px">
+<h2 id="ch-h" style="margin: 0; font-size: 15px; font-weight: 700; flex: 1">Activity · last 30 seconds</h2>
+<div role="tablist" aria-label="Chart" style="display: flex; padding: 3px; border-radius: 9px; background: {{t.segBg}}; gap: 2px">
+<sc-for list="{{tabs}}" as="v" hint-placeholder-count="4">
+<button type="button" role="tab" aria-selected="{{v.on}}" onClick="{{v.pick}}" style="height: 24px; padding: 0 10px; border-radius: 7px; border: 0; background: {{v.bg}}; box-shadow: {{v.shadow}}; color: {{v.fg}}; font: inherit; font-size: 12px; font-weight: {{v.weight}}; cursor: pointer">{{v.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; gap: 18px; align-items: baseline">
+<sc-for list="{{chart.series}}" as="x" hint-placeholder-count="2">
+<span style="display: flex; align-items: baseline; gap: 6px">
+<span aria-hidden="true" style="width: 9px; height: 9px; border-radius: 5px; background: {{x.c2}}; align-self: center"></span>
+<span style="font-size: 12px; color: {{t.text2}}">{{x.name}}</span>
+<span style="font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums">{{x.now}}</span>
+</span>
+</sc-for>
+<span style="margin-left: auto; font-size: 11.5px; color: {{t.text2}}">{{chart.note}}</span>
+</div>
+<svg role="img" aria-label="{{chart.aria}}" width="100%" height="150" viewBox="0 0 480 150" preserveAspectRatio="none" style="display: block">
+<defs>
+<sc-for list="{{chart.series}}" as="x" hint-placeholder-count="2">
+<linearGradient id="{{x.aid}}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{{x.c2}}" stop-opacity="0.32"></stop><stop offset="1" stop-color="{{x.c2}}" stop-opacity="0"></stop></linearGradient>
+<linearGradient id="{{x.lid}}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="{{x.c1}}"></stop><stop offset="1" stop-color="{{x.c2}}"></stop></linearGradient>
+</sc-for>
+</defs>
+<sc-for list="{{chart.grid}}" as="y" hint-placeholder-count="3">
+<line x1="0" x2="480" y1="{{y.y}}" y2="{{y.y}}" stroke="{{t.borderSolid}}" stroke-width="1" vector-effect="non-scaling-stroke"></line>
+</sc-for>
+<sc-for list="{{chart.series}}" as="x" hint-placeholder-count="2">
+<polygon points="{{x.area}}" fill="{{x.aurl}}"></polygon>
+<polyline points="{{x.line}}" fill="none" stroke="{{x.lurl}}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+</sc-for>
+</svg>
+<div style="display: flex; justify-content: space-between; font-size: 11px; color: {{t.text2}}"><span>30 s ago</span><span>{{chart.scale}}</span><span>Now</span></div>
+</section>
+
+<section aria-labelledby="mac-h" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 12px; align-items: center">
+<span aria-hidden="true" style="width: 46px; height: 46px; flex-shrink: 0; border-radius: 12px; background: linear-gradient(160deg, #B6C0CE, #6B7686); box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 3px 8px rgba(107,118,134,0.35); display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H4zM2 19h20"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; line-height: 1.25">
+<h2 id="mac-h" style="margin: 0; font-size: 15px; font-weight: 700">MacBook Pro 14″</h2>
+<span style="font-size: 12px; color: {{t.text2}}">2024 · macOS Tahoe 26.1</span>
+</span>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; column-gap: 12px; font-size: 12.5px">
+<sc-for list="{{specs}}" as="p" hint-placeholder-count="6">
+<dt style="padding: 6px 0; border-top: 1px solid {{t.borderSolid}}; color: {{t.text2}}">{{p.k}}</dt>
+<dd style="margin: 0; padding: 6px 0; border-top: 1px solid {{t.borderSolid}}; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{p.v}}</dd>
+</sc-for>
+</dl>
+</section>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start">
+
+<section aria-labelledby="hc-h" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 14px 12px 8px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; margin: 0 6px 4px">
+<h2 id="hc-h" style="margin: 0; font-size: 15px; font-weight: 700; flex: 1">Health checks</h2>
+<span style="font-size: 11.5px; color: {{t.text2}}">{{healthSummary}}</span>
+</div>
+<sc-for list="{{health}}" as="h" hint-placeholder-count="5">
+<div style="display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-top: 1px solid {{t.borderSolid}}">
+<span aria-hidden="true" style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; background: {{h.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); display: flex; align-items: center; justify-content: center">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="{{h.d}}"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; line-height: 1.3; flex: 1; min-width: 0">
+<span style="font-weight: 600">{{h.label}}</span>
+<span style="font-size: 11px; color: {{t.text2}}">{{h.sub}}</span>
+</span>
+<sc-if value="{{h.action}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{h.go}}" style="height: 26px; padding: 0 10px; border-radius: 7px; border: 0; background: {{t.linkBg}}; color: {{t.link}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap">{{h.action}}</button></sc-if>
+<span style="font-size: 11px; font-weight: 600; color: {{h.fg}}; background: {{h.bg}}; border-radius: 6px; padding: 2px 8px; white-space: nowrap">{{h.status}}</span>
+</div>
+</sc-for>
+</section>
+
+<section aria-labelledby="bg-h" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 14px 12px 8px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; margin: 0 6px 4px; gap: 8px">
+<h2 id="bg-h" style="margin: 0; font-size: 15px; font-weight: 700; flex: 1">Startup and background items</h2>
+<button type="button" onClick="{{openLogin}}" style="height: 26px; padding: 0 10px; border-radius: 7px; border: 0; background: {{t.linkBg}}; color: {{t.link}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap">Manage in System Settings</button>
+</div>
+<span style="margin: -2px 6px 4px; font-size: 11.5px; color: {{t.text2}}">{{bgSummary}}</span>
+<sc-for list="{{bgItems}}" as="b" hint-placeholder-count="5">
+<div style="display: flex; align-items: center; gap: 10px; padding: 7px 6px; border-top: 1px solid {{t.borderSolid}}">
+<span aria-hidden="true" style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 7px; background: {{b.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); color: #FFFFFF; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{b.initial}}</span>
+<span style="display: flex; flex-direction: column; line-height: 1.3; flex: 1; min-width: 0">
+<span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{b.name}}</span>
+<span style="font-size: 11px; color: {{t.text2}}">{{b.kind}}</span>
+</span>
+<span style="font-size: 11px; color: {{t.text2}}; font-variant-numeric: tabular-nums; white-space: nowrap">{{b.impact}}</span>
+<span style="font-size: 11px; font-weight: 600; color: {{b.fg}}; background: {{b.bg}}; border-radius: 6px; padding: 2px 8px; white-space: nowrap">{{b.status}}</span>
+</div>
+</sc-for>
+<sc-if value="{{bgHasMore}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{openBg}}" style="display: block; width: 100%; padding: 8px; border: 0; border-top: 1px solid {{t.borderSolid}}; background: transparent; color: {{t.link}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer">{{bgMoreText}}</button>
+</sc-if>
+</section>
+</div>
+
+</div>
+
+<sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 10px; background: {{t.menuBg}}; backdrop-filter: blur(30px) saturate(1.8); -webkit-backdrop-filter: blur(30px) saturate(1.8); border: 1px solid {{t.menuEdge}}; box-shadow: {{t.menuShadow}}; font-weight: 600; white-space: nowrap; z-index: 12">
+<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="{{toastColor}}"></circle><path d="M12 7v6M12 16.5h.01" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"></path></svg>
+<span>{{toast}}</span>
+</div>
+</sc-if>
+<sc-if value="{{showBg}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: {{t.scrim}}; display: flex; align-items: center; justify-content: center; z-index: 10">
+<section role="dialog" aria-modal="true" aria-labelledby="bga-h" style="width: 520px; max-height: 640px; box-sizing: border-box; background: {{t.card}}; border: 1px solid {{t.strong}}; border-radius: 16px; box-shadow: {{t.sheetShadow}}; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 12px; align-items: center">
+<span aria-hidden="true" style="width: 46px; height: 46px; flex-shrink: 0; border-radius: 12px; background: linear-gradient(160deg, #9D90FF, #5B4BE0); box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 6px 16px rgba(91,75,224,0.35); display: flex; align-items: center; justify-content: center">
+<svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.4 6.6a9 9 0 1 1-12.8 0M12 2v10"></path></svg>
+</span>
+<div style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+<h2 id="bga-h" style="margin: 0; font-size: 17px; font-weight: 700">Startup and background items</h2>
+<span style="font-size: 12.5px; color: {{t.text2}}">{{bgCounts}}</span>
+</div>
+<button type="button" aria-label="Close" onClick="{{closeBg}}" style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 14px; border: 0; background: {{t.track}}; color: {{t.text2}}; cursor: pointer; display: flex; align-items: center; justify-content: center">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+</button>
+</div>
+<div style="display: flex; gap: 10px; align-items: center; padding: 9px 12px; border-radius: 10px; background: {{t.infoBg}}; font-size: 12px">
+<svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10" fill="#2F7CF6"></circle><path d="M12 11v6M12 7h.01" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"></path></svg>
+<span>Kleari lists these so you can see what starts with your Mac. Turning one off is done in System Settings.</span>
+</div>
+<ul style="margin: 0; padding: 0 4px; list-style: none; overflow: auto">
+<sc-for list="{{bgAll}}" as="b" hint-placeholder-count="8">
+<li style="display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-top: 1px solid {{t.borderSolid}}">
+<span aria-hidden="true" style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 8px; background: {{b.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); color: #FFFFFF; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{b.initial}}</span>
+<span style="display: flex; flex-direction: column; line-height: 1.3; flex: 1; min-width: 0">
+<span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{b.name}}</span>
+<span style="font-size: 11px; color: {{t.text2}}">{{b.kind}}</span>
+</span>
+<span style="width: 90px; flex-shrink: 0; text-align: right; font-size: 11px; color: {{t.text2}}; white-space: nowrap">{{b.impact}}</span>
+<span style="width: 92px; flex-shrink: 0; display: flex; justify-content: flex-end"><span style="font-size: 11px; font-weight: 600; color: {{b.fg}}; background: {{b.bg}}; border-radius: 6px; padding: 2px 8px; white-space: nowrap">{{b.status}}</span></span>
+</li>
+</sc-for>
+</ul>
+<div style="display: flex; justify-content: flex-end; gap: 8px">
+<button type="button" onClick="{{openLogin}}" style="height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid {{t.strong}}; background: {{t.card}}; color: {{t.text}}; font: inherit; font-weight: 600; cursor: pointer">Manage in System Settings</button>
+<button type="button" onClick="{{closeBg}}" style="height: 34px; padding: 0 22px; border-radius: 9px; border: 0; background: linear-gradient(180deg, #4C9BFF, #2468D8); color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px rgba(36,104,216,0.3)">Done</button>
+</div>
+</section>
+</div>
+</sc-if>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"chart":{"editor":"enum","options":["cpu","memory","network","disk"],"default":"cpu"},"$preview":{"width":1260,"height":920}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var seed = function (n, base, amp, k) { var a = []; for (var i = 0; i < n; i++) a.push(Math.max(0, base + amp * Math.sin(i * 0.55 + k) + amp * 0.6 * Math.sin(i * 1.7 + k * 2))); return a; };
+    this.state = { tab: null, paused: false, tick: 0, bgMore: false, toast: '', toastColor: '#2F7CF6',
+      data: { cpu: seed(30, 13, 4, 0), mem: seed(30, 14.2, 0.25, 1), down: seed(30, 420, 160, 2), up: seed(30, 60, 30, 3), read: seed(30, 18, 9, 4), write: seed(30, 7, 4, 5) } };
+  }
+  componentWillUnmount() { clearInterval(this.liveTimer); this.liveTimer = null; clearTimeout(this.toastTimer); }
+  theme() {
+    var light = {
+      wallpaper:'linear-gradient(165deg, #9FB3E0 0%, #C3B4DE 38%, #EBC2C4 66%, #B9A6CF 100%)', ridge1:'rgba(92,96,150,0.45)', ridge2:'rgba(60,62,110,0.55)',
+      windowEdge:'rgba(255,255,255,0.6)', windowShadow:'0 30px 80px rgba(30,30,70,0.35), 0 4px 14px rgba(30,30,70,0.18)',
+      glass:'rgba(244,246,252,0.62)', glassEdge:'rgba(255,255,255,0.55)', glassShine:'rgba(255,255,255,0.35)', glassChip:'rgba(255,255,255,0.55)',
+      navSel:'rgba(255,255,255,0.85)', navSelShadow:'0 1px 3px rgba(24,34,48,0.10), inset 0 1px 0 rgba(255,255,255,0.9)',
+      bg:'#F5F7FA', card:'#FFFFFF', border:'rgba(24,34,48,0.07)', borderSolid:'#EEF1F5', strong:'#C5CED9', cardShadow:'0 1px 2px rgba(24,34,48,0.04), 0 8px 24px rgba(24,34,48,0.06)',
+      edgeTop:'rgba(255,255,255,0.62)', edgeMid:'rgba(255,255,255,0.22)', edgeLine:'rgba(255,255,255,0.95)', edgeSheen:'rgba(255,255,255,0.7)', floatTop:'rgba(255,255,255,0.80)', floatBg:'rgba(244,247,252,0.56)', floatEdge:'rgba(255,255,255,0.78)', floatShadow:'0 12px 32px rgba(24,34,48,0.14), 0 2px 6px rgba(24,34,48,0.06), inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(24,34,48,0.05)', thGlass:'rgba(255,255,255,0.72)', wordmark:'linear-gradient(90deg, #2F6FED, #6D3FE0)', text:'#182230', text2:'#5D6878', track:'#EDF0F5', link:'#1F6FEB', linkBg:'rgba(47,124,246,0.10)', infoBg:'#F3F6FA', selRow:'rgba(47,124,246,0.07)', barBg:'rgba(248,250,253,0.92)', segBg:'#E9EDF3', segShadow:'0 1px 3px rgba(24,34,48,0.12)',
+      menuBg:'rgba(250,251,253,0.9)', menuEdge:'rgba(24,34,48,0.10)', menuShadow:'0 12px 32px rgba(24,34,48,0.20)', scrim:'rgba(24,34,48,0.28)', sheetShadow:'0 24px 60px rgba(24,34,48,0.28)',
+      danger:'#C92A2A', dangerText:'#B42332', okText:'#15703F', okBg:'rgba(34,197,94,0.14)', warnText:'#8A5600', warnBg:'rgba(245,158,11,0.18)', mutedText:'#4B5565', mutedBg:'rgba(100,116,139,0.14)'
+    };
+    var dark = {
+      wallpaper:'linear-gradient(165deg, #1D2440 0%, #2E2546 40%, #4A2F44 70%, #1A1C30 100%)', ridge1:'rgba(10,12,28,0.55)', ridge2:'rgba(6,8,20,0.7)',
+      windowEdge:'rgba(255,255,255,0.12)', windowShadow:'0 30px 80px rgba(0,0,0,0.6)',
+      glass:'rgba(34,40,54,0.55)', glassEdge:'rgba(255,255,255,0.08)', glassShine:'rgba(255,255,255,0.05)', glassChip:'rgba(255,255,255,0.06)',
+      navSel:'rgba(255,255,255,0.12)', navSelShadow:'inset 0 1px 0 rgba(255,255,255,0.08)',
+      bg:'#14181E', card:'#1C222B', border:'rgba(255,255,255,0.06)', borderSolid:'#2A323E', strong:'#465364', cardShadow:'none',
+      edgeTop:'rgba(22,27,35,0.72)', edgeMid:'rgba(22,27,35,0.3)', edgeLine:'rgba(255,255,255,0.14)', edgeSheen:'rgba(140,170,255,0.12)', floatTop:'rgba(52,61,76,0.62)', floatBg:'rgba(30,36,46,0.5)', floatEdge:'rgba(255,255,255,0.13)', floatShadow:'0 12px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.10)', thGlass:'rgba(28,34,43,0.72)', wordmark:'linear-gradient(90deg, #7CC0FF, #B49CFF)', text:'#F0F3F7', text2:'#B5BFCC', track:'#2A323E', link:'#8BC0FF', linkBg:'rgba(108,180,255,0.14)', infoBg:'#202731', selRow:'rgba(108,180,255,0.08)', barBg:'rgba(32,39,49,0.92)', segBg:'#252D38', segShadow:'0 1px 3px rgba(0,0,0,0.4)',
+      menuBg:'rgba(37,45,56,0.9)', menuEdge:'rgba(255,255,255,0.10)', menuShadow:'0 12px 32px rgba(0,0,0,0.55)', scrim:'rgba(0,0,0,0.5)', sheetShadow:'0 24px 60px rgba(0,0,0,0.6)',
+      danger:'#FF7D86', dangerText:'#FF7D86', okText:'#68C995', okBg:'rgba(104,201,149,0.14)', warnText:'#F0BD63', warnBg:'rgba(240,189,99,0.14)', mutedText:'#B5BFCC', mutedBg:'rgba(181,191,204,0.12)'
+    };
+    return this.props.dark ? dark : light;
+  }
+  renderVals() {
+    var t = this.theme();
+    var self = this;
+    var st = this.state;
+    var navItem = function (n, active) {
+      var on = n.label === active;
+      return {label:n.label,href:n.href,d:n.d,current:on ? 'page' : undefined,bg:on ? t.navSel : 'transparent',shadow:on ? t.navSelShadow : 'none',icon:on ? '#2F7CF6' : t.text2,weight:on ? 600 : 500};
+    };
+    var nav = [
+      {label:'Dashboard',href:'Main.dc.html',d:'M3 13h8V3H3zM13 21h8V11h-8zM13 3v6h8V3zM3 21h8v-6H3z'},
+      {label:'Cleanup',href:'Cleanup.dc.html',d:'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3'},
+      {label:'Quarantine',href:'Quarantine.dc.html',d:'M21 8v13H3V8M1 3h22v5H1zM10 12h4'},
+      {label:'Storage',href:'Storage.dc.html',d:'M22 12H2M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1zM6 16h.01'},
+      {label:'System',href:'System.dc.html',d:'M22 12h-4l-3 9L9 3l-3 9H2'},
+      {label:'Developer',href:'Developer.dc.html',d:'M16 18l6-6-6-6M8 6l-6 6 6 6'},
+      {label:'Processes',href:'Processes.dc.html',d:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'},
+      {label:'Activity',href:'Activity.dc.html',d:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2'}
+    ].map(function (n) { return navItem(n, 'System'); });
+    var navBottom = [
+      {label:'Settings',href:'Settings.dc.html',d:'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6'}
+    ].map(function (n) { return navItem(n, 'System'); });
+    if (!st.paused && !this.liveTimer) {
+      this.liveTimer = setInterval(function () {
+        var d = self.state.data, n = self.state.tick + 1;
+        var push = function (arr, v) { return arr.slice(1).concat([Math.max(0, v)]); };
+        var last = function (arr) { return arr[arr.length - 1]; };
+        var rnd = function (s) { return Math.sin(n * 12.9898 + s) * 0.5 + Math.sin(n * 3.1 + s * 7) * 0.5; };
+        self.setState({tick:n, data:{
+          cpu:push(d.cpu, Math.min(95, last(d.cpu) * 0.6 + (12 + rnd(1) * 7) * 0.4 + (n % 9 === 0 ? 14 : 0))),
+          mem:push(d.mem, Math.min(20, Math.max(13.4, last(d.mem) + rnd(2) * 0.12))),
+          down:push(d.down, last(d.down) * 0.5 + (420 + rnd(3) * 260) * 0.5),
+          up:push(d.up, last(d.up) * 0.5 + (60 + rnd(4) * 40) * 0.5),
+          read:push(d.read, last(d.read) * 0.4 + (18 + rnd(5) * 14) * 0.6),
+          write:push(d.write, last(d.write) * 0.4 + (7 + rnd(6) * 6) * 0.6)
+        }});
+      }, 1000);
+    }
+    var D = st.data;
+    var last = function (arr) { return arr[arr.length - 1]; };
+    var showToast = function (msg) { clearTimeout(self.toastTimer); self.setState({toast:msg}); self.toastTimer = setTimeout(function () { self.setState({toast:''}); }, 3500); };
+    var C = 2 * Math.PI * 30;
+    var ring = function (frac) { var l = Math.max(0.02, Math.min(1, frac)) * C; return l.toFixed(1) + ' ' + C.toFixed(1); };
+    var P = {ok:[t.okText,t.okBg], warn:[t.warnText,t.warnBg], muted:[t.mutedText,t.mutedBg], link:[t.link,t.linkBg]};
+    var cpu = last(D.cpu), mem = last(D.mem);
+    var gauges = [
+      {key:'cpu',label:'CPU',center:Math.round(cpu) + '%',value:'10 cores',sub:'Average load',pill:cpu > 60 ? 'Busy' : 'Light load',pk:cpu > 60 ? 'warn' : 'ok',frac:cpu / 100,c1:'#B4A9FF',c2:'#5B4BE0'},
+      {key:'mem',label:'Memory',center:Math.round(mem / 24 * 100) + '%',value:mem.toFixed(1) + ' GB',sub:'of 24 GB',pill:'Pressure normal',pk:'ok',frac:mem / 24,c1:'#86EFAC',c2:'#1FA45B'},
+      {key:'bat',label:'Battery',center:'82%',value:'3 h 24 m',sub:'remaining',pill:'Health 91%',pk:'ok',frac:0.82,c1:'#FFD08A',c2:'#F5841F'},
+      {key:'tmp',label:'Thermals',center:'48°',value:'48 °C',sub:'CPU temp',pill:'Nominal',pk:'ok',frac:0.48,c1:'#7DD3FC',c2:'#0891B2'}
+    ].map(function (g) {
+      var p = P[g.pk];
+      return {label:g.label, center:g.center, value:g.value, sub:g.sub, pill:g.pill, pillFg:p[0], pillBg:p[1], c1:g.c1, c2:g.c2,
+        gid:'gauge-' + g.key, gurl:'url(#gauge-' + g.key + ')', dash:ring(g.frac), aria:g.label + ' ' + g.center};
+    });
+    var tab = st.tab || this.props.chart || 'cpu';
+    var tabs = [['cpu','CPU'],['memory','Memory'],['network','Network'],['disk','Disk']].map(function (v) {
+      var on = tab === v[0];
+      return {label:v[1], on:on, bg:on ? t.card : 'transparent', shadow:on ? t.segShadow : 'none', fg:on ? t.text : t.text2, weight:on ? 600 : 500, pick:function () { self.setState({tab:v[0]}); }};
+    });
+    var defs = {
+      cpu:{max:100, scale:'0 to 100%', note:'Average across 10 cores', series:[['Usage', D.cpu, function (v) { return Math.round(v) + '%'; }, '#B4A9FF', '#5B4BE0']]},
+      memory:{max:24, scale:'0 to 24 GB', note:'Memory pressure: normal · swap 1.1 GB', series:[['Used', D.mem, function (v) { return v.toFixed(1) + ' GB'; }, '#86EFAC', '#1FA45B']]},
+      network:{max:1000, scale:'0 to 1 MB/s', note:'Wi-Fi · all apps combined', series:[['Down', D.down, function (v) { return Math.round(v) + ' KB/s'; }, '#93C5FD', '#2F6FED'], ['Up', D.up, function (v) { return Math.round(v) + ' KB/s'; }, '#67E8F9', '#0891B2']]},
+      disk:{max:50, scale:'0 to 50 MB/s', note:'Macintosh HD', series:[['Read', D.read, function (v) { return v.toFixed(1) + ' MB/s'; }, '#FFD08A', '#F5841F'], ['Write', D.write, function (v) { return v.toFixed(1) + ' MB/s'; }, '#FDA4C8', '#E1306C']]}
+    };
+    var cd = defs[tab];
+    var series = cd.series.map(function (s, k) {
+      var pts = s[1].map(function (v, i) { return (i * 480 / (s[1].length - 1)).toFixed(1) + ',' + (146 - Math.min(v / cd.max, 1) * 136).toFixed(1); });
+      return {name:s[0], now:s[2](last(s[1])), c1:s[3], c2:s[4], line:pts.join(' '), area:'0,150 ' + pts.join(' ') + ' 480,150',
+        aid:'area-' + tab + k, lid:'line-' + tab + k, aurl:'url(#area-' + tab + k + ')', lurl:'url(#line-' + tab + k + ')'};
+    });
+    var bgDefs = [
+      ['Docker Desktop','Login item and helper','High at start','muted','Allowed','#0891B2'],
+      ['Dropbox','Login item','Medium','muted','Allowed','#2F6FED'],
+      ['Raycast','Login item','Low','muted','Allowed','#E1306C'],
+      ['Adobe Creative Cloud','Background agent · 3 helpers','High at start','muted','Allowed','#C92A2A'],
+      ['Zoom updater','Background agent','Low','warn','App removed','#2F7CF6'],
+      ['Spotify','Login item','Medium','muted','Allowed','#1FA45B'],
+      ['Google Updater','Background agent','Low','muted','Allowed','#F5841F'],
+      ['Kleari','Menu-bar helper · read-only','Low','ok','This app','#2468D8']
+    ];
+    var bgShown = bgDefs.slice(0, 5);
+    var health = [
+      {label:'Startup disk',sub:'Macintosh HD · SMART status verified',status:'Healthy',pk:'ok',tile:'linear-gradient(160deg, #6CB4FF, #2F6FED)',d:'M22 12H2M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1zM6 16h.01'},
+      {label:'Battery',sub:'312 cycles · 91% of original capacity',status:'Normal',pk:'ok',tile:'linear-gradient(160deg, #FFC56E, #F5841F)',d:'M3 7h15v10H3zM21 11v2M7 10v4M11 10v4'},
+      {label:'macOS update',sub:'Tahoe 26.1.1 is available',status:'Available',pk:'warn',action:'Open Software Update',msg:'Would open Software Update in System Settings',tile:'linear-gradient(160deg, #9D90FF, #5B4BE0)',d:'M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5'}
+    ].map(function (h) {
+      var p = P[h.pk];
+      return {label:h.label, sub:h.sub, status:h.status, fg:p[0], bg:p[1], tile:h.tile, d:h.d, action:h.action || '', go:function () { showToast(h.msg + '. Kleari doesn’t change it.'); }};
+    });
+    var bgRow = function (b) {
+      var p = P[b[3]];
+      return {name:b[0], kind:b[1], impact:b[2], status:b[4], fg:p[0], bg:p[1], initial:b[0].charAt(0),
+        tile:'linear-gradient(160deg, ' + b[5] + 'AA, ' + b[5] + ')'};
+    };
+    var up = 6 * 24 * 60 + 4 * 60 + Math.floor(st.tick / 60);
+    return {
+      t:t, nav:nav, navBottom:navBottom, gauges:gauges, tabs:tabs,
+      liveText:st.paused ? 'Paused' : 'Live', liveDot:st.paused ? '#94A3B8' : '#22C55E', liveClass:st.paused ? '' : 'mp-pulse',
+      pauseText:st.paused ? 'Resume' : 'Pause',
+      togglePause:function () {
+        if (self.state.paused) self.setState({paused:false});
+        else { clearInterval(self.liveTimer); self.liveTimer = null; self.setState({paused:true}); }
+      },
+      chart:{series:series, note:cd.note, scale:cd.scale, aria:tabs.filter(function (x) { return x.on; })[0].label + ' over the last 30 seconds', grid:[{y:'14'},{y:'82'},{y:'149'}]},
+      specs:[
+        {k:'Chip',v:'Apple M4'},{k:'Cores',v:'10 CPU · 10 GPU'},{k:'Memory',v:'24 GB unified'},
+        {k:'Startup disk',v:'Macintosh HD · 994 GB'},{k:'Display',v:'14.2″ Liquid Retina XDR'},
+        {k:'Uptime',v:Math.floor(up / 1440) + ' days ' + Math.floor(up % 1440 / 60) + ' h'}
+      ],
+      health:health, healthSummary:'2 good · 1 needs a look',
+      bgItems:bgShown.map(bgRow),
+      bgSummary:'8 items open when you log in. One belongs to an app that was removed.',
+      bgHasMore:true, bgMoreText:'Show all ' + bgDefs.length + ' items',
+      openBg:function () { self.setState({bgMore:true}); }, closeBg:function () { self.setState({bgMore:false}); }, showBg:st.bgMore,
+      bgAll:bgDefs.map(bgRow), bgCounts:bgDefs.length + ' items · 5 login items · 3 background agents',
+      openLogin:function () { showToast('Would open Login Items in System Settings. Kleari doesn’t change it.'); },
+      toast:st.toast, toastColor:st.toastColor
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+/* Header, stats and filters stay fixed; only the day-grouped log scrolls. */
+.act-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+  padding: 4px 28px 0;
+}
+
+.act-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.act-toolbar .v2-search {
+  height: 32px;
+}
+
+.act-log {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0 -28px;
+  padding: 0 28px 22px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.act-log:focus-visible {
+  outline-offset: -2px;
+}
+
+.act-day {
+  padding: 12px 12px 6px;
+}
+
+.act-day-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 6px 6px;
+}
+
+.act-day-head h2 {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.act-events {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.act-events > li {
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.act-event {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+}
+
+.act-time {
+  width: 40px;
+  flex-shrink: 0;
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+}
+
+.act-size {
+  width: 64px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+.act-tag {
+  display: flex;
+  width: 112px;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+.act-more {
+  display: flex;
+  width: 78px;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+.act-toggle {
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.act-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 6px 10px 92px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--mp-info-bg);
+}
+
+.act-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-top: 1px solid var(--mp-border-solid);
+  font-size: 12px;
+}
+
+.act-line:first-child {
+  border-top: 0;
+}
+
+.act-path {
+  color: var(--mp-text-2);
+  font-size: 11px;
+}
+
+.act-note {
+  flex-shrink: 0;
+  color: var(--mp-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.act-note-warn { color: var(--mp-warn-text); }
+.act-note-danger { color: var(--mp-danger-text); }
+.act-note-ok { color: var(--mp-ok-text); }
+
+.act-link {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.act-empty {
+  padding: 24px;
+  color: var(--mp-text-2);
+  text-align: center;
+}
+
+.act-retention {
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+  text-align: center;
+}

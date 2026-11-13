@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kleari Cleanup</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}
+@keyframes mp-spin{to{transform:rotate(360deg)}}
+@keyframes mp-glass-in{from{opacity:0}to{opacity:1}}
+@supports (animation-timeline: scroll()){.mp-glass-edge{animation:mp-glass-in linear both;animation-timeline:scroll(nearest block);animation-range:0 28px}}
+@media (prefers-reduced-motion: reduce){.mp-spin{animation:none !important}}
+</style>
+</helmet>
+<div style="width: 1260px; height: 920px; position: relative; overflow: hidden; background: {{t.wallpaper}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; line-height: 1.45; color: {{t.text}}">
+
+<svg aria-hidden="true" width="1260" height="420" viewBox="0 0 1260 420" style="position: absolute; left: 0; bottom: 0">
+<path d="M0 260 L140 170 L240 230 L380 110 L520 220 L640 150 L780 240 L920 120 L1060 210 L1260 140 L1260 420 L0 420 Z" fill="{{t.ridge1}}"></path>
+<path d="M0 330 L180 250 L330 310 L470 230 L640 320 L820 240 L980 310 L1120 250 L1260 300 L1260 420 L0 420 Z" fill="{{t.ridge2}}"></path>
+</svg>
+
+<div style="position: absolute; left: 70px; top: 60px; width: 1120px; height: 800px; display: flex; border-radius: 14px; overflow: hidden; border: 1px solid {{t.windowEdge}}; box-shadow: {{t.windowShadow}}">
+
+<nav aria-label="Main" style="width: 232px; flex-shrink: 0; box-sizing: border-box; padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; background: {{t.glass}}; backdrop-filter: blur(40px) saturate(1.8); -webkit-backdrop-filter: blur(40px) saturate(1.8); border-right: 1px solid {{t.glassEdge}}; box-shadow: inset -1px 0 0 {{t.glassShine}}">
+<div aria-hidden="true" style="display: flex; gap: 8px; height: 20px; align-items: center; padding: 0 4px">
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FF5F57"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FEBC2E"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #28C840"></span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 18px 6px 16px">
+<span style="width: 36px; height: 37px; flex-shrink: 0; display: flex"><svg width="36" height="37" viewBox="-6 -4 112 116" aria-hidden="true" style="display: block; overflow: visible"><defs><linearGradient id="bgAsb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6CC4FF"></stop><stop offset="0.55" stop-color="#2F6FED"></stop><stop offset="1" stop-color="#6D3FE0"></stop></linearGradient><linearGradient id="hlAsb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"></stop><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.06"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></linearGradient><radialGradient id="glAsb" cx="0.3" cy="0.15" r="0.7"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.45"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></radialGradient><filter id="shAsb" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#2F6FED" flood-opacity="0.45"></feDropShadow></filter><filter id="gsAsb"><feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.22"></feDropShadow></filter></defs><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#bgAsb)" filter="url(#shAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#glAsb)"></path><g filter="url(#gsAsb)"><ellipse cx="50" cy="52" rx="36" ry="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="2.6" transform="rotate(-24 50 52)"></ellipse><path d="M30.6 46.2 L70.2 28.6 L52.6 68.2 L48.2 50.6 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"></path><circle cx="80.5" cy="38.5" r="3.6" fill="#FFFFFF"></circle></g><path d="M50,1.5 C86,1.5 98.5,11 98.5,44 C80,36 20,36 1.5,44 C1.5,11 14,1.5 50,1.5 Z" fill="url(#hlAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="1"></path></svg></span>
+<span style="display: flex; flex-direction: column; line-height: 1.2">
+<span style="font-size: 15px; font-weight: 800; letter-spacing: -0.02em">Mac<span style="background: {{t.wordmark}}; -webkit-background-clip: text; background-clip: text; color: transparent">Pilot</span></span>
+<span style="font-size: 11px; color: {{t.text2}}">Scan · Explain · Approve</span>
+</span>
+</div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}; background: {{n.bg}}; box-shadow: {{n.shadow}}; font-weight: {{n.weight}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{n.icon}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="flex-grow: 1"></div>
+<sc-for list="{{navBottom}}" as="n" hint-placeholder-count="2">
+<a href="{{n.href}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{t.text2}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="margin-top: 8px; padding: 10px; border-radius: 10px; background: {{t.glassChip}}; display: flex; gap: 8px; align-items: center; font-size: 11.5px; color: {{t.text2}}">
+<span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,0.2)"></span>
+<span>Offline. Nothing leaves this Mac.</span>
+</div>
+</nav>
+
+<main style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: {{t.bg}}; overflow: hidden">
+<header style="display: flex; flex-direction: column; gap: 16px; padding: 26px 28px 14px">
+<div role="tablist" aria-label="Cleanup steps" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; border-radius: 11px; background: {{t.segBg}}; gap: 3px">
+<span role="tab" aria-selected="true" aria-current="step" style="height: 30px; display: flex; align-items: center; justify-content: center; gap: 7px; border-radius: 8px; text-decoration: none; font-size: 12.5px; background: {{t.card}}; box-shadow: {{t.segShadow}}; font-weight: 600"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 8px; background: linear-gradient(160deg, #6CB4FF, #2468D8); color: #FFFFFF; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">1</span>Scan</span>
+<span role="tab" aria-selected="false" aria-disabled="true" style="height: 30px; display: flex; align-items: center; justify-content: center; gap: 7px; border-radius: 8px; text-decoration: none; font-size: 12.5px; color: {{t.text2}}; font-weight: 500"><span aria-hidden="true" style="width: 14px; height: 14px; box-sizing: border-box; border-radius: 7px; border: 1.5px solid {{t.strong}}; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center">2</span>Review results</span>
+<span role="tab" aria-selected="false" aria-disabled="true" style="height: 30px; display: flex; align-items: center; justify-content: center; gap: 7px; border-radius: 8px; text-decoration: none; font-size: 12.5px; color: {{t.text2}}; font-weight: 500"><span aria-hidden="true" style="width: 14px; height: 14px; box-sizing: border-box; border-radius: 7px; border: 1.5px solid {{t.strong}}; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center">3</span>Preview and approve</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 3px">
+<h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">Cleanup</h1>
+<span style="color: {{t.text2}}; font-size: 12.5px">Scans only read. Nothing moves until you approve a preview.</span>
+</div>
+</header>
+
+<div style="flex: 1 1 auto; overflow: auto; padding: 6px 28px 26px; display: flex; flex-direction: column; gap: 16px">
+<div class="mp-glass-edge" aria-hidden="true" style="position: sticky; top: 0; z-index: 3; flex-shrink: 0; height: 40px; margin: 0 -28px -56px; pointer-events: none; opacity: 0">
+<div style="position: absolute; inset: 0; backdrop-filter: blur(16px) saturate(1.9) brightness(1.04); -webkit-backdrop-filter: blur(16px) saturate(1.9) brightness(1.04); background: linear-gradient(180deg, {{t.edgeTop}} 0%, {{t.edgeMid}} 55%, rgba(255,255,255,0) 100%); -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0), {{t.edgeLine}} 20%, {{t.edgeLine}} 80%, rgba(255,255,255,0))"></div>
+<div style="position: absolute; left: 28px; right: 28px; top: 1px; height: 14px; border-radius: 0 0 50% 50% / 0 0 100% 100%; background: radial-gradient(ellipse at 50% 0%, {{t.edgeSheen}}, rgba(255,255,255,0) 70%)"></div>
+</div>
+
+
+<section aria-label="Scan type" role="radiogroup" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="3">
+<button type="button" role="radio" aria-checked="{{m.checked}}" onClick="{{m.pick}}" style="text-align: left; font: inherit; color: {{t.text}}; cursor: pointer; background: {{t.card}}; border: {{m.border}}; border-radius: 14px; box-shadow: {{m.shadow}}; padding: 14px; display: flex; gap: 12px; align-items: flex-start">
+<span aria-hidden="true" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px; background: {{m.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 3px 8px {{m.glow}}; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="{{m.d}}"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0">
+<span style="display: flex; align-items: center; justify-content: space-between; gap: 6px">
+<span style="font-weight: 700; font-size: 13.5px">{{m.title}}</span>
+<sc-if value="{{m.isOn}}" hint-placeholder-val="{{ false }}">
+<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#2F7CF6"></circle><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</sc-if>
+</span>
+<span style="font-size: 12px; color: {{t.text2}}">{{m.sub}}</span>
+<span style="font-size: 11.5px; color: {{t.text2}}; margin-top: 4px">{{m.meta}}</span>
+</span>
+</button>
+</sc-for>
+</section>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
+
+<section aria-labelledby="sc-h" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 16px 12px 10px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: center; margin: 0 6px 6px">
+<div style="display: flex; flex-direction: column">
+<h2 id="sc-h" style="margin: 0; font-size: 16px; font-weight: 700">Folders to scan</h2>
+<span style="font-size: 11.5px; color: {{t.text2}}">Kleari only reads folders you grant.</span>
+</div>
+<button type="button" onClick="{{openAdd}}" style="font: inherit; font-size: 12px; font-weight: 600; color: {{t.link}}; background: {{t.linkBg}}; border: 0; border-radius: 7px; padding: 5px 10px; cursor: pointer">+ Add folder</button>
+</div>
+<sc-for list="{{scope}}" as="s" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 12px; padding: 7px 6px; border-radius: 10px; opacity: {{s.op}}">
+<span aria-hidden="true" style="width: 32px; height: 32px; flex-shrink: 0; border-radius: 9px; background: {{s.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); display: flex; align-items: center; justify-content: center">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; line-height: 1.3; min-width: 0; flex: 1">
+<span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 600">{{s.path}}</span>
+<span style="font-size: 11.5px; color: {{t.text2}}">{{s.note}}</span>
+</span>
+<sc-if value="{{s.granted}}" hint-placeholder-val="{{ true }}">
+<span style="font-size: 11.5px; font-weight: 600; color: {{t.okText}}; background: {{t.okBg}}; border-radius: 6px; padding: 2px 8px">✓ Granted</span>
+</sc-if>
+<sc-if value="{{s.canGrant}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{openGrant}}" style="font: inherit; font-size: 11.5px; font-weight: 600; color: {{t.link}}; background: {{t.linkBg}}; border: 0; border-radius: 6px; padding: 3px 9px; cursor: pointer">Grant access…</button>
+</sc-if>
+</div>
+</sc-for>
+</section>
+
+<section aria-labelledby="run-h" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 16px">
+<div style="position: relative; width: 92px; height: 92px; flex-shrink: 0">
+<svg aria-hidden="true" width="92" height="92" viewBox="0 0 92 92" style="position: absolute; inset: 0">
+<defs><linearGradient id="ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{{m.c1}}"></stop><stop offset="1" stop-color="{{m.c2}}"></stop></linearGradient></defs>
+<circle cx="46" cy="46" r="40" fill="none" stroke="{{t.track}}" stroke-width="7"></circle>
+<sc-if value="{{ringShow}}" hint-placeholder-val="{{ true }}">
+<circle cx="46" cy="46" r="40" fill="none" stroke="url(#ring)" stroke-width="7" stroke-linecap="round" stroke-dasharray="{{ringDash}}" transform="rotate(-90 46 46)"></circle>
+</sc-if>
+</svg>
+<sc-if value="{{scanning}}" hint-placeholder-val="{{ false }}">
+<svg class="mp-spin" aria-hidden="true" width="92" height="92" viewBox="0 0 92 92" style="position: absolute; inset: 0; animation: mp-spin 1.2s linear infinite">
+<circle cx="46" cy="46" r="40" fill="none" stroke="url(#ring)" stroke-width="7" stroke-linecap="round" stroke-dasharray="70 182"></circle>
+</svg>
+</sc-if>
+<div style="position: absolute; inset: 15px; border-radius: 50%; background: {{heroTile}}; box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), 0 6px 16px {{m.glow}}; display: flex; align-items: center; justify-content: center">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{heroIcon}}"></path></svg>
+</div>
+</div>
+<div role="status" style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: 11.5px; font-weight: 700; color: {{m.text}}">{{m.title}}</span>
+<h2 id="run-h" style="margin: 0; font-size: 17px; font-weight: 700">{{runTitle}}</h2>
+<span style="font-size: 12px; color: {{t.text2}}">{{runDetail}}</span>
+</div>
+</div>
+
+<sc-if value="{{idle}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 11.5px; font-weight: 600; color: {{t.text2}}">This scan looks for</span>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px">
+<sc-for list="{{looks}}" as="l" hint-placeholder-count="3">
+<li style="display: flex; align-items: flex-start; gap: 10px">
+<span aria-hidden="true" style="width: 20px; height: 20px; flex-shrink: 0; border-radius: 6px; background: {{m.tile}}; display: flex; align-items: center; justify-content: center">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; line-height: 1.3">
+<span style="font-weight: 600">{{l.label}}</span>
+<span style="font-size: 11.5px; color: {{t.text2}}">{{l.sub}}</span>
+</span>
+</li>
+</sc-for>
+</ul>
+<sc-if value="{{m.hasNote}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; gap: 8px; padding: 8px 10px; border-radius: 9px; background: {{m.soft}}; font-size: 12px">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{m.text}}" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01"></path></svg>
+<span>{{m.note}}</span>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{showSteps}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="3">
+<li style="display: flex; align-items: center; gap: 10px; color: {{s.color}}">
+<sc-if value="{{s.done}}" hint-placeholder-val="{{ false }}">
+<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#1FA45B"></circle><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</sc-if>
+<sc-if value="{{s.active}}" hint-placeholder-val="{{ false }}">
+<svg class="mp-spin" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style="animation: mp-spin 0.9s linear infinite"><circle cx="12" cy="12" r="9" fill="none" stroke="{{t.track}}" stroke-width="3"></circle><circle cx="12" cy="12" r="9" fill="none" stroke="{{m.c2}}" stroke-width="3" stroke-linecap="round" stroke-dasharray="18 40"></circle></svg>
+</sc-if>
+<sc-if value="{{s.pending}}" hint-placeholder-val="{{ true }}">
+<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="{{t.strong}}" stroke-width="2" stroke-dasharray="3 3"></circle></svg>
+</sc-if>
+<span style="flex: 1; font-weight: {{s.weight}}">{{s.label}}</span>
+<span style="font-size: 11.5px; color: {{t.text2}}; font-variant-numeric: tabular-nums">{{s.meta}}</span>
+</li>
+</sc-for>
+</ol>
+<div role="progressbar" aria-label="Scan steps completed" aria-valuemin="0" aria-valuemax="{{stepTotal}}" aria-valuenow="{{stepDone}}" style="height: 7px; border-radius: 4px; background: {{t.track}}; overflow: hidden">
+<div style="height: 7px; width: {{stepPct}}; border-radius: 4px; background: {{m.fill}}"></div>
+</div>
+<span style="font-size: 11.5px; color: {{t.text2}}; font-variant-numeric: tabular-nums">{{progressText}}</span>
+</div>
+</sc-if>
+
+<sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; font-variant-numeric: tabular-nums">
+<sc-for list="{{results}}" as="r" hint-placeholder-count="3">
+<li style="display: grid; grid-template-columns: 12px 1fr auto auto; align-items: center; gap: 10px">
+<span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 5px; background: {{r.color}}"></span>
+<span style="font-weight: 600">{{r.label}} <span style="font-weight: 400; color: {{t.text2}}">· {{r.count}}</span></span>
+<span style="font-weight: 600">{{r.size}}</span>
+<span style="font-size: 11px; font-weight: 600; color: {{r.fg}}; background: {{r.bg}}; border-radius: 6px; padding: 1px 7px; white-space: nowrap">{{r.tag}}</span>
+</li>
+</sc-for>
+</ul>
+</sc-if>
+
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto">
+<span style="font-size: 11.5px; color: {{t.text2}}">{{footNote}}</span>
+<sc-if value="{{idle}}" hint-placeholder-val="{{ true }}">
+<div style="position: relative; flex-shrink: 0">
+<div style="display: flex; border-radius: 9px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px {{m.glow}}; overflow: hidden">
+<button type="button" onClick="{{start}}" style="height: 34px; padding: 0 18px; border: 0; background: {{m.button}}; color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Start {{m.name}}</button>
+<button type="button" aria-label="{{m.title}} options" aria-haspopup="menu" aria-expanded="{{menuExpanded}}" onClick="{{toggleMenu}}" style="height: 34px; width: 32px; border: 0; border-left: 1px solid rgba(255,255,255,0.3); background: {{m.button}}; cursor: pointer; display: flex; align-items: center; justify-content: center">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" aria-hidden="true" style="transform: {{chevron}}"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+</div>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{ false }}">
+<div role="menu" aria-label="{{m.title}} options" style="position: absolute; right: 0; bottom: 42px; width: 290px; box-sizing: border-box; padding: 6px; border-radius: 12px; background: {{t.menuBg}}; backdrop-filter: blur(30px) saturate(1.8); -webkit-backdrop-filter: blur(30px) saturate(1.8); border: 1px solid {{t.menuEdge}}; box-shadow: {{t.menuShadow}}; z-index: 5; text-align: left">
+<sc-for list="{{menu}}" as="i" hint-placeholder-count="8">
+<sc-if value="{{i.isLabel}}" hint-placeholder-val="{{ false }}">
+<div style="font-size: 11px; font-weight: 600; color: {{t.text2}}; padding: 6px 10px 2px">{{i.label}}</div>
+</sc-if>
+<sc-if value="{{i.isSep}}" hint-placeholder-val="{{ false }}">
+<div role="separator" style="height: 1px; background: {{t.menuSep}}; margin: 5px 8px"></div>
+</sc-if>
+<sc-if value="{{i.isItem}}" hint-placeholder-val="{{ true }}">
+<button type="button" role="{{i.role}}" aria-checked="{{i.checked}}" disabled="{{i.disabled}}" onClick="{{i.run}}" style="width: 100%; display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: {{i.bg}}; color: {{i.color}}; font: inherit; font-size: 12.5px; text-align: left; cursor: {{i.cursor}}">
+<span aria-hidden="true" style="width: 14px; font-weight: 700; color: {{i.markColor}}">{{i.mark}}</span>
+<span style="flex: 1; font-weight: {{i.weight}}">{{i.label}}</span>
+<span style="font-size: 11.5px; color: {{i.hintColor}}">{{i.hint}}</span>
+</button>
+</sc-if>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-if>
+<sc-if value="{{scanning}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{cancel}}" style="height: 34px; padding: 0 18px; border-radius: 9px; border: 1px solid {{t.strong}}; background: {{t.card}}; color: {{t.text}}; font: inherit; font-weight: 600; cursor: pointer; flex-shrink: 0">Cancel scan</button>
+</sc-if>
+<sc-if value="{{finished}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; gap: 8px; flex-shrink: 0">
+<button type="button" onClick="{{reset}}" style="height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid {{t.strong}}; background: {{t.card}}; color: {{t.link}}; font: inherit; font-weight: 600; cursor: pointer">Scan again</button>
+<a href="Review.dc.html" style="display: inline-flex; align-items: center; height: 34px; padding: 0 16px; border-radius: 9px; background: {{m.button}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.35); color: #FFFFFF; font-weight: 600; text-decoration: none">Review results →</a>
+</div>
+</sc-if>
+</div>
+</section>
+
+</div>
+
+<section aria-labelledby="fd-h" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<div style="display: flex; flex-direction: column">
+<h2 id="fd-h" style="margin: 0; font-size: 16px; font-weight: 700">Last scan found 39.9 GB in 45 items</h2>
+<span style="font-size: 11.5px; color: {{t.text2}}">Today 14:12 · 13.8 GB is eligible for quarantine. Risk and eligibility are shown separately.</span>
+</div>
+<a href="Review.dc.html" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: {{t.link}}; background: {{t.linkBg}}; border-radius: 7px; padding: 4px 10px; text-decoration: none; white-space: nowrap">See all results →</a>
+</div>
+<div role="img" aria-label="Found space by category: Large files 22.1 GB, Xcode DerivedData 9.4 GB, App caches 4.6 GB, node_modules 3.8 GB" style="display: flex; height: 12px; border-radius: 6px; overflow: hidden; gap: 2px">
+<sc-for list="{{cats}}" as="c" hint-placeholder-count="4">
+<span style="width: {{c.w}}; background: {{c.fill}}"></span>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px">
+<sc-for list="{{cats}}" as="c" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 5px; background: {{c.color}}"></span>{{c.name}}</span>
+<span style="font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums">{{c.size}} <span style="font-size: 12px; font-weight: 500; color: {{t.text2}}">· {{c.items}} items</span></span>
+<span style="display: flex; gap: 6px; flex-wrap: wrap">
+<span style="font-size: 11px; font-weight: 600; color: {{c.riskFg}}; background: {{c.riskBg}}; border-radius: 6px; padding: 1px 7px">{{c.risk}}</span>
+<span style="font-size: 11px; font-weight: 600; color: {{c.eligFg}}; background: {{c.eligBg}}; border-radius: 6px; padding: 1px 7px">{{c.elig}}</span>
+</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+</div>
+</main>
+<sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); margin-left: 116px; display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 10px; background: {{t.menuBg}}; backdrop-filter: blur(30px) saturate(1.8); -webkit-backdrop-filter: blur(30px) saturate(1.8); border: 1px solid {{t.menuEdge}}; box-shadow: {{t.menuShadow}}; font-weight: 600; z-index: 6">
+<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#1FA45B"></circle><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span>{{toast}}</span>
+</div>
+</sc-if>
+
+<sc-if value="{{showAdd}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: {{t.scrim}}; display: flex; justify-content: center; align-items: flex-start; z-index: 10">
+<section role="dialog" aria-modal="true" aria-labelledby="add-h" style="width: 580px; box-sizing: border-box; background: {{t.card}}; border: 1px solid {{t.strong}}; border-top: 0; border-radius: 0 0 14px 14px; box-shadow: {{t.sheetShadow}}; display: flex; flex-direction: column">
+<div style="padding: 20px 22px 12px; display: flex; gap: 12px; align-items: center">
+<span aria-hidden="true" style="width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(160deg, #6CB4FF, #2F6FED); box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2zM12 11v6M9 14h6"></path></svg>
+</span>
+<div style="display: flex; flex-direction: column">
+<h2 id="add-h" style="margin: 0; font-size: 17px; font-weight: 700">Add a folder to scan</h2>
+<span style="font-size: 12px; color: {{t.text2}}">Kleari gets read-only access to the folder you pick, and nothing else.</span>
+</div>
+</div>
+<div style="margin: 0 22px; display: grid; grid-template-columns: 150px 1fr; border: 1px solid {{t.borderSolid}}; border-radius: 10px; overflow: hidden; height: 220px">
+<div style="background: {{t.pickerSide}}; padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; font-size: 12.5px">
+<span style="font-size: 11px; font-weight: 600; color: {{t.text2}}; padding: 2px 8px 4px">Locations</span>
+<sc-for list="{{places}}" as="p" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{p.pressed}}" onClick="{{p.pick}}" style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: {{p.bg}}; color: {{t.text}}; font: inherit; font-weight: {{p.weight}}; text-align: left; cursor: pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{p.icon}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{p.d}}"></path></svg>
+<span>{{p.label}}</span>
+</button>
+</sc-for>
+</div>
+<ul role="listbox" aria-label="Folders" style="margin: 0; padding: 6px; list-style: none; overflow: auto; display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{folders}}" as="f" hint-placeholder-count="5">
+<li role="option" aria-selected="{{f.selected}}" aria-disabled="{{f.taken}}" onClick="{{f.pick}}" style="display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 7px; background: {{f.bg}}; cursor: {{f.cursor}}; opacity: {{f.op}}">
+<span aria-hidden="true" style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 7px; background: {{f.tile}}; display: flex; align-items: center; justify-content: center">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; line-height: 1.25; flex: 1; min-width: 0">
+<span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 600">{{f.path}}</span>
+<span style="font-size: 11px; color: {{t.text2}}">{{f.sub}}</span>
+</span>
+<sc-if value="{{f.selected}}" hint-placeholder-val="{{ false }}">
+<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#2F7CF6"></circle><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</sc-if>
+</li>
+</sc-for>
+</ul>
+</div>
+<ul style="margin: 14px 22px 0; padding: 12px 14px; list-style: none; border-radius: 10px; background: {{t.infoBg}}; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px">
+<sc-for list="{{accessFacts}}" as="a" hint-placeholder-count="3">
+<li style="display: flex; gap: 8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{a.color}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px"><path d="{{a.d}}"></path></svg><span>{{a.text}}</span></li>
+</sc-for>
+</ul>
+<div style="padding: 14px 22px 18px; display: flex; align-items: center; gap: 8px">
+<span style="font-size: 11.5px; color: {{t.text2}}; flex: 1">{{addFoot}}</span>
+<button type="button" onClick="{{closeDialog}}" style="height: 32px; padding: 0 16px; border-radius: 8px; border: 1px solid {{t.strong}}; background: {{t.card}}; color: {{t.text}}; font: inherit; font-weight: 600; cursor: pointer">Cancel</button>
+<button type="button" disabled="{{noPick}}" onClick="{{confirmAdd}}" style="height: 32px; padding: 0 16px; border-radius: 8px; border: 0; background: {{addBg}}; color: {{addFg}}; font: inherit; font-weight: 600; cursor: {{addCursor}}">Add folder</button>
+</div>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{showGrant}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: {{t.scrim}}; display: flex; justify-content: center; align-items: center; z-index: 10">
+<section role="dialog" aria-modal="true" aria-labelledby="gr-h" style="width: 440px; box-sizing: border-box; background: {{t.card}}; border: 1px solid {{t.strong}}; border-radius: 16px; box-shadow: {{t.sheetShadow}}; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+<span aria-hidden="true" style="width: 60px; height: 60px; border-radius: 16px; background: linear-gradient(160deg, #6BE3A0, #1FA45B); box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 6px 16px rgba(31,164,91,0.35); display: flex; align-items: center; justify-content: center">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2zM12 17v-6M9 14l3 3 3-3"></path></svg>
+</span>
+<sc-if value="{{grantAsk}}" hint-placeholder-val="{{ true }}">
+<h2 id="gr-h" style="margin: 0; font-size: 17px; font-weight: 700">Let Kleari read ~/Downloads?</h2>
+<p style="margin: 0; font-size: 12.5px; color: {{t.text2}}">Deep scans use this folder to find large and old files for you to inspect. You can say no and keep scanning everything else.</p>
+<ul style="margin: 4px 0 0; padding: 12px 14px; list-style: none; border-radius: 10px; background: {{t.infoBg}}; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; text-align: left; align-self: stretch">
+<sc-for list="{{accessFacts}}" as="a" hint-placeholder-count="3">
+<li style="display: flex; gap: 8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{a.color}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px"><path d="{{a.d}}"></path></svg><span>{{a.text}}</span></li>
+</sc-for>
+</ul>
+<span style="font-size: 11.5px; color: {{t.text2}}">Next, macOS will ask you to confirm in its own window.</span>
+<div style="display: flex; gap: 8px; align-self: stretch">
+<button type="button" onClick="{{closeDialog}}" style="flex: 1; height: 34px; border-radius: 9px; border: 1px solid {{t.strong}}; background: {{t.card}}; color: {{t.text}}; font: inherit; font-weight: 600; cursor: pointer">Not now</button>
+<button type="button" onClick="{{confirmGrant}}" style="flex: 1; height: 34px; border-radius: 9px; border: 0; background: linear-gradient(180deg, #4C9BFF, #2468D8); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35); color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Continue</button>
+</div>
+</sc-if>
+<sc-if value="{{grantWait}}" hint-placeholder-val="{{ false }}">
+<h2 id="gr-h" style="margin: 0; font-size: 17px; font-weight: 700">Waiting for macOS…</h2>
+<p role="status" style="margin: 0; font-size: 12.5px; color: {{t.text2}}">Confirm access to ~/Downloads in the macOS window. If you decline there, the folder stays skipped and nothing else changes.</p>
+<svg class="mp-spin" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" style="animation: mp-spin 0.9s linear infinite"><circle cx="12" cy="12" r="9" fill="none" stroke="{{t.track}}" stroke-width="3"></circle><circle cx="12" cy="12" r="9" fill="none" stroke="#2F7CF6" stroke-width="3" stroke-linecap="round" stroke-dasharray="18 40"></circle></svg>
+<button type="button" onClick="{{closeDialog}}" style="height: 32px; padding: 0 16px; border-radius: 8px; border: 1px solid {{t.strong}}; background: {{t.card}}; color: {{t.text}}; font: inherit; font-weight: 600; cursor: pointer">Cancel</button>
+</sc-if>
+</section>
+</div>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"mode":{"editor":"enum","options":["standard","deep","dev"],"default":"standard"},"phase":{"editor":"enum","options":["idle","scanning","cancelled","done"],"default":"idle"},"$preview":{"width":1260,"height":920}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { phase: null, mode: null, step: 1, menuOpen: false, dialog: null, pick: null, place: 'home', grantStep: 'ask', dlGranted: false, added: [], toast: '', opts: { logs: true, temp: true, logAge: '30 days', size: '1 GB', age: '6 months', hidden: false, xcode: true, sim: true, node: true, docker: true } }; }
+  componentDidUpdate(prev) {
+    if (prev.phase !== this.props.phase && this.state.phase !== null) { this.stop(); this.setState({ phase: null, step: 1 }); }
+    if (prev.mode !== this.props.mode && this.state.mode !== null) { this.stop(); this.setState({ mode: null, phase: null, step: 1 }); }
+  }
+  componentWillUnmount() { this.stop(); clearTimeout(this.toastTimer); clearTimeout(this.grantTimer); }
+  stop() { clearInterval(this.timer); this.timer = null; }
+  theme() {
+    var light = {
+      wallpaper:'linear-gradient(165deg, #9FB3E0 0%, #C3B4DE 38%, #EBC2C4 66%, #B9A6CF 100%)', ridge1:'rgba(92,96,150,0.45)', ridge2:'rgba(60,62,110,0.55)',
+      windowEdge:'rgba(255,255,255,0.6)', windowShadow:'0 30px 80px rgba(30,30,70,0.35), 0 4px 14px rgba(30,30,70,0.18)',
+      glass:'rgba(244,246,252,0.62)', glassEdge:'rgba(255,255,255,0.55)', glassShine:'rgba(255,255,255,0.35)', glassChip:'rgba(255,255,255,0.55)',
+      navSel:'rgba(255,255,255,0.85)', navSelShadow:'0 1px 3px rgba(24,34,48,0.10), inset 0 1px 0 rgba(255,255,255,0.9)',
+      bg:'#F5F7FA', card:'#FFFFFF', border:'rgba(24,34,48,0.07)', strong:'#C5CED9', cardShadow:'0 1px 2px rgba(24,34,48,0.04), 0 8px 24px rgba(24,34,48,0.06)',
+      edgeTop:'rgba(255,255,255,0.62)', edgeMid:'rgba(255,255,255,0.22)', edgeLine:'rgba(255,255,255,0.95)', edgeSheen:'rgba(255,255,255,0.7)', floatTop:'rgba(255,255,255,0.80)', floatBg:'rgba(244,247,252,0.56)', floatEdge:'rgba(255,255,255,0.78)', floatShadow:'0 12px 32px rgba(24,34,48,0.14), 0 2px 6px rgba(24,34,48,0.06), inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(24,34,48,0.05)', thGlass:'rgba(255,255,255,0.72)', wordmark:'linear-gradient(90deg, #2F6FED, #6D3FE0)', text:'#182230', text2:'#5D6878', track:'#EDF0F5', accentText:'#21658E', accentSoft:'#E8F2F8',
+      segBg:'#E9EDF3', segShadow:'0 1px 3px rgba(24,34,48,0.12)', ring:'0 8px 24px rgba(47,124,246,0.18)', ringColor:'#2F7CF6',
+      link:'#1F6FEB', linkBg:'rgba(47,124,246,0.10)', menuBg:'rgba(250,251,253,0.86)', menuEdge:'rgba(24,34,48,0.10)', menuShadow:'0 12px 32px rgba(24,34,48,0.20), 0 2px 6px rgba(24,34,48,0.08)', menuSep:'rgba(24,34,48,0.08)', scrim:'rgba(24,34,48,0.28)', sheetShadow:'0 24px 60px rgba(24,34,48,0.28)', borderSolid:'#DDE3EA', pickerSide:'#F0F3F7', infoBg:'#F3F6FA',
+      okText:'#15703F', okBg:'rgba(34,197,94,0.14)', warnText:'#8A5600', warnBg:'rgba(245,158,11,0.18)', mutedText:'#4B5565', mutedBg:'rgba(100,116,139,0.14)'
+    };
+    var dark = {
+      wallpaper:'linear-gradient(165deg, #1D2440 0%, #2E2546 40%, #4A2F44 70%, #1A1C30 100%)', ridge1:'rgba(10,12,28,0.55)', ridge2:'rgba(6,8,20,0.7)',
+      windowEdge:'rgba(255,255,255,0.12)', windowShadow:'0 30px 80px rgba(0,0,0,0.6)',
+      glass:'rgba(34,40,54,0.55)', glassEdge:'rgba(255,255,255,0.08)', glassShine:'rgba(255,255,255,0.05)', glassChip:'rgba(255,255,255,0.06)',
+      navSel:'rgba(255,255,255,0.12)', navSelShadow:'inset 0 1px 0 rgba(255,255,255,0.08)',
+      bg:'#14181E', card:'#1C222B', border:'rgba(255,255,255,0.06)', strong:'#465364', cardShadow:'none',
+      edgeTop:'rgba(22,27,35,0.72)', edgeMid:'rgba(22,27,35,0.3)', edgeLine:'rgba(255,255,255,0.14)', edgeSheen:'rgba(140,170,255,0.12)', floatTop:'rgba(52,61,76,0.62)', floatBg:'rgba(30,36,46,0.5)', floatEdge:'rgba(255,255,255,0.13)', floatShadow:'0 12px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.10)', thGlass:'rgba(28,34,43,0.72)', wordmark:'linear-gradient(90deg, #7CC0FF, #B49CFF)', text:'#F0F3F7', text2:'#B5BFCC', track:'#2A323E', accentText:'#8BC9EC', accentSoft:'#233B4A',
+      segBg:'#252D38', segShadow:'0 1px 3px rgba(0,0,0,0.4)', ring:'none', ringColor:'#69B7E4',
+      link:'#8BC0FF', linkBg:'rgba(108,180,255,0.14)', menuBg:'rgba(37,45,56,0.86)', menuEdge:'rgba(255,255,255,0.10)', menuShadow:'0 12px 32px rgba(0,0,0,0.55)', menuSep:'rgba(255,255,255,0.08)', scrim:'rgba(0,0,0,0.5)', sheetShadow:'0 24px 60px rgba(0,0,0,0.6)', borderSolid:'#333D4A', pickerSide:'#202731', infoBg:'#202731',
+      okText:'#68C995', okBg:'rgba(104,201,149,0.14)', warnText:'#F0BD63', warnBg:'rgba(240,189,99,0.14)', mutedText:'#B5BFCC', mutedBg:'rgba(181,191,204,0.12)'
+    };
+    return this.props.dark ? dark : light;
+  }
+  renderVals() {
+    var t = this.theme();
+    var self = this;
+    var phase = this.state.phase || this.props.phase || 'idle';
+    var nav = [
+      {label:'Dashboard',href:'Main.dc.html',d:'M3 13h8V3H3zM13 21h8V11h-8zM13 3v6h8V3zM3 21h8v-6H3z'},
+      {label:'Cleanup',href:'Cleanup.dc.html',d:'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3'},
+      {label:'Quarantine',href:'Quarantine.dc.html',d:'M21 8v13H3V8M1 3h22v5H1zM10 12h4'},
+      {label:'Storage',href:'Storage.dc.html',d:'M22 12H2M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1zM6 16h.01'},
+      {label:'System',href:'System.dc.html',d:'M22 12h-4l-3 9L9 3l-3 9H2'},
+      {label:'Developer',href:'Developer.dc.html',d:'M16 18l6-6-6-6M8 6l-6 6 6 6'},
+      {label:'Processes',href:'Processes.dc.html',d:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'},
+      {label:'Activity',href:'Activity.dc.html',d:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2'}
+    ].map(function (n) {
+      var on = n.label === 'Cleanup';
+      return {label:n.label,href:n.href,d:n.d,current:on ? 'page' : undefined,bg:on ? t.navSel : 'transparent',shadow:on ? t.navSelShadow : 'none',icon:on ? '#2F7CF6' : t.text2,weight:on ? 600 : 500};
+    });
+    var navBottom = [
+      {label:'Settings',href:'Settings.dc.html',d:'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6'}
+    ];
+    var modeDefs = {
+      standard:{title:'Standard scan',name:'standard scan',sub:'App caches, logs and temporary files',meta:'Recommended · usually under a minute',
+        c1:'#6CB4FF',c2:'#2F6FED',glow:'rgba(47,111,237,0.35)',textL:'#2462C9',textD:'#8BC0FF',softL:'rgba(47,111,237,0.09)',softD:'rgba(108,180,255,0.12)',
+        d:'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3',folders:[0],
+        looks:[['App caches','Apps download these again when they need them'],['Logs and crash reports','Older than 30 days'],['Temporary files','Left behind by installers and apps']],
+        note:'',
+        idleDetail:'Reads 1 folder. Nothing is moved or deleted.',foot:'Read-only · usually under a minute',
+        steps:[['Reading ~/Library/Caches','18,402 files'],['Checking logs and temporary files','2,113 files'],['Explaining each finding','25 items']],
+        results:[['App caches','18 items','4.6 GB','16 eligible','ok','#3B82F6'],['Logs and temporary files','7 items','0.9 GB','7 eligible','ok','#22C55E']],
+        doneDetail:'25 items, 5.5 GB. 23 are eligible for quarantine. Nothing was changed.'},
+      deep:{title:'Deep scan',name:'deep scan',sub:'Adds large and old files for you to inspect',meta:'Takes longer · large files are inspect only',
+        c1:'#C38BFF',c2:'#8B3FE0',glow:'rgba(139,63,224,0.35)',textL:'#7A2FD0',textD:'#C9A2FF',softL:'rgba(139,63,224,0.09)',softD:'rgba(195,139,255,0.12)',
+        d:'M12 2l3 7h7l-5.5 4.5L18.5 21 12 16.5 5.5 21l2-7.5L2 9h7z',folders:[0,1,2,3],
+        looks:[['Everything in Standard','Caches, logs and temporary files'],['Large files','Over 1 GB anywhere in your granted folders'],['Old files','Not opened in 6 months']],
+        note:'Large and old files are never eligible for quarantine. Kleari lists them so you can decide in Finder.',
+        idleDetail:'Reads 3 folders. ~/Downloads is skipped until you grant access.',foot:'Read-only · a few minutes',
+        steps:[['Reading ~/Library/Caches','18,402 files'],['Reading ~/Library/Developer','96,530 files'],['Reading ~/Developer','212,744 files'],['Finding large and old files','23 items']],
+        results:[['Caches, logs and temp','25 items','5.5 GB','23 eligible','ok','#3B82F6'],['Large files','9 items','22.1 GB','Inspect only','muted','#F97316'],['Old files','14 items','6.3 GB','Inspect only','muted','#FBBF24'],['~/Downloads','skipped','',"No access",'warn','#94A3B8']],
+        doneDetail:'48 items, 33.9 GB. 23 are eligible; the rest are for you to inspect. Nothing was changed.'},
+      dev:{title:'Developer scan',name:'developer scan',sub:'Xcode, simulators, node_modules, Docker (read-only)',meta:'Each tool explained separately',
+        c1:'#FF8FB1',c2:'#E64980',glow:'rgba(230,73,128,0.35)',textL:'#C2255C',textD:'#FF8FB1',softL:'rgba(230,73,128,0.08)',softD:'rgba(255,143,177,0.12)',
+        d:'M16 18l6-6-6-6M8 6l-6 6 6 6',folders:[1,2],
+        looks:[['Xcode DerivedData and archives','Build output Xcode can recreate'],['iOS Simulator runtimes','Runtimes and devices you have not used lately'],['node_modules','Checked against each project’s lockfile'],['Docker images and volumes','Listed only, never changed']],
+        note:'Docker stays read-only. Kleari never stops, removes or prunes containers, images or volumes.',
+        idleDetail:'Reads 2 folders and the Docker inventory.',foot:'Read-only · 1 to 2 minutes',
+        steps:[['Reading Xcode DerivedData','6 projects'],['Reading Simulator runtimes','3 runtimes'],['Checking node_modules lockfiles','12 projects'],['Reading Docker inventory','6 images']],
+        results:[['Xcode DerivedData','6 items','9.4 GB','6 eligible','ok','#6366F1'],['Simulator runtimes','3 items','4.2 GB','Check first','warn','#3B82F6'],['node_modules','12 items','3.8 GB','Needs a check','warn','#A855F7'],['Docker images','6 images','11.2 GB','Inventory only','muted','#06B6D4']],
+        doneDetail:'21 items, 17.4 GB. 6 are eligible now; others need a check first. Nothing was changed.'}
+    };
+    var modeId = this.state.mode || this.props.mode || 'standard';
+    var md = modeDefs[modeId];
+    var dark = !!this.props.dark;
+    var m = {title:md.title,name:md.name,c1:md.c1,c2:md.c2,glow:md.glow,text:dark ? md.textD : md.textL,soft:dark ? md.softD : md.softL,
+      tile:'linear-gradient(160deg, ' + md.c1 + ', ' + md.c2 + ')',fill:'linear-gradient(90deg, ' + md.c1 + ', ' + md.c2 + ')',button:'linear-gradient(180deg, ' + md.c1 + ', ' + md.c2 + ')',
+      hasNote:!!md.note,note:md.note};
+    var modes = ['standard','deep','dev'].map(function (id) {
+      var x = modeDefs[id], on = id === modeId;
+      return {title:x.title,sub:x.sub,meta:x.meta,tile:'linear-gradient(160deg, ' + x.c1 + ', ' + x.c2 + ')',glow:x.glow,d:x.d,isOn:on,checked:on ? 'true' : 'false',
+        border:on ? '2px solid ' + t.ringColor : '2px solid ' + t.border, shadow:on ? t.ring : t.cardShadow,
+        pick:function () { self.stop(); self.setState({mode:id, phase:'idle', step:1, menuOpen:false}); }};
+    });
+    var scopeDefs = [
+      {path:'~/Library/Caches',note:'App caches and logs',granted:true,tile:'linear-gradient(160deg, #6CB4FF, #2F6FED)'},
+      {path:'~/Library/Developer',note:'Xcode and simulators',granted:true,tile:'linear-gradient(160deg, #9D90FF, #5B4BE0)'},
+      {path:'~/Developer',note:'Your projects, read-only',granted:true,tile:'linear-gradient(160deg, #6BE3A0, #1FA45B)'},
+      {path:'~/Downloads',note:'Skipped until you grant access',granted:false,tile:'linear-gradient(160deg, #B4BDC9, #7D8897)'}
+    ];
+    if (this.state.dlGranted) scopeDefs[3] = {path:'~/Downloads',note:'Large and old files, inspect only',granted:true,tile:'linear-gradient(160deg, #6BE3A0, #1FA45B)'};
+    this.state.added.forEach(function (p) { scopeDefs.push({path:p,note:'Added by you',granted:true,tile:'linear-gradient(160deg, #FFC56E, #F5841F)'}); });
+    var folderUse = modeId === 'standard' ? [0] : (modeId === 'dev' ? [1, 2] : null);
+    var scope = scopeDefs.map(function (s, i) {
+      var used = folderUse ? folderUse.indexOf(i) >= 0 : true;
+      if (modeId === 'dev' && i >= 4) used = true;
+      return {path:s.path,note:used ? s.note : 'Not part of the ' + md.name,granted:s.granted,canGrant:!s.granted,tile:s.tile,op:used ? 1 : 0.5};
+    });
+    var total = 39.9;
+    var catDefs = [
+      ['Large files',22.1,9,'#F97316','linear-gradient(90deg, #FFB547, #F5841F)','Unknown risk','muted','Inspect only','muted'],
+      ['Xcode DerivedData',9.4,6,'#6366F1','linear-gradient(90deg, #8B8CFF, #5B4BE0)','Low risk','ok','6 eligible','ok'],
+      ['App caches',4.6,18,'#3B82F6','linear-gradient(90deg, #6CB4FF, #2F6FED)','Low risk','ok','16 eligible','ok'],
+      ['node_modules',3.8,12,'#A855F7','linear-gradient(90deg, #C38BFF, #8B3FE0)','Medium risk','warn','Needs a check','warn']
+    ];
+    var tone = function (k) { return k === 'ok' ? [t.okText, t.okBg] : (k === 'warn' ? [t.warnText, t.warnBg] : [t.mutedText, t.mutedBg]); };
+    var cats = catDefs.map(function (c) {
+      var r = tone(c[6]), e = tone(c[8]);
+      return {name:c[0],size:c[1] + ' GB',items:c[2],color:c[3],fill:c[4],w:(c[1] / total * 100).toFixed(1) + '%',risk:c[5],riskFg:r[0],riskBg:r[1],elig:c[7],eligFg:e[0],eligBg:e[1]};
+    });
+    var opts = this.state.opts;
+    var setOpt = function (k, v) { var o = Object.assign({}, self.state.opts); o[k] = v; self.setState({opts:o}); };
+    var mItem = function (label, o) { o = o || {}; return Object.assign({isItem:true,isSep:false,isLabel:false,label:label,hint:'',mark:'',role:'menuitem',checked:undefined,disabled:false,primary:false,run:null}, o); };
+    var mSep = {isItem:false,isSep:true,isLabel:false};
+    var mLabel = function (l) { return {isItem:false,isSep:false,isLabel:true,label:l}; };
+    var mCheck = function (label, k) { return mItem(label, {role:'menuitemcheckbox',checked:opts[k] ? 'true' : 'false',mark:opts[k] ? '✓' : '',run:function () { setOpt(k, !self.state.opts[k]); }}); };
+    var mRadio = function (label, k) { var on = opts[k] === label; return mItem(label, {role:'menuitemradio',checked:on ? 'true' : 'false',mark:on ? '•' : '',run:function () { setOpt(k, label); }}); };
+    var startItem = mItem('Start ' + md.name, {hint:'↩',primary:true,run:function () { self.setState({menuOpen:false}); startScan(); }});
+    var menus = {
+      standard:[startItem, mSep, mLabel('Include'), mCheck('Logs and crash reports','logs'), mCheck('Temporary files','temp'), mSep, mLabel('Only logs older than'), mRadio('7 days','logAge'), mRadio('30 days','logAge'), mRadio('90 days','logAge'), mSep, mItem('Schedule a scan', {disabled:true,hint:'Coming later'})],
+      deep:[startItem, mSep, mLabel('Large files over'), mRadio('500 MB','size'), mRadio('1 GB','size'), mRadio('5 GB','size'), mLabel('Old files not opened in'), mRadio('3 months','age'), mRadio('6 months','age'), mRadio('1 year','age'), mSep, mCheck('Include hidden files','hidden'), mItem('Schedule a scan', {disabled:true,hint:'Coming later'})],
+      dev:[startItem, mSep, mLabel('Tools to check'), mCheck('Xcode DerivedData and archives','xcode'), mCheck('iOS Simulator runtimes','sim'), mCheck('node_modules','node'), mCheck('Docker inventory (read-only)','docker'), mSep, mItem('Add a project folder…', {run:function () { self.setState({menuOpen:false, dialog:'add', pick:null}); }})]
+    };
+    var menu = menus[modeId].map(function (i) {
+      if (!i.isItem) return i;
+      var prim = i.primary;
+      return Object.assign({}, i, {
+        bg: prim ? m.c2 : 'transparent', color: prim ? '#FFFFFF' : (i.disabled ? t.text2 : t.text), hintColor: prim ? 'rgba(255,255,255,0.8)' : t.text2,
+        markColor: m.text, weight: prim ? 600 : 400, cursor: i.disabled ? 'default' : 'pointer'
+      });
+    });
+    var looksDyn = {
+      standard:[['App caches','Apps download these again when they need them']].concat(opts.logs ? [['Logs and crash reports','Older than ' + opts.logAge]] : []).concat(opts.temp ? [['Temporary files','Left behind by installers and apps']] : []),
+      deep:[['Everything in Standard','Caches, logs and temporary files'],['Large files','Over ' + opts.size + ' in your granted folders'],['Old files','Not opened in ' + opts.age + (opts.hidden ? ', hidden files included' : '')]],
+      dev:md.looks.filter(function (l, i) { return [opts.xcode, opts.sim, opts.node, opts.docker][i]; })
+    }[modeId];
+    var added = this.state.added;
+    var dl = this.state.dlGranted;
+    var pickerFolders = [
+      {path:'~/Documents',sub:'In your home folder',tile:'linear-gradient(160deg, #6CB4FF, #2F6FED)',place:'home'},
+      {path:'~/Desktop',sub:'In your home folder',tile:'linear-gradient(160deg, #9D90FF, #5B4BE0)',place:'home'},
+      {path:'~/Movies',sub:'In your home folder',tile:'linear-gradient(160deg, #FF8FB1, #E64980)',place:'home'},
+      {path:'~/Downloads',sub:'Already listed, use Grant access',tile:'linear-gradient(160deg, #B4BDC9, #7D8897)',place:'home',taken:true},
+      {path:'~/Projects/archive',sub:'Old client projects',tile:'linear-gradient(160deg, #6BE3A0, #1FA45B)',place:'projects'},
+      {path:'~/Projects/sandbox',sub:'Experiments',tile:'linear-gradient(160deg, #FFC56E, #F5841F)',place:'projects'},
+      {path:'/Volumes/Backup',sub:'External drive',tile:'linear-gradient(160deg, #67E8F9, #0891B2)',place:'drives'}
+    ];
+    var place = this.state.place;
+    var placeDefs = [['home','Home','M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z'],['projects','Projects','M16 18l6-6-6-6M8 6l-6 6 6 6'],['drives','Drives','M22 12H2M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z']];
+    var places = placeDefs.map(function (p) {
+      var on = p[0] === place;
+      return {label:p[1],d:p[2],pressed:on ? 'true' : 'false',bg:on ? t.accentSoft : 'transparent',weight:on ? 600 : 400,icon:on ? '#2F7CF6' : t.text2,pick:function () { self.setState({place:p[0], pick:null}); }};
+    });
+    var pick = this.state.pick;
+    var folders = pickerFolders.filter(function (f) { return f.place === place; }).map(function (f) {
+      var taken = !!f.taken || added.indexOf(f.path) >= 0;
+      var on = pick === f.path;
+      return {path:f.path,sub:added.indexOf(f.path) >= 0 ? 'Already added' : f.sub,tile:f.tile,selected:on,taken:taken ? 'true' : 'false',
+        bg:on ? t.accentSoft : 'transparent',op:taken ? 0.5 : 1,cursor:taken ? 'default' : 'pointer',
+        pick:function () { if (!taken) self.setState({pick:f.path}); }};
+    });
+    var accessFacts = [
+      {text:'Reads names, sizes and dates. File contents never leave this Mac.',color:'#1FA45B',d:'M20 6L9 17l-5-5'},
+      {text:'Nothing is moved or deleted without a preview you approve.',color:'#1FA45B',d:'M20 6L9 17l-5-5'},
+      {text:'You can remove access here or in Settings at any time.',color:'#2F7CF6',d:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01'}
+    ];
+    var showToast = function (msg) { clearTimeout(self.toastTimer); self.setState({toast:msg}); self.toastTimer = setTimeout(function () { self.setState({toast:''}); }, 3500); };
+    var startScan = function () {
+      self.stop(); self.setState({mode:modeId, phase:'scanning', step:1});
+      self.timer = setInterval(function () {
+        if (self.state.phase !== 'scanning') { self.stop(); return; }
+        if (self.state.step >= n) { self.stop(); self.setState({phase:'done'}); } else { self.setState({step:self.state.step + 1}); }
+      }, 1400);
+    };
+    var n = md.steps.length;
+    var step = phase === 'done' ? n : Math.min(this.state.step, n);
+    var steps = md.steps.map(function (s, i) {
+      var done = i < step - 1 || phase === 'done', active = phase === 'scanning' && i === step - 1;
+      var stopped = phase === 'cancelled' && i === step - 1;
+      return {label:stopped ? s[0] + ' (stopped)' : s[0] + (active ? '…' : ''),meta:done ? s[1] : (active ? 'in progress' : ''),done:done,active:active,pending:!done && !active,
+        weight:active ? 600 : 400,color:(!done && !active) ? t.text2 : t.text};
+    });
+    var results = md.results.map(function (r) { var c = tone(r[4]); return {label:r[0],count:r[1],size:r[2],tag:r[3],fg:c[0],bg:c[1],color:r[5]}; });
+    var C = 2 * Math.PI * 40;
+    var doneSteps = phase === 'done' ? n : step - 1;
+    var titles = {
+      idle:['Ready for a ' + md.name, md.idleDetail],
+      scanning:[md.steps[step - 1][0] + '…', 'Step ' + step + ' of ' + n + '. Reading file details only. You can cancel at any time.'],
+      cancelled:['Scan cancelled', 'Stopped during step ' + step + ' of ' + n + '. Partial results were kept and marked incomplete. Nothing was changed.'],
+      done:[md.title + ' complete', md.doneDetail]
+    };
+    var hero = {idle:md.d, scanning:md.d, cancelled:'M18 6L6 18M6 6l12 12', done:'M20 6L9 17l-5-5'};
+    return {
+      t:t, nav:nav, navBottom:navBottom, modes:modes, m:m, scope:scope, cats:cats, looks:looksDyn.map(function (l) { return {label:l[0],sub:l[1]}; }),
+      menu:menu, menuOpen:this.state.menuOpen, menuExpanded:this.state.menuOpen ? 'true' : 'false', chevron:this.state.menuOpen ? 'rotate(180deg)' : 'none',
+      toggleMenu:function () { self.setState({menuOpen:!self.state.menuOpen}); },
+      showAdd:this.state.dialog === 'add', showGrant:this.state.dialog === 'grant', grantAsk:this.state.grantStep === 'ask', grantWait:this.state.grantStep === 'wait',
+      places:places, folders:folders, accessFacts:accessFacts, toast:this.state.toast,
+      noPick:!pick, addBg:pick ? 'linear-gradient(180deg, #4C9BFF, #2468D8)' : t.track, addFg:pick ? '#FFFFFF' : t.text2, addCursor:pick ? 'pointer' : 'default',
+      addFoot:pick ? 'macOS may ask you to confirm access to ' + pick + '.' : 'Pick a folder to continue.',
+      openAdd:function () { self.setState({dialog:'add', pick:null, place:'home', menuOpen:false}); },
+      openGrant:function () { self.setState({dialog:'grant', grantStep:'ask', menuOpen:false}); },
+      closeDialog:function () { clearTimeout(self.grantTimer); self.setState({dialog:null, grantStep:'ask'}); },
+      confirmAdd:function () { var p = self.state.pick; if (!p) return; self.setState({dialog:null, added:self.state.added.concat([p]), pick:null}); showToast('Added ' + p + ' with read-only access'); },
+      confirmGrant:function () { self.setState({grantStep:'wait'}); clearTimeout(self.grantTimer); self.grantTimer = setTimeout(function () { self.setState({dialog:null, grantStep:'ask', dlGranted:true}); showToast('Kleari can now read ~/Downloads'); }, 1800); },
+      steps:steps, results:results, stepTotal:n, stepDone:doneSteps, stepPct:Math.round(doneSteps / n * 100) + '%',
+      progressText: phase === 'cancelled' ? doneSteps + ' of ' + n + ' steps finished before you cancelled' : doneSteps + ' of ' + n + ' steps done',
+      idle: phase === 'idle', scanning: phase === 'scanning', done: phase === 'done', finished: phase === 'done' || phase === 'cancelled',
+      showSteps: phase === 'scanning' || phase === 'cancelled',
+      ringShow: phase !== 'scanning',
+      ringDash: phase === 'cancelled' ? (C * doneSteps / n).toFixed(1) + ' ' + C.toFixed(1) : C.toFixed(1) + ' 0',
+      heroTile: phase === 'cancelled' ? 'linear-gradient(160deg, #B4BDC9, #7D8897)' : (phase === 'done' ? 'linear-gradient(160deg, #6BE3A0, #1FA45B)' : m.tile),
+      heroIcon: hero[phase], runTitle: titles[phase][0], runDetail: titles[phase][1],
+      footNote: phase === 'idle' ? md.foot : (phase === 'scanning' ? 'Nothing will move without your approval' : 'Results stay until you scan again'),
+      start: startScan,
+      cancel: function () { self.stop(); self.setState({phase:'cancelled'}); },
+      reset: function () { self.stop(); self.setState({mode:modeId, phase:'idle', step:1}); }
+    };
+  }
+}
+</script>
+</body>
+</html>

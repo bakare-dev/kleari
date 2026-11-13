@@ -1,0 +1,223 @@
+/* The popover window (main.tsx marks it before the first paint) is exactly the panel's size.
+   In the desktop app macOS draws the material and rounded corners behind the page
+   (src-tauri/src/menubar.rs), so the page itself stays transparent. */
+:root[data-window="popover"],
+:root[data-window="popover"] body,
+:root[data-window="popover"] #root {
+  overflow: hidden;
+  min-width: 0;
+  background: transparent;
+}
+
+.pop {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Outside the desktop app (a browser preview) there is no native material to show through. */
+:root:not([data-native-window]) .pop {
+  border: 1px solid var(--mp-float-edge);
+  background: var(--mp-card);
+}
+
+/* The cards scroll if the readings ever need more room than the window has. */
+.pop-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.pop-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 2px 0;
+}
+
+.pop-wordmark {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.pop-offline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+}
+
+.pop-offline .v2-online-dot {
+  width: 7px;
+  height: 7px;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.22);
+}
+
+.pop-icon-btn {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mp-border);
+  border-radius: 15px;
+  background: var(--mp-glass-chip);
+  color: var(--mp-text-2);
+}
+
+.pop-tile {
+  border: 1px solid var(--mp-border);
+  border-radius: 14px;
+  background: var(--mp-glass-chip);
+  box-shadow: var(--mp-card-shadow);
+}
+
+.pop-gauges {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.pop-gauge {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 10px;
+  color: var(--mp-text);
+  text-decoration: none;
+}
+
+.pop-gauge-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pop-gauge-label {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.pop-gauge-value {
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.pop-gauge-track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--mp-track);
+}
+
+.pop-gauge-track span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+}
+
+.pop-scan {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.pop-scan-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pop-scan-sub {
+  font-size: 11.5px;
+}
+
+.pop-scan-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pop-scan-actions .v2-btn {
+  height: 32px;
+  flex: 1;
+  border-radius: 10px;
+}
+
+.pop-links {
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+}
+
+.pop-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  color: var(--mp-text);
+  text-decoration: none;
+}
+
+.pop-link:hover {
+  background: var(--mp-sel-row);
+}
+
+.pop-link-value {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pop-failed {
+  margin: 0;
+  padding: 0 2px;
+  color: var(--mp-text-2);
+  white-space: normal;
+}
+
+.pop-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 0 2px 2px;
+}
+
+.pop-open {
+  height: 32px;
+  flex: 1;
+  border-radius: 10px;
+}
+
+.pop a,
+.pop button {
+  cursor: default;
+}
+
+.pop-gauge:hover,
+.pop-gauge:focus-visible {
+  border-color: var(--mp-link);
+}
+
+.pop-gauge:active,
+.pop-link:active {
+  transform: scale(0.985);
+}

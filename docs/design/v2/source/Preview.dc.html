@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kleari Preview and approve</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}
+@keyframes mp-spin{to{transform:rotate(360deg)}}
+@keyframes mp-glass-in{from{opacity:0}to{opacity:1}}
+@supports (animation-timeline: scroll()){.mp-glass-edge{animation:mp-glass-in linear both;animation-timeline:scroll(nearest block);animation-range:0 28px}}
+@media (prefers-reduced-motion: reduce){.mp-spin{animation:none !important}}
+</style>
+</helmet>
+<div style="width: 1260px; height: 920px; position: relative; overflow: hidden; background: {{t.wallpaper}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; line-height: 1.45; color: {{t.text}}">
+
+<svg aria-hidden="true" width="1260" height="420" viewBox="0 0 1260 420" style="position: absolute; left: 0; bottom: 0">
+<path d="M0 260 L140 170 L240 230 L380 110 L520 220 L640 150 L780 240 L920 120 L1060 210 L1260 140 L1260 420 L0 420 Z" fill="{{t.ridge1}}"></path>
+<path d="M0 330 L180 250 L330 310 L470 230 L640 320 L820 240 L980 310 L1120 250 L1260 300 L1260 420 L0 420 Z" fill="{{t.ridge2}}"></path>
+</svg>
+
+<div style="position: absolute; left: 70px; top: 60px; width: 1120px; height: 800px; display: flex; border-radius: 14px; overflow: hidden; border: 1px solid {{t.windowEdge}}; box-shadow: {{t.windowShadow}}">
+
+<nav aria-label="Main" style="width: 232px; flex-shrink: 0; box-sizing: border-box; padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; background: {{t.glass}}; backdrop-filter: blur(40px) saturate(1.8); -webkit-backdrop-filter: blur(40px) saturate(1.8); border-right: 1px solid {{t.glassEdge}}; box-shadow: inset -1px 0 0 {{t.glassShine}}">
+<div aria-hidden="true" style="display: flex; gap: 8px; height: 20px; align-items: center; padding: 0 4px">
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FF5F57"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FEBC2E"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #28C840"></span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 18px 6px 16px">
+<span style="width: 36px; height: 37px; flex-shrink: 0; display: flex"><svg width="36" height="37" viewBox="-6 -4 112 116" aria-hidden="true" style="display: block; overflow: visible"><defs><linearGradient id="bgAsb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6CC4FF"></stop><stop offset="0.55" stop-color="#2F6FED"></stop><stop offset="1" stop-color="#6D3FE0"></stop></linearGradient><linearGradient id="hlAsb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"></stop><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.06"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></linearGradient><radialGradient id="glAsb" cx="0.3" cy="0.15" r="0.7"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.45"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></radialGradient><filter id="shAsb" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#2F6FED" flood-opacity="0.45"></feDropShadow></filter><filter id="gsAsb"><feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.22"></feDropShadow></filter></defs><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#bgAsb)" filter="url(#shAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#glAsb)"></path><g filter="url(#gsAsb)"><ellipse cx="50" cy="52" rx="36" ry="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="2.6" transform="rotate(-24 50 52)"></ellipse><path d="M30.6 46.2 L70.2 28.6 L52.6 68.2 L48.2 50.6 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"></path><circle cx="80.5" cy="38.5" r="3.6" fill="#FFFFFF"></circle></g><path d="M50,1.5 C86,1.5 98.5,11 98.5,44 C80,36 20,36 1.5,44 C1.5,11 14,1.5 50,1.5 Z" fill="url(#hlAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="1"></path></svg></span>
+<span style="display: flex; flex-direction: column; line-height: 1.2">
+<span style="font-size: 15px; font-weight: 800; letter-spacing: -0.02em">Mac<span style="background: {{t.wordmark}}; -webkit-background-clip: text; background-clip: text; color: transparent">Pilot</span></span>
+<span style="font-size: 11px; color: {{t.text2}}">Scan · Explain · Approve</span>
+</span>
+</div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}; background: {{n.bg}}; box-shadow: {{n.shadow}}; font-weight: {{n.weight}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{n.icon}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="flex-grow: 1"></div>
+<sc-for list="{{navBottom}}" as="n" hint-placeholder-count="2">
+<a href="{{n.href}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{t.text2}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="margin-top: 8px; padding: 10px; border-radius: 10px; background: {{t.glassChip}}; display: flex; gap: 8px; align-items: center; font-size: 11.5px; color: {{t.text2}}">
+<span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,0.2)"></span>
+<span>Offline. Nothing leaves this Mac.</span>
+</div>
+</nav>
+
+<main style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: {{t.bg}}; overflow: hidden">
+<header style="display: flex; flex-direction: column; gap: 16px; padding: 26px 28px 14px">
+<div role="tablist" aria-label="Cleanup steps" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; border-radius: 11px; background: {{t.segBg}}; gap: 3px">
+<a role="tab" aria-selected="false" href="Cleanup.dc.html" style="height: 30px; display: flex; align-items: center; justify-content: center; gap: 7px; border-radius: 8px; text-decoration: none; font-size: 12.5px; color: {{t.text2}}; font-weight: 500"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#1FA45B"></circle><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>1 · Scan</a>
+<a role="tab" aria-selected="false" href="Review.dc.html" style="height: 30px; display: flex; align-items: center; justify-content: center; gap: 7px; border-radius: 8px; text-decoration: none; font-size: 12.5px; color: {{t.text2}}; font-weight: 500"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#1FA45B"></circle><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>2 · Review results</a>
+<span role="tab" aria-selected="true" aria-current="step" style="height: 30px; display: flex; align-items: center; justify-content: center; gap: 7px; border-radius: 8px; text-decoration: none; font-size: 12.5px; background: {{t.card}}; box-shadow: {{t.segShadow}}; font-weight: 600"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 8px; background: linear-gradient(160deg, #6CB4FF, #2468D8); color: #FFFFFF; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">3</span>Preview and approve</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 3px">
+<h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">{{heading}}</h1>
+<span style="color: {{t.text2}}; font-size: 12.5px">{{subheading}}</span>
+</div>
+</header>
+
+<div style="flex: 1 1 auto; overflow: auto; padding: 4px 28px 26px; display: flex; flex-direction: column; gap: 14px">
+<div class="mp-glass-edge" aria-hidden="true" style="position: sticky; top: 0; z-index: 3; flex-shrink: 0; height: 40px; margin: 0 -28px -54px; pointer-events: none; opacity: 0">
+<div style="position: absolute; inset: 0; backdrop-filter: blur(16px) saturate(1.9) brightness(1.04); -webkit-backdrop-filter: blur(16px) saturate(1.9) brightness(1.04); background: linear-gradient(180deg, {{t.edgeTop}} 0%, {{t.edgeMid}} 55%, rgba(255,255,255,0) 100%); -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0), {{t.edgeLine}} 20%, {{t.edgeLine}} 80%, rgba(255,255,255,0))"></div>
+<div style="position: absolute; left: 28px; right: 28px; top: 1px; height: 14px; border-radius: 0 0 50% 50% / 0 0 100% 100%; background: radial-gradient(ellipse at 50% 0%, {{t.edgeSheen}}, rgba(255,255,255,0) 70%)"></div>
+</div>
+
+
+<sc-if value="{{isStale}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; background: {{t.dangerBg}}; border: 1px solid {{t.dangerEdge}}">
+<span aria-hidden="true" style="width: 32px; height: 32px; flex-shrink: 0; border-radius: 9px; background: linear-gradient(160deg, #FF8A8A, #E03131); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+</span>
+<div style="display: flex; flex-direction: column; flex: 1">
+<strong style="color: {{t.dangerText}}">This preview is out of date, so approval is blocked</strong>
+<span style="font-size: 12.5px">com.spotify.client changed at 16:43, after this preview was made. Nothing has been moved.</span>
+</div>
+<button type="button" onClick="{{rebuild}}" style="height: 32px; padding: 0 14px; border-radius: 8px; border: 0; background: linear-gradient(180deg, #4C9BFF, #2468D8); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35); color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer">Rebuild preview</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isResult}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; background: {{t.warnBg}}; border: 1px solid {{t.warnEdge}}">
+<span aria-hidden="true" style="width: 32px; height: 32px; flex-shrink: 0; border-radius: 9px; background: linear-gradient(160deg, #FFC56E, #F5841F); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+</span>
+<div style="display: flex; flex-direction: column">
+<strong>Partly completed: 2 of 3 items quarantined</strong>
+<span style="font-size: 12.5px">Homebrew downloads was not moved because access to ~/Library/Caches was revoked before the move. It was left where it was. Nothing was deleted.</span>
+</div>
+</div>
+</sc-if>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 16px; align-items: stretch">
+
+<div style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<section aria-labelledby="it-h" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 16px 12px 8px">
+<div style="display: flex; justify-content: space-between; align-items: center; margin: 0 6px 8px">
+<h2 id="it-h" style="margin: 0; font-size: 16px; font-weight: 700">{{listTitle}}</h2>
+<sc-if value="{{isReview}}" hint-placeholder-val="{{ true }}">
+<a href="Review.dc.html" style="font-size: 12px; font-weight: 600; color: {{t.link}}; background: {{t.linkBg}}; border-radius: 7px; padding: 4px 10px; text-decoration: none">Change selection</a>
+</sc-if>
+</div>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column">
+<sc-for list="{{items}}" as="i" hint-placeholder-count="3">
+<li style="display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-top: {{i.divider}}">
+<span aria-hidden="true" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; background: {{i.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); display: flex; align-items: center; justify-content: center">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.d}}"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.3">
+<span style="display: flex; align-items: center; gap: 6px"><span style="font-weight: 600">{{i.name}}</span><span style="font-size: 11px; font-weight: 600; color: {{i.catFg}}; background: {{i.catBg}}; border-radius: 6px; padding: 1px 7px">{{i.cat}}</span></span>
+<span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: {{t.text2}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{i.path}}</span>
+</span>
+<span style="width: 56px; flex-shrink: 0; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap">{{i.size}}</span>
+<span style="display: inline-flex; align-items: center; gap: 5px; width: 140px; flex-shrink: 0; justify-content: flex-end; text-align: right; font-size: 12px; font-weight: 600; color: {{i.effectFg}}">
+<sc-if value="{{i.spin}}" hint-placeholder-val="{{ false }}">
+<svg class="mp-spin" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="animation: mp-spin 0.9s linear infinite"><circle cx="12" cy="12" r="9" fill="none" stroke="{{t.track}}" stroke-width="3"></circle><circle cx="12" cy="12" r="9" fill="none" stroke="#2F7CF6" stroke-width="3" stroke-linecap="round" stroke-dasharray="18 40"></circle></svg>
+</sc-if>
+<sc-if value="{{i.noSpin}}" hint-placeholder-val="{{ true }}">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{i.effectIcon}}"></path></svg>
+</sc-if>
+{{i.effect}}</span>
+</li>
+</sc-for>
+</ul>
+</section>
+
+<section aria-labelledby="how-h" style="flex: 1; background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="how-h" style="margin: 0; font-size: 16px; font-weight: 700">What happens when you approve</h2>
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="3">
+<li style="display: flex; gap: 12px">
+<span aria-hidden="true" style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 13px; background: {{s.tile}}; color: #FFFFFF; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45)">{{s.n}}</span>
+<span style="display: flex; flex-direction: column; line-height: 1.35">
+<span style="font-weight: 600">{{s.title}}</span>
+<span style="font-size: 12px; color: {{t.text2}}">{{s.sub}}</span>
+</span>
+</li>
+</sc-for>
+</ol>
+</section>
+</div>
+
+<section aria-labelledby="sum-h" style="min-width: 0; background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 14px">
+<div style="position: relative; width: 84px; height: 84px; flex-shrink: 0">
+<svg aria-hidden="true" width="84" height="84" viewBox="0 0 84 84" style="position: absolute; inset: 0">
+<defs><linearGradient id="pv-ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{{ringC1}}"></stop><stop offset="1" stop-color="{{ringC2}}"></stop></linearGradient></defs>
+<circle cx="42" cy="42" r="36" fill="none" stroke="{{t.track}}" stroke-width="7"></circle>
+<circle cx="42" cy="42" r="36" fill="none" stroke="url(#pv-ring)" stroke-width="7" stroke-linecap="round" stroke-dasharray="{{ringDash}}" transform="rotate(-90 42 42)"></circle>
+</svg>
+<div style="position: absolute; inset: 14px; border-radius: 50%; background: {{heroTile}}; box-shadow: inset 0 2px 0 rgba(255,255,255,0.45), 0 6px 16px rgba(36,104,216,0.3); display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{heroIcon}}"></path></svg>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; line-height: 1.2">
+<h2 id="sum-h" style="margin: 0 0 4px; font-size: 12px; font-weight: 600; color: {{t.text2}}">{{sumLabel}}</h2>
+<span style="font-size: 30px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{sumValue}}</span>
+<span style="font-size: 12px; color: {{t.text2}}">{{sumSub}}</span>
+</div>
+</div>
+
+<div role="img" aria-label="By category: Xcode 3.2 GB, App caches 1.9 GB, Package caches 0.8 GB" style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px">
+<span style="width: 54%; background: linear-gradient(90deg, #9D90FF, #5B4BE0)"></span>
+<span style="width: 32%; background: linear-gradient(90deg, #6CB4FF, #2F6FED)"></span>
+<span style="width: 14%; background: linear-gradient(90deg, #67E8F9, #0891B2)"></span>
+</div>
+<div style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: {{t.text2}}">
+<span style="display: inline-flex; align-items: center; gap: 5px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: #6366F1"></span>Xcode 3.2 GB</span>
+<span style="display: inline-flex; align-items: center; gap: 5px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: #3B82F6"></span>App caches 1.9 GB</span>
+<span style="display: inline-flex; align-items: center; gap: 5px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: #06B6D4"></span>Package caches 0.8 GB</span>
+</div>
+</div>
+
+<ul style="margin: 0; padding: 12px; list-style: none; border-radius: 10px; background: {{t.infoBg}}; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px">
+<sc-for list="{{facts}}" as="f" hint-placeholder-count="4">
+<li style="display: flex; gap: 8px">
+<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><circle cx="12" cy="12" r="10" fill="{{f.color}}"></circle><path d="{{f.mark}}" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span>{{f.text}}</span>
+</li>
+</sc-for>
+</ul>
+
+<div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px">
+<span style="color: {{t.text2}}">Quarantine folder</span>
+<span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; word-break: break-all">~/Library/Application Support/Kleari/Quarantine</span>
+</div>
+
+<sc-if value="{{isReview}}" hint-placeholder-val="{{ true }}">
+<label style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; border: {{ackBorder}}; background: {{ackBg}}; cursor: pointer">
+<input type="checkbox" checked="{{ack}}" onChange="{{toggleAck}}" style="width: 16px; height: 16px; margin: 1px 0 0; accent-color: #2F7CF6; cursor: pointer">
+<span style="font-size: 12.5px">I reviewed these 3 items and want to move them to quarantine.</span>
+</label>
+<div style="display: flex; gap: 8px">
+<a href="Review.dc.html" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; height: 38px; border-radius: 10px; background: {{t.linkBg}}; color: {{t.link}}; font-weight: 600; text-decoration: none">Back to results</a>
+<button type="button" disabled="{{notAck}}" onClick="{{approve}}" style="flex: 1.3; height: 38px; border-radius: 10px; border: 0; background: {{approveBg}}; box-shadow: {{approveShadow}}; color: {{approveFg}}; font: inherit; font-weight: 600; cursor: {{approveCursor}}">Quarantine 3 items</button>
+</div>
+</sc-if>
+<sc-if value="{{isRunning}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: {{t.linkBg}}; color: {{t.link}}; font-weight: 600">
+<svg class="mp-spin" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="animation: mp-spin 0.9s linear infinite"><circle cx="12" cy="12" r="9" fill="none" stroke="{{t.track}}" stroke-width="3"></circle><circle cx="12" cy="12" r="9" fill="none" stroke="#2F7CF6" stroke-width="3" stroke-linecap="round" stroke-dasharray="18 40"></circle></svg>
+Checking each item, then moving it…
+</div>
+</sc-if>
+<sc-if value="{{isStale}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; gap: 8px">
+<a href="Review.dc.html" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; height: 38px; border-radius: 10px; background: {{t.linkBg}}; color: {{t.link}}; font-weight: 600; text-decoration: none">Back to results</a>
+<button type="button" disabled="{{ true }}" style="flex: 1.3; height: 38px; border-radius: 10px; border: 0; background: {{t.track}}; color: {{t.text2}}; font: inherit; font-weight: 600">Approval blocked</button>
+</div>
+</sc-if>
+<sc-if value="{{isResult}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; gap: 8px">
+<a href="Quarantine.dc.html" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; height: 38px; border-radius: 10px; background: {{t.linkBg}}; color: {{t.link}}; font-weight: 600; text-decoration: none">Open Quarantine</a>
+<a href="Cleanup.dc.html" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; height: 38px; border-radius: 10px; background: linear-gradient(180deg, #4C9BFF, #2468D8); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px rgba(36,104,216,0.3); color: #FFFFFF; font-weight: 600; text-decoration: none">Done</a>
+</div>
+</sc-if>
+</section>
+
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"stage":{"editor":"enum","options":["review","stale","running","result"],"default":"review"},"$preview":{"width":1260,"height":920}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { stage: null, ack: false }; }
+  componentDidUpdate(prev) { if (prev.stage !== this.props.stage && this.state.stage !== null) { clearTimeout(this.timer); this.setState({ stage: null, ack: false }); } }
+  componentWillUnmount() { clearTimeout(this.timer); }
+  theme() {
+    var light = {
+      wallpaper:'linear-gradient(165deg, #9FB3E0 0%, #C3B4DE 38%, #EBC2C4 66%, #B9A6CF 100%)', ridge1:'rgba(92,96,150,0.45)', ridge2:'rgba(60,62,110,0.55)',
+      windowEdge:'rgba(255,255,255,0.6)', windowShadow:'0 30px 80px rgba(30,30,70,0.35), 0 4px 14px rgba(30,30,70,0.18)',
+      glass:'rgba(244,246,252,0.62)', glassEdge:'rgba(255,255,255,0.55)', glassShine:'rgba(255,255,255,0.35)', glassChip:'rgba(255,255,255,0.55)',
+      navSel:'rgba(255,255,255,0.85)', navSelShadow:'0 1px 3px rgba(24,34,48,0.10), inset 0 1px 0 rgba(255,255,255,0.9)',
+      bg:'#F5F7FA', card:'#FFFFFF', border:'rgba(24,34,48,0.07)', borderSolid:'#EEF1F5', strong:'#C5CED9', cardShadow:'0 1px 2px rgba(24,34,48,0.04), 0 8px 24px rgba(24,34,48,0.06)',
+      edgeTop:'rgba(255,255,255,0.62)', edgeMid:'rgba(255,255,255,0.22)', edgeLine:'rgba(255,255,255,0.95)', edgeSheen:'rgba(255,255,255,0.7)', floatTop:'rgba(255,255,255,0.80)', floatBg:'rgba(244,247,252,0.56)', floatEdge:'rgba(255,255,255,0.78)', floatShadow:'0 12px 32px rgba(24,34,48,0.14), 0 2px 6px rgba(24,34,48,0.06), inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(24,34,48,0.05)', thGlass:'rgba(255,255,255,0.72)', wordmark:'linear-gradient(90deg, #2F6FED, #6D3FE0)', text:'#182230', text2:'#5D6878', track:'#EDF0F5', link:'#1F6FEB', linkBg:'rgba(47,124,246,0.10)', infoBg:'#F3F6FA',
+      segBg:'#E9EDF3', segShadow:'0 1px 3px rgba(24,34,48,0.12)',
+      dangerBg:'rgba(224,49,49,0.07)', dangerEdge:'rgba(224,49,49,0.25)', dangerText:'#B42332', warnBg:'rgba(245,158,11,0.10)', warnEdge:'rgba(245,158,11,0.35)',
+      okText:'#15703F', warnText:'#8A5600'
+    };
+    var dark = {
+      wallpaper:'linear-gradient(165deg, #1D2440 0%, #2E2546 40%, #4A2F44 70%, #1A1C30 100%)', ridge1:'rgba(10,12,28,0.55)', ridge2:'rgba(6,8,20,0.7)',
+      windowEdge:'rgba(255,255,255,0.12)', windowShadow:'0 30px 80px rgba(0,0,0,0.6)',
+      glass:'rgba(34,40,54,0.55)', glassEdge:'rgba(255,255,255,0.08)', glassShine:'rgba(255,255,255,0.05)', glassChip:'rgba(255,255,255,0.06)',
+      navSel:'rgba(255,255,255,0.12)', navSelShadow:'inset 0 1px 0 rgba(255,255,255,0.08)',
+      bg:'#14181E', card:'#1C222B', border:'rgba(255,255,255,0.06)', borderSolid:'#2A323E', strong:'#465364', cardShadow:'none',
+      edgeTop:'rgba(22,27,35,0.72)', edgeMid:'rgba(22,27,35,0.3)', edgeLine:'rgba(255,255,255,0.14)', edgeSheen:'rgba(140,170,255,0.12)', floatTop:'rgba(52,61,76,0.62)', floatBg:'rgba(30,36,46,0.5)', floatEdge:'rgba(255,255,255,0.13)', floatShadow:'0 12px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.10)', thGlass:'rgba(28,34,43,0.72)', wordmark:'linear-gradient(90deg, #7CC0FF, #B49CFF)', text:'#F0F3F7', text2:'#B5BFCC', track:'#2A323E', link:'#8BC0FF', linkBg:'rgba(108,180,255,0.14)', infoBg:'#202731',
+      segBg:'#252D38', segShadow:'0 1px 3px rgba(0,0,0,0.4)',
+      dangerBg:'rgba(255,125,134,0.10)', dangerEdge:'rgba(255,125,134,0.3)', dangerText:'#FF7D86', warnBg:'rgba(240,189,99,0.10)', warnEdge:'rgba(240,189,99,0.3)',
+      okText:'#68C995', warnText:'#F0BD63'
+    };
+    return this.props.dark ? dark : light;
+  }
+  renderVals() {
+    var t = this.theme();
+    var self = this;
+    var dark = !!this.props.dark;
+    var stage = this.state.stage || this.props.stage || 'review';
+    var nav = [
+      {label:'Dashboard',href:'Main.dc.html',d:'M3 13h8V3H3zM13 21h8V11h-8zM13 3v6h8V3zM3 21h8v-6H3z'},
+      {label:'Cleanup',href:'Cleanup.dc.html',d:'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3'},
+      {label:'Quarantine',href:'Quarantine.dc.html',d:'M21 8v13H3V8M1 3h22v5H1zM10 12h4'},
+      {label:'Storage',href:'Storage.dc.html',d:'M22 12H2M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1zM6 16h.01'},
+      {label:'System',href:'System.dc.html',d:'M22 12h-4l-3 9L9 3l-3 9H2'},
+      {label:'Developer',href:'Developer.dc.html',d:'M16 18l6-6-6-6M8 6l-6 6 6 6'},
+      {label:'Processes',href:'Processes.dc.html',d:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'},
+      {label:'Activity',href:'Activity.dc.html',d:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2'}
+    ].map(function (n) {
+      var on = n.label === 'Cleanup';
+      return {label:n.label,href:n.href,d:n.d,current:on ? 'page' : undefined,bg:on ? t.navSel : 'transparent',shadow:on ? t.navSelShadow : 'none',icon:on ? '#2F7CF6' : t.text2,weight:on ? 600 : 500};
+    });
+    var navBottom = [
+      {label:'Settings',href:'Settings.dc.html',d:'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6'}
+    ];
+    var soft = function (hex, a) { var n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
+    var CHECK = 'M20 6L9 17l-5-5', ARROW = 'M5 12h14M13 6l6 6-6 6', WARN = 'M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z';
+    var base = [
+      {name:'Kleari-dgqxkfa',path:'~/Library/Developer/Xcode/DerivedData/Kleari-dgqxkfa',size:'3.2 GB',cat:'Xcode',c1:'#9D90FF',c2:'#5B4BE0',dot:'#6366F1',fg:dark ? '#AFA8FF' : '#4338CA',d:'M16 18l6-6-6-6M8 6l-6 6 6 6',moved:true},
+      {name:'com.spotify.client',path:'~/Library/Caches/com.spotify.client',size:'1.9 GB',cat:'App caches',c1:'#6CB4FF',c2:'#2F6FED',dot:'#3B82F6',fg:dark ? '#8BC0FF' : '#1D5FD1',d:'M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15',moved:true,stale:true},
+      {name:'Homebrew downloads',path:'~/Library/Caches/Homebrew/downloads',size:'0.8 GB',cat:'Package caches',c1:'#67E8F9',c2:'#0891B2',dot:'#06B6D4',fg:dark ? '#67E8F9' : '#0E7490',d:'M21 16V8l-9-5-9 5v8l9 5zM3.3 7L12 12l8.7-5M12 22V12',moved:false}
+    ];
+    var items = base.map(function (b, i) {
+      var effect = 'Move to quarantine', fg = t.link, icon = ARROW, spin = false;
+      if (stage === 'stale' && b.stale) { effect = 'Changed after preview'; fg = t.dangerText; icon = WARN; }
+      if (stage === 'running') { effect = i === 0 ? 'Moved' : (i === 1 ? 'Checking…' : 'Waiting'); fg = i === 0 ? t.okText : t.text2; icon = i === 0 ? CHECK : ARROW; spin = i === 1; }
+      if (stage === 'result') { effect = b.moved ? 'Quarantined, restorable' : 'Not moved, left in place'; fg = b.moved ? t.okText : t.warnText; icon = b.moved ? CHECK : WARN; }
+      return {name:b.name,path:b.path,size:b.size,cat:b.cat,catFg:b.fg,catBg:soft(b.dot, dark ? 0.16 : 0.12),tile:'linear-gradient(160deg, ' + b.c1 + ', ' + b.c2 + ')',d:b.d,
+        effect:effect,effectFg:fg,effectIcon:icon,spin:spin,noSpin:!spin,divider:i ? '1px solid ' + t.borderSolid : '0'};
+    });
+    var stepTile = function (c1, c2) { return 'linear-gradient(160deg, ' + c1 + ', ' + c2 + ')'; };
+    var steps = [
+      {n:1,title:'Kleari checks each item again',sub:'Same file, same size, still allowed, access still granted. If anything changed, nothing moves and you review again.',tile:stepTile('#6CB4FF','#2F6FED')},
+      {n:2,title:'Items move to quarantine',sub:'They leave their current place but stay on this Mac, in Kleari’s quarantine folder.',tile:stepTile('#C38BFF','#8B3FE0')},
+      {n:3,title:'The result is saved in Activity',sub:'Successes, anything skipped and why, and how to restore.',tile:stepTile('#6BE3A0','#1FA45B')}
+    ];
+    var mk = {ok:['#1FA45B',CHECK],info:['#2F7CF6','M12 11v6M12 7h.01']};
+    var facts = [
+      ['ok','Nothing is permanently deleted in this step'],
+      ['ok','Restore any item from Quarantine'],
+      ['ok','A restore never overwrites a file that is already there'],
+      ['info','Xcode will rebuild DerivedData on your next build, and Spotify may re-download offline songs']
+    ].map(function (f) { return {text:f[1],color:mk[f[0]][0],mark:mk[f[0]][1]}; });
+    var C = 2 * Math.PI * 36;
+    var ack = this.state.ack;
+    var result = stage === 'result';
+    return {
+      t:t, nav:nav, navBottom:navBottom, items:items, steps:steps, facts:facts,
+      isReview:stage === 'review', isStale:stage === 'stale', isRunning:stage === 'running', isResult:result,
+      heading: result ? 'Quarantine finished' : 'Preview and approve',
+      subheading: result ? 'Today 16:44 · Saved in Activity' : 'Preview made at 16:41:07 from the scan at 14:12 · valid while these items stay unchanged',
+      listTitle: result ? 'What happened to each item' : '3 items will move to quarantine',
+      sumLabel: result ? 'Moved to quarantine' : 'Ready to move',
+      sumValue: result ? '5.1 GB' : '5.9 GB',
+      sumSub: result ? '2 of 3 items · 1 left in place' : '3 items in 3 categories',
+      ringC1: result ? '#FFC56E' : '#6CB4FF', ringC2: result ? '#F5841F' : '#2468D8',
+      ringDash: result ? (C * 2 / 3).toFixed(1) + ' ' + C.toFixed(1) : C.toFixed(1) + ' 0',
+      heroTile: result ? 'linear-gradient(160deg, #6BE3A0, #1FA45B)' : (stage === 'stale' ? 'linear-gradient(160deg, #FF8A8A, #E03131)' : 'linear-gradient(160deg, #6CB4FF, #2468D8)'),
+      heroIcon: result ? CHECK : (stage === 'stale' ? WARN : 'M21 8v13H3V8M1 3h22v5H1zM10 12h4'),
+      ack:ack, notAck:!ack,
+      ackBorder: ack ? '1px solid #2F7CF6' : '1px solid ' + t.border, ackBg: ack ? t.linkBg : 'transparent',
+      approveBg: ack ? 'linear-gradient(180deg, #4C9BFF, #2468D8)' : t.track, approveFg: ack ? '#FFFFFF' : t.text2,
+      approveShadow: ack ? 'inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px rgba(36,104,216,0.3)' : 'none', approveCursor: ack ? 'pointer' : 'default',
+      toggleAck:function () { self.setState({ack:!self.state.ack}); },
+      approve:function () { if (!self.state.ack) return; self.setState({stage:'running'}); clearTimeout(self.timer); self.timer = setTimeout(function () { self.setState({stage:'result'}); }, 2200); },
+      rebuild:function () { self.setState({stage:'review', ack:false}); },
+      reset:function () { self.setState({stage:'review', ack:false}); }
+    };
+  }
+}
+</script>
+</body>
+</html>

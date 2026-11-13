@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kleari Activity</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:inherit}
+@keyframes mp-spin{to{transform:rotate(360deg)}}
+.mp-spin{animation:mp-spin 0.9s linear infinite}
+@keyframes mp-sheen{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+.mp-sheen{animation:mp-sheen 1.3s ease-in-out infinite}
+@keyframes mp-pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,0.5)}100%{box-shadow:0 0 0 7px rgba(34,197,94,0)}}
+.mp-pulse{animation:mp-pulse 1.6s ease-out infinite}
+@keyframes mp-glass-in{from{opacity:0}to{opacity:1}}
+@supports (animation-timeline: scroll()){.mp-glass-edge{animation:mp-glass-in linear both;animation-timeline:scroll(nearest block);animation-range:0 28px}}
+@media (prefers-reduced-motion: reduce){.mp-spin,.mp-sheen,.mp-pulse{animation:none}}
+</style>
+</helmet>
+<div style="width: 1260px; height: 920px; position: relative; overflow: hidden; background: {{t.wallpaper}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; line-height: 1.45; color: {{t.text}}">
+
+<svg aria-hidden="true" width="1260" height="420" viewBox="0 0 1260 420" style="position: absolute; left: 0; bottom: 0">
+<path d="M0 260 L140 170 L240 230 L380 110 L520 220 L640 150 L780 240 L920 120 L1060 210 L1260 140 L1260 420 L0 420 Z" fill="{{t.ridge1}}"></path>
+<path d="M0 330 L180 250 L330 310 L470 230 L640 320 L820 240 L980 310 L1120 250 L1260 300 L1260 420 L0 420 Z" fill="{{t.ridge2}}"></path>
+</svg>
+
+<div style="position: absolute; left: 70px; top: 60px; width: 1120px; height: 800px; display: flex; border-radius: 14px; overflow: hidden; border: 1px solid {{t.windowEdge}}; box-shadow: {{t.windowShadow}}">
+
+<nav aria-label="Main" style="width: 232px; flex-shrink: 0; box-sizing: border-box; padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; background: {{t.glass}}; backdrop-filter: blur(40px) saturate(1.8); -webkit-backdrop-filter: blur(40px) saturate(1.8); border-right: 1px solid {{t.glassEdge}}; box-shadow: inset -1px 0 0 {{t.glassShine}}">
+<div aria-hidden="true" style="display: flex; gap: 8px; height: 20px; align-items: center; padding: 0 4px">
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FF5F57"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FEBC2E"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #28C840"></span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 18px 6px 16px">
+<span style="width: 36px; height: 37px; flex-shrink: 0; display: flex"><svg width="36" height="37" viewBox="-6 -4 112 116" aria-hidden="true" style="display: block; overflow: visible"><defs><linearGradient id="bgAsb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6CC4FF"></stop><stop offset="0.55" stop-color="#2F6FED"></stop><stop offset="1" stop-color="#6D3FE0"></stop></linearGradient><linearGradient id="hlAsb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"></stop><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.06"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></linearGradient><radialGradient id="glAsb" cx="0.3" cy="0.15" r="0.7"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.45"></stop><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"></stop></radialGradient><filter id="shAsb" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#2F6FED" flood-opacity="0.45"></feDropShadow></filter><filter id="gsAsb"><feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.22"></feDropShadow></filter></defs><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#bgAsb)" filter="url(#shAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="url(#glAsb)"></path><g filter="url(#gsAsb)"><ellipse cx="50" cy="52" rx="36" ry="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="2.6" transform="rotate(-24 50 52)"></ellipse><path d="M30.6 46.2 L70.2 28.6 L52.6 68.2 L48.2 50.6 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"></path><circle cx="80.5" cy="38.5" r="3.6" fill="#FFFFFF"></circle></g><path d="M50,1.5 C86,1.5 98.5,11 98.5,44 C80,36 20,36 1.5,44 C1.5,11 14,1.5 50,1.5 Z" fill="url(#hlAsb)"></path><path d="M50,0 C88,0 100,12 100,50 C100,88 88,100 50,100 C12,100 0,88 0,50 C0,12 12,0 50,0 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="1"></path></svg></span>
+<span style="display: flex; flex-direction: column; line-height: 1.2">
+<span style="font-size: 15px; font-weight: 800; letter-spacing: -0.02em">Mac<span style="background: {{t.wordmark}}; -webkit-background-clip: text; background-clip: text; color: transparent">Pilot</span></span>
+<span style="font-size: 11px; color: {{t.text2}}">Scan · Explain · Approve</span>
+</span>
+</div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}; background: {{n.bg}}; box-shadow: {{n.shadow}}; font-weight: {{n.weight}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{n.icon}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="flex-grow: 1"></div>
+<sc-for list="{{navBottom}}" as="n" hint-placeholder-count="2">
+<a href="{{n.href}}" aria-current="{{n.current}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: 8px; text-decoration: none; color: {{t.text}}; background: {{n.bg}}; box-shadow: {{n.shadow}}; font-weight: {{n.weight}}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{n.icon}}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"></path></svg>
+<span>{{n.label}}</span>
+</a>
+</sc-for>
+<div style="margin-top: 8px; padding: 10px; border-radius: 10px; background: {{t.glassChip}}; display: flex; gap: 8px; align-items: center; font-size: 11.5px; color: {{t.text2}}">
+<span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,0.2)"></span>
+<span>Offline. Nothing leaves this Mac.</span>
+</div>
+</nav>
+
+<main style="position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: {{t.bg}}; overflow: hidden">
+<header style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 30px 28px 14px">
+<div style="display: flex; flex-direction: column; gap: 3px">
+<h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">Activity</h1>
+<span style="color: {{t.text2}}; font-size: 12.5px">Everything Kleari has scanned, moved, restored or deleted. This log stays on this Mac.</span>
+</div>
+<button type="button" onClick="{{exportLog}}" style="flex-shrink: 0; height: 28px; padding: 0 10px; border-radius: 7px; border: 0; background: {{t.linkBg}}; color: {{t.link}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path></svg>Export log</button>
+</header>
+
+<div style="flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 4px 28px 0; display: flex; flex-direction: column; gap: 14px">
+
+<section aria-label="This week" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px">
+<sc-for list="{{stats}}" as="s" hint-placeholder-count="4">
+<div style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 12px 14px; display: flex; gap: 10px; align-items: center; min-width: 0">
+<span aria-hidden="true" style="width: 38px; height: 38px; flex-shrink: 0; border-radius: 10px; background: {{s.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 3px 8px {{s.glow}}; display: flex; align-items: center; justify-content: center">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{s.d}}"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; line-height: 1.25; min-width: 0">
+<span style="font-size: 11.5px; font-weight: 600; color: {{t.text2}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{s.label}}</span>
+<span style="font-size: 19px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{s.value}}</span>
+<span style="font-size: 11px; color: {{t.text2}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{s.sub}}</span>
+</span>
+</div>
+</sc-for>
+</section>
+
+<div style="display: flex; align-items: center; gap: 8px">
+<div role="group" aria-label="Filter" style="display: flex; padding: 3px; border-radius: 9px; background: {{t.segBg}}; gap: 2px">
+<sc-for list="{{filters}}" as="v" hint-placeholder-count="6">
+<button type="button" aria-pressed="{{v.on}}" onClick="{{v.pick}}" style="height: 26px; padding: 0 10px; border-radius: 7px; border: 0; background: {{v.bg}}; box-shadow: {{v.shadow}}; color: {{v.fg}}; font: inherit; font-size: 12px; font-weight: {{v.weight}}; cursor: pointer; white-space: nowrap">{{v.label}}</button>
+</sc-for>
+</div>
+<div style="flex: 1"></div>
+<label style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 9px; background: {{t.card}}; border: 1px solid {{t.strong}}; width: 190px; box-sizing: border-box">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{t.text2}}" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"></path></svg>
+<input type="search" aria-label="Search activity" placeholder="Search activity" value="{{query}}" onInput="{{onSearch}}" style="flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: {{t.text}}; font: inherit; font-size: 12.5px">
+</label>
+</div>
+
+<div tabindex="0" aria-label="Activity log" onScroll="{{onScroll}}" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 0 -28px; padding: 0 28px 22px; display: flex; flex-direction: column; gap: 14px">
+<div class="mp-glass-edge" aria-hidden="true" style="position: sticky; top: 0; z-index: 3; flex-shrink: 0; height: 40px; margin: 0 -28px -54px; pointer-events: none; opacity: {{glassOp}}; transition: opacity 0.25s ease">
+<div style="position: absolute; inset: 0; backdrop-filter: blur(16px) saturate(1.9) brightness(1.04); -webkit-backdrop-filter: blur(16px) saturate(1.9) brightness(1.04); background: linear-gradient(180deg, {{glassTop}} 0%, {{glassMid}} 55%, rgba(255,255,255,0) 100%); -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0), {{glassLine}} 20%, {{glassLine}} 80%, rgba(255,255,255,0))"></div>
+<div style="position: absolute; left: 28px; right: 28px; top: 1px; height: 14px; border-radius: 0 0 50% 50% / 0 0 100% 100%; background: radial-gradient(ellipse at 50% 0%, {{glassSheen}}, rgba(255,255,255,0) 70%)"></div>
+</div>
+<sc-for list="{{days}}" as="day" hint-placeholder-count="3">
+<section aria-label="{{day.label}}" style="background: {{t.card}}; border: 1px solid {{t.border}}; border-radius: 14px; box-shadow: {{t.cardShadow}}; padding: 12px 12px 6px">
+<div style="display: flex; align-items: baseline; gap: 8px; margin: 0 6px 6px">
+<h2 style="margin: 0; font-size: 14.5px; font-weight: 700">{{day.label}}</h2>
+<span style="font-size: 11.5px; color: {{t.text2}}">{{day.sub}}</span>
+</div>
+<ol style="margin: 0; padding: 0; list-style: none">
+<sc-for list="{{day.items}}" as="e" hint-placeholder-count="4">
+<li style="border-top: 1px solid {{t.borderSolid}}">
+<div style="display: flex; align-items: center; gap: 10px; padding: 8px 6px">
+<span style="width: 40px; flex-shrink: 0; font-size: 11.5px; color: {{t.text2}}; font-variant-numeric: tabular-nums">{{e.time}}</span>
+<span aria-hidden="true" style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; background: {{e.tile}}; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); display: flex; align-items: center; justify-content: center">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="{{e.d}}"></path></svg>
+</span>
+<span style="display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.3">
+<span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{e.title}}</span>
+<span style="font-size: 11px; color: {{t.text2}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{e.sub}}</span>
+</span>
+<span style="width: 64px; flex-shrink: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums">{{e.size}}</span>
+<span style="width: 112px; flex-shrink: 0; display: flex; justify-content: flex-end"><span style="font-size: 11px; font-weight: 600; color: {{e.fg}}; background: {{e.bg}}; border-radius: 6px; padding: 2px 8px; white-space: nowrap">{{e.tag}}</span></span>
+<span style="width: 78px; flex-shrink: 0; display: flex; justify-content: flex-end">
+<sc-if value="{{e.hasMore}}" hint-placeholder-val="{{ true }}">
+<button type="button" aria-expanded="{{e.open}}" onClick="{{e.toggle}}" style="height: 26px; padding: 0 8px; border-radius: 7px; border: 0; background: {{t.linkBg}}; color: {{t.link}}; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px">{{e.moreText}}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true" style="transform: {{e.rot}}; transition: transform 0.2s"><path d="M6 9l6 6 6-6"></path></svg></button>
+</sc-if>
+</span>
+</div>
+<sc-if value="{{e.open}}" hint-placeholder-val="{{ false }}">
+<div style="margin: 0 6px 10px 92px; padding: 8px 12px; border-radius: 10px; background: {{t.infoBg}}; display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{e.lines}}" as="l" hint-placeholder-count="3">
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-top: {{l.divider}}; font-size: 12px">
+<span style="min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><span style="font-weight: 600">{{l.name}}</span> <span style="color: {{t.text2}}; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px">{{l.path}}</span></span>
+<span style="flex-shrink: 0; font-variant-numeric: tabular-nums; color: {{l.fg}}">{{l.note}}</span>
+</div>
+</sc-for>
+<sc-if value="{{e.href}}" hint-placeholder-val="{{ false }}"><a href="{{e.href}}" style="align-self: flex-start; margin-top: 4px; font-size: 12px; font-weight: 600; color: {{t.link}}; text-decoration: none">{{e.hrefText}}</a></sc-if>
+</div>
+</sc-if>
+</li>
+</sc-for>
+</ol>
+</section>
+</sc-for>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><span style="padding: 24px; text-align: center; color: {{t.text2}}">Nothing in the log matches this filter.</span></sc-if>
+<span style="text-align: center; font-size: 11.5px; color: {{t.text2}}">Kleari keeps 90 days of activity. Older entries are summarised, never sent anywhere.</span>
+</div>
+</div>
+
+<sc-if value="{{toast}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 10px; background: {{t.menuBg}}; backdrop-filter: blur(30px) saturate(1.8); -webkit-backdrop-filter: blur(30px) saturate(1.8); border: 1px solid {{t.menuEdge}}; box-shadow: {{t.menuShadow}}; font-weight: 600; white-space: nowrap; z-index: 12">
+<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#1FA45B"></circle><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span>{{toast}}</span>
+</div>
+</sc-if>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"filter":{"editor":"enum","options":["all","scan","quarantine","restore","delete","system"],"default":"all"},"$preview":{"width":1260,"height":920}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { filter: null, query: '', open: { e3: true }, toast: '', scrolled: false }; }
+  componentWillUnmount() { clearTimeout(this.toastTimer); }
+  theme() {
+    var light = {
+      wallpaper:'linear-gradient(165deg, #9FB3E0 0%, #C3B4DE 38%, #EBC2C4 66%, #B9A6CF 100%)', ridge1:'rgba(92,96,150,0.45)', ridge2:'rgba(60,62,110,0.55)',
+      windowEdge:'rgba(255,255,255,0.6)', windowShadow:'0 30px 80px rgba(30,30,70,0.35), 0 4px 14px rgba(30,30,70,0.18)',
+      glass:'rgba(244,246,252,0.62)', glassEdge:'rgba(255,255,255,0.55)', glassShine:'rgba(255,255,255,0.35)', glassChip:'rgba(255,255,255,0.55)',
+      navSel:'rgba(255,255,255,0.85)', navSelShadow:'0 1px 3px rgba(24,34,48,0.10), inset 0 1px 0 rgba(255,255,255,0.9)',
+      bg:'#F5F7FA', card:'#FFFFFF', border:'rgba(24,34,48,0.07)', borderSolid:'#EEF1F5', strong:'#C5CED9', cardShadow:'0 1px 2px rgba(24,34,48,0.04), 0 8px 24px rgba(24,34,48,0.06)',
+      wordmark:'linear-gradient(90deg, #2F6FED, #6D3FE0)', text:'#182230', text2:'#5D6878', track:'#EDF0F5', link:'#1F6FEB', linkBg:'rgba(47,124,246,0.10)', infoBg:'#F3F6FA', selRow:'rgba(47,124,246,0.07)', barBg:'rgba(248,250,253,0.92)', segBg:'#E9EDF3', segShadow:'0 1px 3px rgba(24,34,48,0.12)',
+      menuBg:'rgba(250,251,253,0.9)', menuEdge:'rgba(24,34,48,0.10)', menuShadow:'0 12px 32px rgba(24,34,48,0.20)', scrim:'rgba(24,34,48,0.28)', sheetShadow:'0 24px 60px rgba(24,34,48,0.28)',
+      danger:'#C92A2A', dangerText:'#B42332', okText:'#15703F', okBg:'rgba(34,197,94,0.14)', warnText:'#8A5600', warnBg:'rgba(245,158,11,0.18)', mutedText:'#4B5565', mutedBg:'rgba(100,116,139,0.14)'
+    };
+    var dark = {
+      wallpaper:'linear-gradient(165deg, #1D2440 0%, #2E2546 40%, #4A2F44 70%, #1A1C30 100%)', ridge1:'rgba(10,12,28,0.55)', ridge2:'rgba(6,8,20,0.7)',
+      windowEdge:'rgba(255,255,255,0.12)', windowShadow:'0 30px 80px rgba(0,0,0,0.6)',
+      glass:'rgba(34,40,54,0.55)', glassEdge:'rgba(255,255,255,0.08)', glassShine:'rgba(255,255,255,0.05)', glassChip:'rgba(255,255,255,0.06)',
+      navSel:'rgba(255,255,255,0.12)', navSelShadow:'inset 0 1px 0 rgba(255,255,255,0.08)',
+      bg:'#14181E', card:'#1C222B', border:'rgba(255,255,255,0.06)', borderSolid:'#2A323E', strong:'#465364', cardShadow:'none',
+      wordmark:'linear-gradient(90deg, #7CC0FF, #B49CFF)', text:'#F0F3F7', text2:'#B5BFCC', track:'#2A323E', link:'#8BC0FF', linkBg:'rgba(108,180,255,0.14)', infoBg:'#202731', selRow:'rgba(108,180,255,0.08)', barBg:'rgba(32,39,49,0.92)', segBg:'#252D38', segShadow:'0 1px 3px rgba(0,0,0,0.4)',
+      menuBg:'rgba(37,45,56,0.9)', menuEdge:'rgba(255,255,255,0.10)', menuShadow:'0 12px 32px rgba(0,0,0,0.55)', scrim:'rgba(0,0,0,0.5)', sheetShadow:'0 24px 60px rgba(0,0,0,0.6)',
+      danger:'#FF7D86', dangerText:'#FF7D86', okText:'#68C995', okBg:'rgba(104,201,149,0.14)', warnText:'#F0BD63', warnBg:'rgba(240,189,99,0.14)', mutedText:'#B5BFCC', mutedBg:'rgba(181,191,204,0.12)'
+    };
+    return this.props.dark ? dark : light;
+  }
+  renderVals() {
+    var t = this.theme();
+    var self = this;
+    var st = this.state;
+    var navItem = function (n, active) {
+      var on = n.label === active;
+      return {label:n.label,href:n.href,d:n.d,current:on ? 'page' : undefined,bg:on ? t.navSel : 'transparent',shadow:on ? t.navSelShadow : 'none',icon:on ? '#2F7CF6' : t.text2,weight:on ? 600 : 500};
+    };
+    var nav = [
+      {label:'Dashboard',href:'Main.dc.html',d:'M3 13h8V3H3zM13 21h8V11h-8zM13 3v6h8V3zM3 21h8v-6H3z'},
+      {label:'Cleanup',href:'Cleanup.dc.html',d:'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3'},
+      {label:'Quarantine',href:'Quarantine.dc.html',d:'M21 8v13H3V8M1 3h22v5H1zM10 12h4'},
+      {label:'Storage',href:'Storage.dc.html',d:'M22 12H2M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1zM6 16h.01'},
+      {label:'System',href:'System.dc.html',d:'M22 12h-4l-3 9L9 3l-3 9H2'},
+      {label:'Developer',href:'Developer.dc.html',d:'M16 18l6-6-6-6M8 6l-6 6 6 6'},
+      {label:'Processes',href:'Processes.dc.html',d:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'},
+      {label:'Activity',href:'Activity.dc.html',d:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2'}
+    ].map(function (n) { return navItem(n, 'Activity'); });
+    var navBottom = [
+      {label:'Settings',href:'Settings.dc.html',d:'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6'}
+    ].map(function (n) { return navItem(n, 'Activity'); });
+    var I = {
+      scan:'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3',
+      box:'M21 8v13H3V8M1 3h22v5H1zM10 12h4',
+      restore:'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5',
+      trash:'M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15M10 11v6M14 11v6',
+      check:'M20 6L9 17l-5-5',
+      alert:'M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+      key:'M21 2l-2 2m-7.6 7.6a5.5 5.5 0 1 1-7.8 7.8 5.5 5.5 0 0 1 7.8-7.8zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4',
+      x:'M18 6L6 18M6 6l12 12',
+      disk:'M22 12H2M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1zM6 16h.01',
+      send:'M22 2L11 13M22 2l-7 20-4-9-9-4z',
+      power:'M18.4 6.6a9 9 0 1 1-12.8 0M12 2v10'
+    };
+    var K = {
+      scan:['Scan', 'linear-gradient(160deg, #6CB4FF, #2F6FED)', t.link, t.linkBg],
+      quarantine:['Quarantined', 'linear-gradient(160deg, #FFC56E, #F5841F)', t.warnText, t.warnBg],
+      restore:['Restored', 'linear-gradient(160deg, #6BE3A0, #1FA45B)', t.okText, t.okBg],
+      blocked:['Restore blocked', 'linear-gradient(160deg, #FDE68A, #EAB308)', t.warnText, t.warnBg],
+      delete:['Deleted for good', 'linear-gradient(160deg, #FF8A8A, #E03131)', t.dangerText, 'rgba(224,49,49,0.12)'],
+      review:['Sent to review', 'linear-gradient(160deg, #9D90FF, #5B4BE0)', t.link, t.linkBg],
+      approve:['Approved', 'linear-gradient(160deg, #9D90FF, #5B4BE0)', t.okText, t.okBg],
+      system:['System', 'linear-gradient(160deg, #B6C0CE, #6B7686)', t.mutedText, t.mutedBg]
+    };
+    var GROUP = {scan:'scan', review:'scan', approve:'scan', quarantine:'quarantine', restore:'restore', blocked:'restore', delete:'delete', system:'system'};
+    var L = function (name, path, note, tone) { return {name:name, path:path || '', note:note || '', tone:tone || ''}; };
+    var days = [
+      {label:'Today', sub:'Sunday 18 October', items:[
+        {id:'e1', time:'18:20', k:'system', d:I.x, title:'Force quit zoom.us', sub:'It was not responding · from Processes', size:'', lines:[L('zoom.us', '/Applications/zoom.us.app', 'Unsaved work lost', 'warn')]},
+        {id:'e2', time:'18:04', k:'scan', d:I.disk, title:'Analyzed Macintosh HD', sub:'Read-only · 312 GB counted · nothing changed', size:'312 GB', lines:[L('Applications', '', '142 GB'), L('Your home folder', '~', '118 GB'), L('System files', '', '32 GB'), L('Library, opt and var', '', '20 GB')], href:'Storage.dc.html', hrefText:'Open Storage'},
+        {id:'e3', time:'17:21', k:'delete', d:I.trash, title:'Deleted 1 item permanently', sub:'From quarantine · you confirmed “I understand”', size:'300 MB', lines:[L('Homebrew logs', '~/Library/Logs/Homebrew', '300 MB · can’t be restored', 'danger')], href:'Quarantine.dc.html', hrefText:'Open Quarantine'},
+        {id:'e4', time:'16:58', k:'review', d:I.send, title:'Sent 8 developer items to review', sub:'From Developer · nothing moved', size:'29.2 GB', lines:[L('Xcode DerivedData', '~/Library/Developer/Xcode/DerivedData', '12.6 GB'), L('Homebrew cache', '~/Library/Caches/Homebrew', '4.2 GB'), L('6 more items', '', '12.4 GB')], href:'Review.dc.html', hrefText:'Open review'},
+        {id:'e5', time:'16:44', k:'quarantine', d:I.box, title:'Moved 2 items to quarantine', sub:'After you approved the preview · restorable', size:'5.1 GB', lines:[L('Kleari-dgqxkfa', '~/Library/Developer/Xcode/DerivedData', '3.2 GB'), L('com.spotify.client', '~/Library/Caches', '1.9 GB')], href:'Quarantine.dc.html', hrefText:'Open Quarantine'},
+        {id:'e6', time:'16:43', k:'approve', d:I.check, title:'Approved cleanup preview', sub:'2 items · preview was up to date', size:'5.1 GB', lines:[L('Preview checked against disk', '', 'No changes since scan', 'ok')]},
+        {id:'e7', time:'16:31', k:'scan', d:I.scan, title:'Standard scan', sub:'3 folders · 45 findings eligible for review', size:'18.2 GB', lines:[L('~/Library/Caches', '', '22 findings'), L('~/Library/Developer', '', '17 findings'), L('~/Downloads', '', '6 findings')], href:'Review.dc.html', hrefText:'Open results'}
+      ]},
+      {label:'Yesterday', sub:'Saturday 17 October', items:[
+        {id:'e8', time:'18:09', k:'blocked', d:I.alert, title:'Restore blocked for com.apple.Safari', sub:'A file already exists in the original place · kept in quarantine', size:'620 MB', lines:[L('com.apple.Safari', '~/Library/Caches', 'Nothing overwritten', 'warn')]},
+        {id:'e9', time:'18:06', k:'restore', d:I.restore, title:'Restored 1 item', sub:'Back in its original place', size:'130 MB', lines:[L('com.raycast.macos', '~/Library/Caches', '130 MB', 'ok')]},
+        {id:'e10', time:'18:02', k:'quarantine', d:I.box, title:'Moved 12 app caches to quarantine', sub:'After you approved the preview · restorable', size:'3.1 GB', lines:[L('com.apple.Safari', '~/Library/Caches', '620 MB'), L('com.microsoft.VSCode', '~/Library/Caches', '480 MB'), L('10 more caches', '', '2.0 GB')], href:'Quarantine.dc.html', hrefText:'Open Quarantine'},
+        {id:'e11', time:'17:48', k:'scan', d:I.scan, title:'Caches scan', sub:'1 folder · 31 findings eligible for review', size:'4.4 GB', lines:[L('~/Library/Caches', '', '31 findings')]}
+      ]},
+      {label:'6 October', sub:'Tuesday', items:[
+        {id:'e12', time:'09:15', k:'quarantine', d:I.box, title:'Moved Homebrew logs to quarantine', sub:'After you approved the preview', size:'300 MB', lines:[L('Homebrew logs', '~/Library/Logs/Homebrew', '300 MB')]},
+        {id:'e13', time:'09:04', k:'system', d:I.key, title:'Folder access granted', sub:'You allowed Kleari to read 2 folders', size:'', lines:[L('Library', '~/Library', 'Read only'), L('Downloads', '~/Downloads', 'Read only')]},
+        {id:'e14', time:'09:02', k:'system', d:I.power, title:'Kleari installed', sub:'Offline mode on · nothing leaves this Mac', size:'', lines:[]}
+      ]}
+    ];
+    var filter = st.filter || this.props.filter || 'all';
+    var q = st.query.trim().toLowerCase();
+    var TONE = {warn:t.warnText, danger:t.dangerText, ok:t.okText};
+    var count = function (g) { var c = 0; days.forEach(function (d) { d.items.forEach(function (e) { if (g === 'all' || GROUP[e.k] === g) c++; }); }); return c; };
+    var outDays = days.map(function (d) {
+      var items = d.items.filter(function (e) { return (filter === 'all' || GROUP[e.k] === filter) && (!q || (e.title + ' ' + e.sub + ' ' + e.lines.map(function (l) { return l.name + ' ' + l.path; }).join(' ')).toLowerCase().indexOf(q) >= 0); })
+        .map(function (e) {
+          var k = K[e.k], open = !!st.open[e.id];
+          return {time:e.time, title:e.title, sub:e.sub, size:e.size, d:e.d, tile:k[1], tag:k[0], fg:k[2], bg:k[3],
+            hasMore:e.lines.length > 0, open:open && e.lines.length > 0, moreText:open ? 'Less' : 'Details', rot:open ? 'rotate(180deg)' : 'none',
+            href:e.href || '', hrefText:e.hrefText || '',
+            lines:e.lines.map(function (l, i) { return {name:l.name, path:l.path, note:l.note, fg:TONE[l.tone] || t.text2, divider:i ? '1px solid ' + t.borderSolid : '0'}; }),
+            toggle:function () { var o = Object.assign({}, self.state.open); o[e.id] = !o[e.id]; self.setState({open:o}); }};
+        });
+      return {label:d.label, sub:d.sub + ' · ' + items.length + (items.length === 1 ? ' event' : ' events'), items:items};
+    }).filter(function (d) { return d.items.length > 0; });
+    var filters = [['all','All'],['scan','Scans'],['quarantine','Quarantine'],['restore','Restores'],['delete','Deletes'],['system','System']].map(function (v) {
+      var on = filter === v[0];
+      return {label:v[1] + ' ' + count(v[0]), on:on, bg:on ? t.card : 'transparent', shadow:on ? t.segShadow : 'none', fg:on ? t.text : t.text2, weight:on ? 600 : 500, pick:function () { self.setState({filter:v[0]}); }};
+    });
+    return {
+      t:t, nav:nav, navBottom:navBottom, days:outDays, filters:filters, empty:outDays.length === 0,
+      stats:[
+        {label:'Scans this week',value:'4',sub:'All read-only',tile:'linear-gradient(160deg, #6CB4FF, #2F6FED)',glow:'rgba(47,111,237,0.35)',d:I.scan},
+        {label:'Moved to quarantine',value:'8.5 GB',sub:'15 items · all restorable',tile:'linear-gradient(160deg, #FFC56E, #F5841F)',glow:'rgba(245,132,31,0.35)',d:I.box},
+        {label:'Restored',value:'1 item',sub:'Plus 1 blocked',tile:'linear-gradient(160deg, #6BE3A0, #1FA45B)',glow:'rgba(31,164,91,0.35)',d:I.restore},
+        {label:'Deleted for good',value:'300 MB',sub:'Each one confirmed',tile:'linear-gradient(160deg, #FF8A8A, #E03131)',glow:'rgba(224,49,49,0.35)',d:I.trash}
+      ],
+      onScroll:function (e) { var on = e.target.scrollTop > 2; if (on !== self.state.scrolled) self.setState({scrolled:on}); },
+      glassOp:st.scrolled ? 1 : 0,
+      glassTop:self.props.dark ? 'rgba(20,24,30,0.78)' : 'rgba(245,247,250,0.72)', glassMid:self.props.dark ? 'rgba(20,24,30,0.35)' : 'rgba(245,247,250,0.3)',
+      glassLine:self.props.dark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.95)', glassSheen:self.props.dark ? 'rgba(140,170,255,0.12)' : 'rgba(255,255,255,0.7)',
+      query:st.query, onSearch:function (e) { self.setState({query:e.target.value}); },
+      exportLog:function () { clearTimeout(self.toastTimer); self.setState({toast:'Saved Kleari-activity-2026-10-18.csv to Downloads'}); self.toastTimer = setTimeout(function () { self.setState({toast:''}); }, 3500); },
+      toast:st.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

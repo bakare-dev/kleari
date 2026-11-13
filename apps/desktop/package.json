@@ -1,0 +1,32 @@
+{
+  "name": "@kleari/desktop",
+  "private": true,
+  "version": "0.1.0-beta.1",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "eslint .",
+    "tauri": "tauri",
+    "check:release-bundle": "node scripts/check-release-bundle.mjs"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.8.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@tauri-apps/cli": "^2.8.4",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^6.3.0",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.42.0",
+    "vite": "^8.3.8"
+  }
+}
