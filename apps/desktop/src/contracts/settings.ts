@@ -17,6 +17,8 @@ export interface Preferences {
   notifyScan: boolean;
   notifyQuarantine: boolean;
   notifySound: boolean;
+  /** Notify issue alerts (low disk, a device's low battery, …) while Kleari runs. */
+  notifyIssues: boolean;
   retentionDays: number;
   /** Kleari sits in the menu bar and keeps running when its window is closed. */
   menuBar: boolean;
@@ -141,6 +143,7 @@ function preferences(value: unknown, field: string): Preferences {
     notifyScan: boolean(fields.notifyScan, `${field}.notifyScan`),
     notifyQuarantine: boolean(fields.notifyQuarantine, `${field}.notifyQuarantine`),
     notifySound: boolean(fields.notifySound, `${field}.notifySound`),
+    notifyIssues: boolean(fields.notifyIssues, `${field}.notifyIssues`),
     retentionDays: nonNegativeInteger(fields.retentionDays, `${field}.retentionDays`),
     menuBar: boolean(fields.menuBar, `${field}.menuBar`),
     checkForUpdates: boolean(fields.checkForUpdates, `${field}.checkForUpdates`),

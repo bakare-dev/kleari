@@ -39,7 +39,7 @@ interface SettingsScreenProps {
   saveFailed?: boolean;
   onSave: (preferences: Preferences) => Change;
   onOpenAtLogin: (enabled: boolean) => Change;
-  onNotify: (key: "notifyScan" | "notifyQuarantine", on: boolean) => Change;
+  onNotify: (key: "notifyScan" | "notifyQuarantine" | "notifyIssues", on: boolean) => Change;
   onSchedule: (schedule: ScanSchedule) => Change;
   onAddExclusion: () => Change;
   onRemoveExclusion: (path: string) => Change;
@@ -512,6 +512,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
               <Group title="Notify me when" note={state ? notificationNote[state.notifications] : undefined}>
                 <Row label="A Cleanup scan finishes" sub="With what it found; nothing is changed" control={<Switch label="A Cleanup scan finishes" checked={preferences?.notifyScan ?? false} disabled={!state} onChange={(on) => after(props.onNotify("notifyScan", on))} />} />
                 <Row label="Quarantine gets large" sub="Set the size in Quarantine" control={<Switch label="Quarantine gets large" checked={preferences?.notifyQuarantine ?? false} disabled={!state} onChange={(on) => after(props.onNotify("notifyQuarantine", on))} />} />
+                <Row label="Something needs attention" sub="A full disk or drive, a device’s low battery, heavy memory pressure or fast battery drain, checked every 15 minutes" control={<Switch label="Something needs attention" checked={preferences?.notifyIssues ?? false} disabled={!state} onChange={(on) => after(props.onNotify("notifyIssues", on))} />} />
                 {state?.notifications === "denied" && (
                   <Row label="Allow in System Settings" sub="Notifications › Kleari" control={<Button variant="soft" size="sm" onClick={() => props.onOpenPane("notifications")}>Open</Button>} />
                 )}

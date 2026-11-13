@@ -272,3 +272,26 @@
   font-size: 11.5px;
   line-height: 30px;
 }
+
+/* Issue alerts. */
+.dash-issues {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+}
+
+.dash-issue-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-issue-rows li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--mp-border-solid);
+}

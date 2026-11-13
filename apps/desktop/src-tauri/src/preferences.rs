@@ -46,6 +46,9 @@ pub struct Preferences {
     /// When Kleari scans on its own (ADR-015); off until chosen.
     #[serde(default)]
     pub scan_schedule: ScanSchedule,
+    /// Notify issue alerts (low disk, a device's low battery, …) while Kleari runs (ADR-021).
+    #[serde(default)]
+    pub notify_issues: bool,
 }
 
 const fn on() -> bool {
@@ -120,6 +123,7 @@ impl Default for Preferences {
             check_for_updates: true,
             beta_updates: None,
             scan_schedule: ScanSchedule::default(),
+            notify_issues: false,
         }
     }
 }

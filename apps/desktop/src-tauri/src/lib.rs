@@ -11,6 +11,7 @@ mod files_commands;
 mod finder;
 mod history;
 mod ids;
+mod issues;
 mod login_item;
 mod maintenance;
 mod maintenance_commands;
@@ -64,6 +65,8 @@ pub fn run() {
             // Clicking a scan's notification opens the review.
             notifications::open_review_on_click(app.handle().clone());
             schedule::start(app.handle().clone());
+            // Issue alerts, notified only when that's turned on in Settings.
+            issues::watch(app.handle().clone());
             // The Mouse settings apply from launch if they are on and macOS allows them.
             mouse::start(app.handle());
             Ok(())
@@ -119,6 +122,7 @@ pub fn run() {
             maintenance_commands::get_maintenance_info,
             maintenance_commands::run_maintenance_task,
             maintenance_commands::send_launch_agent_to_review,
+            issues::get_issues,
             cleanup_commands::get_cleanup_scope,
             cleanup_commands::request_folder_access,
             cleanup_commands::add_cleanup_folder,

@@ -258,7 +258,7 @@ pub fn info(home: &Path, uid: u32, cancel: &AtomicBool) -> Vec<TaskInfo> {
 }
 
 /// Local disks mounted in `/Volumes` (not network shares), for their Trash folders.
-fn external_volumes() -> Vec<PathBuf> {
+pub(crate) fn external_volumes() -> Vec<PathBuf> {
     let Some(non_local) = crate::system_monitor::non_local_mounts() else {
         return Vec::new();
     };

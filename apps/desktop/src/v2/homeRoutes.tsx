@@ -1,3 +1,5 @@
+import { useIssues } from "../features/issues/useIssues";
+import { IssuesCard } from "./screens/dashboard/IssuesCard";
 import { useEffect } from "react";
 import { activityDays, activityStats } from "../features/activity/activityView";
 import type { Activity } from "../features/activity/useActivity";
@@ -59,6 +61,8 @@ export function DashboardRoute(props: {
   settings: Settings;
   onSearch: (query: string) => void;
 }) {
+  // Read when the Dashboard opens; nothing here changes anything.
+  const issues = useIssues();
   const { monitor, storage, review, quarantine, settings } = props;
   const overview = useStorageOverview(storage.state.result);
   const { refresh: refreshReview } = review;
@@ -78,7 +82,7 @@ export function DashboardRoute(props: {
     reminderGb: settings.state?.preferences.preferences.quarantineReminderGb ?? 0,
     nowMs: Date.now(),
   });
-  return <DashboardScreen data={data} onSearch={props.onSearch} onAnalyze={storage.analyze} />;
+  return <DashboardScreen data={data} onSearch={props.onSearch} onAnalyze={storage.analyze} alerts={<IssuesCard issues={issues.issues} failed={issues.failed} />} />;
 }
 
 /** `mouse` is read on each visit, and while waiting for Accessibility, which is turned on in
