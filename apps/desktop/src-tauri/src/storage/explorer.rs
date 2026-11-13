@@ -520,10 +520,12 @@ mod tests {
         assert_eq!(chosen[0].path, home.join("Projects/site/video.mov"));
         assert!(chosen[0].measured.bytes >= 400_000);
 
-        // A folder replaced since it was listed is refused.
+        // A folder replaced since it was listed is refused. The new folder is made while the
+        // old one still exists, so it can't reuse its inode (Linux may reuse a freed one).
         let site_id = by(&projects, "site").id;
+        fs::create_dir_all(home.join("Projects/site-new")).expect("new folder");
         fs::remove_dir_all(home.join("Projects/site")).expect("remove");
-        fs::create_dir_all(home.join("Projects/site")).expect("replace");
+        fs::rename(home.join("Projects/site-new"), home.join("Projects/site")).expect("replace");
         let changed = state
             .list(&home, Some(&site_id), &excluded, &cancel, &mut |_| {})
             .expect("answered");
