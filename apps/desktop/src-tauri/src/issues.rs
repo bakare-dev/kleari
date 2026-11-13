@@ -81,7 +81,7 @@ pub struct Issue {
 /// Free and total bytes of the volume holding `path`.
 // statfs field widths differ by platform (u64 on macOS, others on Linux CI), so a conversion
 // needed on one target is a no-op on another.
-#[allow(clippy::useless_conversion)]
+#[allow(clippy::useless_conversion, clippy::unnecessary_fallible_conversions)]
 fn space(path: &Path) -> Option<(u64, u64)> {
     let path = CString::new(path.as_os_str().as_bytes()).ok()?;
     let mut stats = std::mem::MaybeUninit::<libc::statfs>::zeroed();
@@ -91,7 +91,7 @@ fn space(path: &Path) -> Option<(u64, u64)> {
     }
     // SAFETY: statfs succeeded and filled `stats`.
     let stats = unsafe { stats.assume_init() };
-    let block = u64::from(stats.f_bsize);
+    let block = u64::try_from(stats.f_bsize).ok()?;
     Some((
         u64::try_from(stats.f_bavail).ok()?.saturating_mul(block),
         u64::try_from(stats.f_blocks).ok()?.saturating_mul(block),
