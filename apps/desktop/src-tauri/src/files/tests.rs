@@ -242,7 +242,8 @@ fn hashes_close_together_are_grouped_and_distant_ones_are_not() {
     assert_eq!(groups, [vec![0, 1, 3], vec![2, 4]]);
 }
 
-/// An uncompressed 8-bit grayscale TIFF, which macOS decodes.
+/// An uncompressed 8-bit grayscale TIFF, which macOS decodes (only macOS tests use it).
+#[cfg(target_os = "macos")]
 fn tiff(width: u16, height: u16, pixel: impl Fn(u16, u16) -> u8) -> Vec<u8> {
     let mut pixels = Vec::new();
     for y in 0..height {
