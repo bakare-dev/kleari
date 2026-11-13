@@ -9,7 +9,7 @@ import { isSelectable, type Finding, type FindingCategory } from "./types";
 import "./review.css";
 
 const PAGE_SIZE = 10;
-const categoryOrder: readonly FindingCategory[] = ["cache", "xcode", "pkg", "node", "build", "logs", "apps", "chosen", "large", "old"];
+const categoryOrder: readonly FindingCategory[] = ["cache", "xcode", "pkg", "node", "build", "logs", "broken", "apps", "chosen", "large", "old"];
 
 interface ReviewScreenProps {
   findings: readonly Finding[];

@@ -45,6 +45,9 @@ The first release of Kleari.
 - **Files:** Large & Old files, exact Duplicates (one copy always kept), Similar Images,
   Downloads by the app that downloaded them, and AI clutter (model downloads, AI apps' caches
   and logs). What you choose goes to Cleanup's review and moves only into quarantine.
+- **Cleanup › Broken items:** damaged preferences files and login items whose program no
+  longer exists, found by Standard and Deep scans. **Xcode previews** are found by the
+  Developer scan.
 - **Storage › Browse:** open any folder in your home folder down to single files, with a map of
   what takes the most space, and send what you choose to Cleanup's review. It moves only when
   you approve it, into quarantine; never while something in it is open in an app.

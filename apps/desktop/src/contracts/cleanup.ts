@@ -9,7 +9,7 @@ import { ContractError, nonNegativeInteger, nullable, oneOf, record } from "./sy
 export const scanModes = ["standard", "deep", "dev"] as const;
 export type ScanMode = (typeof scanModes)[number];
 
-export const findingCategories = ["cache", "xcode", "pkg", "node", "build", "logs", "large", "old", "apps", "chosen"] as const;
+export const findingCategories = ["cache", "xcode", "pkg", "node", "build", "logs", "large", "old", "apps", "chosen", "broken"] as const;
 export type FindingCategory = (typeof findingCategories)[number];
 
 const risks = ["low", "medium", "unknown"] as const;
@@ -78,6 +78,11 @@ export const evidenceCodes = [
   "chosenByYou",
   "openInApp",
   "nothingOpen",
+  "preferencesUnreadable",
+  "appMakesNewPreferences",
+  "programMissing",
+  "agentNotStarted",
+  "inXcodePreviews",
 ] as const;
 export type EvidenceCode = (typeof evidenceCodes)[number];
 
@@ -139,7 +144,7 @@ export interface ScanOptionsInput {
   docker: boolean;
 }
 
-export const stepIds = ["appCaches", "logsAndTemp", "packageCaches", "largeAndOld", "xcode", "simulators", "nodeModules", "docker"] as const;
+export const stepIds = ["appCaches", "logsAndTemp", "packageCaches", "largeAndOld", "brokenItems", "xcode", "simulators", "nodeModules", "docker"] as const;
 export type StepId = (typeof stepIds)[number];
 
 export interface StepResult {

@@ -82,17 +82,18 @@ function looksFor(mode: ScanMode, options: ScanOptions): { label: string; sub: s
       { label: "Package caches", sub: "Homebrew, npm, pip and other tools fetch these again" },
       ...(options.logs ? [{ label: "Logs and crash reports", sub: `Not written for ${options.logAge}` }] : []),
       ...(options.temp ? [{ label: "Temporary files", sub: "Left behind by installers and apps, untouched for a week" }] : []),
+      { label: "Broken items", sub: "Damaged preferences files and login items whose program is gone" },
     ];
   }
   if (mode === "deep") {
     return [
-      { label: "Everything in Standard", sub: "Caches, logs and temporary files" },
+      { label: "Everything in Standard", sub: "Caches, logs, temporary files and broken items" },
       { label: "Large files", sub: `Over ${options.size} in the folders you granted` },
       { label: "Old files", sub: `Not opened in ${options.age}${options.hidden ? ", hidden files included" : ""}` },
     ];
   }
   return [
-    ...(options.xcode ? [{ label: "Xcode DerivedData, archives and device support", sub: "Build output and symbols Xcode can make again" }] : []),
+    ...(options.xcode ? [{ label: "Xcode DerivedData, previews, archives and device support", sub: "Build output and symbols Xcode can make again" }] : []),
     ...(options.sim ? [{ label: "iOS Simulator", sub: "Caches to review, and devices listed for Xcode to manage" }] : []),
     ...(options.node ? [{ label: "node_modules", sub: "Checked against each project’s lockfile" }] : []),
     ...(options.docker ? [{ label: "Docker disk use", sub: "Listed only, never changed" }] : []),

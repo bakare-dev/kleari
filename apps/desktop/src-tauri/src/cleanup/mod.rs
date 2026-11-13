@@ -98,6 +98,11 @@ pub fn assess_now(
         Kind::AppLeftover { owner } => running
             .iter()
             .find(|app| app.id.eq_ignore_ascii_case(owner) || app.name.eq_ignore_ascii_case(owner)),
+        // `<bundle ID>.plist` belongs to the app with that bundle ID.
+        Kind::BrokenPreference => {
+            let id = name.strip_suffix(".plist").unwrap_or(name);
+            running.iter().find(|app| app.id.eq_ignore_ascii_case(id))
+        }
         _ => running.iter().find(|app| app.id.eq_ignore_ascii_case(name)),
     }
     .map(|app| app.name.as_str());

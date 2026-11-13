@@ -89,6 +89,7 @@ export function stepsFor(mode: ScanMode, options: ScanOptions): StepId[] {
     "appCaches",
     ...(options.logs || options.temp ? (["logsAndTemp"] as const) : []),
     "packageCaches",
+    "brokenItems",
     ...(mode === "deep" ? (["largeAndOld"] as const) : []),
   ];
 }
@@ -98,6 +99,7 @@ const stepLabels: Record<StepId, string> = {
   logsAndTemp: "Checking logs and temporary files",
   packageCaches: "Measuring package caches",
   largeAndOld: "Finding large and old files",
+  brokenItems: "Checking preferences and login items",
   xcode: "Reading Xcode data",
   simulators: "Reading the iOS Simulator",
   nodeModules: "Checking node_modules lockfiles",
@@ -223,7 +225,7 @@ export function modeDefinitions(input: {
   return { standard: build("standard"), deep: build("deep"), dev: build("dev") };
 }
 
-const categoryOrder: readonly FindingCategory[] = ["cache", "pkg", "logs", "xcode", "node", "build", "apps", "chosen", "large", "old"];
+const categoryOrder: readonly FindingCategory[] = ["cache", "pkg", "logs", "xcode", "node", "build", "broken", "apps", "chosen", "large", "old"];
 
 function resultLines(findings: readonly ReviewFinding[], result: CleanupScanResult): ScanResultLine[] {
   const lines: ScanResultLine[] = [];
@@ -366,6 +368,16 @@ export function evidenceText(entry: EvidenceEntry): string {
       return "Something in it is open in an app";
     case "nothingOpen":
       return "Nothing in it is open in any app";
+    case "preferencesUnreadable":
+      return "This preferences file is damaged: macOS can’t read it as a property list";
+    case "appMakesNewPreferences":
+      return "The app makes a new one with its default settings";
+    case "programMissing":
+      return "The program it starts at login no longer exists";
+    case "agentNotStarted":
+      return "Nothing will start from it; macOS stops trying at your next login";
+    case "inXcodePreviews":
+      return "SwiftUI previews Xcode builds again when you open a preview";
   }
 }
 
@@ -406,6 +418,8 @@ function reasonFor(finding: ReviewFinding): string {
       return `Large ${fileKindLabel[finding.fileCategory ?? "other"]} to look over`;
     case "old":
       return `${capitalize(fileKindLabel[finding.fileCategory ?? "other"])} you haven’t opened in a while`;
+    case "broken":
+      return codes.has("programMissing") ? "Login item whose program is gone" : "Damaged preferences file";
     case "chosen":
       return finding.eligibility === "notNow" ? "Chosen by you, but open in an app" : "Chosen by you on the Storage page";
     case "apps":
@@ -461,7 +475,7 @@ export function findingView(finding: ReviewFinding, nowMs: number): Finding {
 }
 
 export function categoryCounts(findings: readonly Finding[]): Record<FindingCategory, number> {
-  const counts: Record<FindingCategory, number> = { cache: 0, xcode: 0, pkg: 0, node: 0, build: 0, logs: 0, large: 0, old: 0, apps: 0, chosen: 0 };
+  const counts: Record<FindingCategory, number> = { cache: 0, xcode: 0, pkg: 0, node: 0, build: 0, logs: 0, large: 0, old: 0, apps: 0, chosen: 0, broken: 0 };
   for (const finding of findings) {
     counts[finding.category] += 1;
   }
@@ -544,6 +558,9 @@ export function consequences(categories: readonly FindingCategory[]): string {
   }
   if (has("logs")) {
     parts.push("apps start new logs when they need them");
+  }
+  if (has("broken")) {
+    parts.push("apps make new preferences with their defaults");
   }
   if (has("chosen")) {
     parts.push("what you chose waits in Quarantine until you restore or delete it");

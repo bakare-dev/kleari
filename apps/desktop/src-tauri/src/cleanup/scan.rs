@@ -9,7 +9,7 @@
 //! same volume (`developer::measure`). No file is opened except a simulator's small
 //! `device.plist` for its name; nothing is written.
 
-use std::ffi::{CString, OsStr};
+use std::ffi::{CStr, CString, OsStr};
 use std::io::Read;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
@@ -97,6 +97,8 @@ pub enum StepId {
     LogsAndTemp,
     PackageCaches,
     LargeAndOld,
+    /// Preferences that don't open and login items whose program is gone.
+    BrokenItems,
     Xcode,
     Simulators,
     NodeModules,
@@ -113,6 +115,7 @@ pub fn steps(mode: ScanMode, options: &ScanOptions) -> Vec<StepId> {
                 steps.push(StepId::LogsAndTemp);
             }
             steps.push(StepId::PackageCaches);
+            steps.push(StepId::BrokenItems);
             if mode == ScanMode::Deep {
                 steps.push(StepId::LargeAndOld);
             }
@@ -604,8 +607,100 @@ impl<'a> Collector<'a> {
         }
     }
 
+    /// Preferences in `~/Library/Preferences` that no longer open as property lists, and launch
+    /// agents in `~/Library/LaunchAgents` whose program no longer exists. Only property lists
+    /// are read (at most 10 MB each); Apple's are never listed.
+    fn broken_items(&mut self) {
+        const MAX_PLIST: u64 = 10 * 1024 * 1024;
+        let read = |dir: &DirHandle, name: &CStr| -> Option<Vec<u8>> {
+            let file = dir.open_file_child(name).ok()?;
+            let mut bytes = Vec::new();
+            file.take(MAX_PLIST + 1).read_to_end(&mut bytes).ok()?;
+            (u64::try_from(bytes.len()).ok()? <= MAX_PLIST).then_some(bytes)
+        };
+        let plist_name = |name: &CStr| {
+            name.to_str()
+                .ok()
+                .filter(|text| {
+                    text.ends_with(".plist") && !text.to_lowercase().starts_with("com.apple.")
+                })
+                .map(str::to_owned)
+        };
+        let preferences = self.ctx.home.join("Library/Preferences");
+        if let Some((dir, _, entries)) = self.list(&preferences) {
+            for (name, stat) in entries {
+                if self.cancelled() {
+                    return;
+                }
+                let Some(text) = plist_name(&name) else {
+                    continue;
+                };
+                if !stat.is_file() {
+                    continue;
+                }
+                let Some(bytes) = read(&dir, &name) else {
+                    continue;
+                };
+                if plist::Value::from_reader(std::io::Cursor::new(&bytes)).is_err() {
+                    self.add(
+                        Kind::BrokenPreference,
+                        preferences.join(&text),
+                        &stat,
+                        None,
+                        StoredFacts::default(),
+                    );
+                }
+            }
+        }
+        let agents = self.ctx.home.join("Library/LaunchAgents");
+        if let Some((dir, _, entries)) = self.list(&agents) {
+            for (name, stat) in entries {
+                if self.cancelled() {
+                    return;
+                }
+                let Some(text) = plist_name(&name) else {
+                    continue;
+                };
+                if !stat.is_file() {
+                    continue;
+                }
+                let Some(bytes) = read(&dir, &name) else {
+                    continue;
+                };
+                if program_missing(&bytes) {
+                    self.add(
+                        Kind::BrokenLaunchAgent,
+                        agents.join(&text),
+                        &stat,
+                        None,
+                        StoredFacts::default(),
+                    );
+                }
+            }
+        }
+    }
+
     fn xcode(&mut self) {
         let xcode = self.ctx.home.join("Library/Developer/Xcode");
+        let previews = xcode.join("UserData/Previews");
+        if let Some((parent, dev, entries)) = self.list(&xcode.join("UserData")) {
+            if let Some((name, stat)) = entries
+                .into_iter()
+                .find(|(name, stat)| name.to_bytes() == b"Previews" && stat.is_dir())
+            {
+                if let Some(measured) = self.measure(&parent, &name, &stat, dev) {
+                    if measured.bytes >= MIN_BYTES {
+                        self.add(
+                            Kind::XcodePreviews,
+                            previews,
+                            &stat,
+                            Some(&measured),
+                            StoredFacts::default(),
+                        );
+                    }
+                }
+            }
+        }
         self.children_as(&xcode.join("DerivedData"), Kind::DerivedData);
         self.children_as(&xcode.join("Archives"), Kind::Archive);
         let Some((_, _, entries)) = self.list(&xcode) else {
@@ -921,6 +1016,39 @@ pub(crate) fn hidden_skipped(name: &[u8], hidden: bool) -> bool {
     !(policy::is_build_folder(name) || TOOL_DOT_FOLDERS.contains(&name))
 }
 
+/// Whether a launch agent's property list names a program (`Program`, or the first of
+/// `ProgramArguments`) that is an absolute path to nothing. A program on another volume (an
+/// unplugged drive) or one that can't be checked isn't "missing".
+pub(crate) fn program_missing(plist_bytes: &[u8]) -> bool {
+    let Ok(value) = plist::Value::from_reader(std::io::Cursor::new(plist_bytes)) else {
+        return false;
+    };
+    let Some(dictionary) = value.as_dictionary() else {
+        return false;
+    };
+    let program = dictionary
+        .get("Program")
+        .and_then(plist::Value::as_string)
+        .or_else(|| {
+            dictionary
+                .get("ProgramArguments")?
+                .as_array()?
+                .first()?
+                .as_string()
+        });
+    let Some(program) = program else {
+        return false;
+    };
+    let path = Path::new(program);
+    if !path.is_absolute() || path.starts_with("/Volumes") || path.starts_with("/Network") {
+        return false;
+    }
+    if non_local_mounts().is_none_or(|mounts| mounts.iter().any(|mount| path.starts_with(mount))) {
+        return false;
+    }
+    matches!(std::fs::symlink_metadata(path), Err(error) if error.kind() == std::io::ErrorKind::NotFound)
+}
+
 pub(crate) fn skipped_folder(name: &[u8]) -> bool {
     const SUFFIXES: &[&[u8]] = &[
         b".app",
@@ -985,6 +1113,7 @@ pub fn run(mode: ScanMode, ctx: &Context<'_>, mut progress: impl FnMut(Progress)
                 collector.catalog_caches();
             }
             StepId::LargeAndOld => collector.large_and_old(&mut skipped),
+            StepId::BrokenItems => collector.broken_items(),
             StepId::Xcode => collector.xcode(),
             StepId::Simulators => collector.simulators(),
             StepId::NodeModules => collector.node_modules(&mut skipped),

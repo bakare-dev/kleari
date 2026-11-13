@@ -35,6 +35,8 @@ pub enum Category {
     Apps,
     /// Files and folders you chose yourself on the Storage page.
     Chosen,
+    /// Preferences that no longer open, and login items whose program is gone.
+    Broken,
 }
 
 impl Category {
@@ -50,6 +52,7 @@ impl Category {
             Self::Old => "old",
             Self::Apps => "apps",
             Self::Chosen => "chosen",
+            Self::Broken => "broken",
         }
     }
 }
@@ -152,6 +155,11 @@ pub enum EvidenceCode {
     ChosenByYou,
     OpenInApp,
     NothingOpen,
+    PreferencesUnreadable,
+    AppMakesNewPreferences,
+    ProgramMissing,
+    AgentNotStarted,
+    InXcodePreviews,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -252,6 +260,12 @@ pub enum Kind {
     Installer,
     /// A file or folder you chose on the Storage page (see `chosen_in_bounds`).
     UserChosen,
+    /// A `.plist` directly in `~/Library/Preferences` that doesn't open as a property list.
+    BrokenPreference,
+    /// A launch agent directly in `~/Library/LaunchAgents` whose program no longer exists.
+    BrokenLaunchAgent,
+    /// `~/Library/Developer/Xcode/UserData/Previews`, SwiftUI previews Xcode builds again.
+    XcodePreviews,
 }
 
 /// Package managers whose caches live in `~/Library/Caches` under these names.
@@ -286,6 +300,8 @@ pub fn category(kind: &Kind) -> Category {
         Kind::OldFile => Category::Old,
         Kind::AppLeftover { .. } | Kind::Installer => Category::Apps,
         Kind::UserChosen => Category::Chosen,
+        Kind::BrokenPreference | Kind::BrokenLaunchAgent => Category::Broken,
+        Kind::XcodePreviews => Category::Xcode,
     }
 }
 
@@ -683,6 +699,53 @@ fn assess_kind(kind: &Kind, facts: &Facts<'_>) -> Assessment {
             Certainty::Unknown,
             vec![warn(E::ChosenByYou), ok(E::NothingOpen)],
         ),
+        Kind::BrokenPreference => {
+            if let Some(app) = facts.running_app {
+                return blocked(
+                    Risk::Low,
+                    Certainty::High,
+                    Eligibility::NotNow,
+                    WhyNot::AppRunning,
+                    vec![
+                        ok(E::PreferencesUnreadable),
+                        warn(E::AppRunning).with_app(app),
+                    ],
+                );
+            }
+            eligible(
+                Risk::Low,
+                Certainty::High,
+                vec![
+                    ok(E::PreferencesUnreadable),
+                    info(E::AppMakesNewPreferences),
+                ],
+            )
+        }
+        Kind::BrokenLaunchAgent => eligible(
+            Risk::Low,
+            Certainty::High,
+            vec![ok(E::ProgramMissing), info(E::AgentNotStarted)],
+        ),
+        Kind::XcodePreviews => {
+            if facts.xcode_running {
+                return blocked(
+                    Risk::Low,
+                    Certainty::High,
+                    Eligibility::NotNow,
+                    WhyNot::XcodeRunning,
+                    vec![ok(E::InXcodePreviews), warn(E::XcodeRunning)],
+                );
+            }
+            eligible(
+                Risk::Low,
+                Certainty::High,
+                vec![
+                    ok(E::InXcodePreviews),
+                    ok(E::XcodeNotRunning),
+                    info(E::RebuildSlower),
+                ],
+            )
+        }
     }
 }
 
@@ -882,6 +945,17 @@ pub fn within_bounds(
         }
         Kind::Installer => (under("Downloads") || under("Desktop")) && is_installer_name(name),
         Kind::UserChosen => chosen_in_bounds(relative),
+        Kind::BrokenPreference => {
+            under("Library/Preferences")
+                && name.ends_with(".plist")
+                && !name.to_lowercase().starts_with("com.apple.")
+        }
+        Kind::BrokenLaunchAgent => {
+            under("Library/LaunchAgents")
+                && name.ends_with(".plist")
+                && !name.to_lowercase().starts_with("com.apple.")
+        }
+        Kind::XcodePreviews => path == home.join("Library/Developer/Xcode/UserData/Previews"),
         // Never moved, so never in bounds.
         Kind::SimulatorDevice | Kind::LargeFile | Kind::OldFile => false,
         Kind::Temp | Kind::AppLeftover { .. } => false,
@@ -959,6 +1033,7 @@ pub fn restorable(
         "pkg" => in_bounds(&Kind::CachesPackage) || catalog_kinds(false),
         "xcode" => {
             [
+                Kind::XcodePreviews,
                 Kind::DerivedData,
                 Kind::Archive,
                 Kind::DeviceSupport,
@@ -976,6 +1051,9 @@ pub fn restorable(
         // The app it belonged to isn't recorded: any entry directly in a leftover folder.
         "apps" => in_leftover_folder(path, home) || in_bounds(&Kind::Installer),
         "chosen" => in_bounds(&Kind::UserChosen),
+        "broken" => [Kind::BrokenPreference, Kind::BrokenLaunchAgent]
+            .iter()
+            .any(in_bounds),
         _ => false,
     }
 }

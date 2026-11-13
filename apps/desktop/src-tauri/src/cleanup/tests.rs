@@ -1108,6 +1108,92 @@ fn something_you_chose_moves_only_while_nothing_in_it_is_open_and_restores() {
 }
 
 #[test]
+fn broken_preferences_and_login_items_are_found_but_not_apples_or_working_ones() {
+    let home = Home::new("broken");
+    let library = home.home().join("Library");
+    let write = |relative: &str, text: &str| {
+        let path = library.join(relative);
+        fs::create_dir_all(path.parent().expect("parent")).expect("folders");
+        fs::write(&path, text).expect("write");
+    };
+    let plist = |program: &str| {
+        format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>Label</key><string>x</string><key>Program</key><string>{program}</string></dict></plist>"#
+        )
+    };
+    write(
+        "Preferences/com.example.Broken.plist",
+        "not a property list",
+    );
+    write("Preferences/com.example.Fine.plist", &plist("/bin/ls"));
+    write("Preferences/com.apple.Broken.plist", "not a property list");
+    write(
+        "LaunchAgents/com.example.gone.plist",
+        &plist("/Applications/Gone.app/Contents/MacOS/helper"),
+    );
+    write("LaunchAgents/com.example.here.plist", &plist("/bin/ls"));
+    write(
+        "LaunchAgents/com.example.drive.plist",
+        &plist("/Volumes/Drive/tool"),
+    );
+    let history = home.history();
+    let running = [RunningBundle {
+        id: "com.example.Broken".to_owned(),
+        name: "Broken".to_owned(),
+    }];
+
+    let outcome = run_scan(&home, &history, ScanMode::Standard, &[]);
+    let mut broken: Vec<(&str, Kind)> = outcome
+        .items
+        .iter()
+        .filter(|item| item.category() == policy::Category::Broken)
+        .map(|item| (item.name.as_str(), item.kind.clone()))
+        .collect();
+    broken.sort_by(|a, b| a.0.cmp(b.0));
+    assert_eq!(
+        broken,
+        [
+            ("com.example.Broken.plist", Kind::BrokenPreference),
+            ("com.example.gone.plist", Kind::BrokenLaunchAgent),
+        ]
+    );
+    assert!(outcome
+        .items
+        .iter()
+        .filter(|item| item.category() == policy::Category::Broken)
+        .all(|item| item.assessment.eligibility == Eligibility::Eligible));
+    // While its app is open, a broken preference waits.
+    let open = run_scan(&home, &history, ScanMode::Standard, &running);
+    assert_eq!(
+        by_name(&open.items, "com.example.Broken.plist")
+            .assessment
+            .why_not,
+        Some(WhyNot::AppRunning)
+    );
+}
+
+#[test]
+fn xcode_previews_are_found_by_the_developer_scan() {
+    let home = Home::new("previews");
+    home.write(
+        "Library/Developer/Xcode/UserData/Previews/Simulator Devices/x",
+        2_000_000,
+    );
+    let history = home.history();
+    let outcome = run_scan(&home, &history, ScanMode::Dev, &[]);
+    let previews = by_name(&outcome.items, "Previews");
+    assert_eq!(previews.kind, Kind::XcodePreviews);
+    assert_eq!(previews.assessment.eligibility, Eligibility::Eligible);
+    assert!(policy::restorable(
+        "xcode",
+        &previews.path,
+        &[],
+        &home.home(),
+        None
+    ));
+}
+
+#[test]
 fn a_folder_containing_an_excluded_folder_is_never_measured_or_offered() {
     let home = Home::new("excluded-inside");
     home.write("Library/Caches/com.example.Google/Private/blob", 2_000_000);
