@@ -1,0 +1,101 @@
+/* The Files page scrolls as a whole: tools can return many groups. */
+.files-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  overflow: auto;
+  padding: 4px 28px 22px;
+}
+
+/* Room for the selection bar floating over the bottom. */
+.files-body-above-bar {
+  padding-bottom: 110px;
+}
+
+.files-tool {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px;
+}
+
+.files-tool > .v2-row-text {
+  flex: 1 1 260px;
+  gap: 4px;
+}
+
+.files-tool-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.files-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px;
+  text-align: center;
+}
+
+.files-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px 8px;
+}
+
+.files-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.files-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.files-rows li {
+  display: grid;
+  grid-template-columns: 16px 28px minmax(0, 1fr) 80px 96px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 2px;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.files-rows li.files-more {
+  display: block;
+  font-size: 12px;
+}
+
+.files-size {
+  text-align: right;
+}
+
+.files-pill {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .files-body {
+    padding: 4px 16px 22px;
+  }
+
+  .files-rows li {
+    grid-template-columns: 16px 28px minmax(0, 1fr) 64px;
+  }
+
+  .files-pill {
+    display: none;
+  }
+}

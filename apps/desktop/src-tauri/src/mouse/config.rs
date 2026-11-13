@@ -151,6 +151,10 @@ pub enum ButtonAction {
     VolumeUp,
     VolumeDown,
     Mute,
+    /// ⌘⇥ once: back to the app you used last.
+    LastApp,
+    /// ⌘`: the app's next window.
+    NextWindow,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -172,6 +176,11 @@ pub enum ScrollAction {
     SwitchTabs,
     /// The wheel scrolls sideways.
     HorizontalScroll,
+    /// The app switcher, as ⌘⇥ does: the first step holds ⌘ and shows it, each step moves
+    /// (up: back, ⇧⇥; down: on, ⇥), and letting go of the buttons switches to the app chosen.
+    SwitchApps,
+    /// The app's windows, one at a time (up: ⌘⇧`, down: ⌘`).
+    SwitchWindows,
 }
 
 /// What a combination does.
@@ -218,6 +227,12 @@ impl Combo {
     fn valid(&self) -> bool {
         self.buttons_valid()
             && match &self.does {
+                // The app switcher stays open while ⌘ is held for it, which ends when the
+                // buttons are let go: so it needs a button other than left click (whose
+                // release must reach the app) and can't be keys alone (Kleari doesn't see keys).
+                ComboAction::Wheel {
+                    wheel: ScrollAction::SwitchApps,
+                } => !self.buttons.is_empty() && !self.buttons.contains(&LEFT),
                 ComboAction::Wheel { .. } => !self.buttons.is_empty() || self.modifiers.any(),
                 ComboAction::Press { action } => {
                     (self.buttons.len() == MAX_COMBO_BUTTONS

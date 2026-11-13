@@ -1,6 +1,15 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { useSettingsShortcut } from "../app/navigation";
 import { useActivity } from "../features/activity/useActivity";
+import { useApps } from "../features/apps/useApps";
+import { useFiles } from "../features/files/useFiles";
+import { useMaintenance } from "../features/maintenance/useMaintenance";
+import { MaintenanceScreen } from "./screens/maintenance/MaintenanceScreen";
+import { BrowserScreen } from "./screens/browser/BrowserScreen";
+import { SetupWelcome } from "./shell/SetupWelcome";
+import { openSystemSettings } from "../lib/systemPageIpc";
+import { FilesScreen } from "./screens/files/FilesScreen";
+import { useStorageExplorer } from "../features/storage/useStorageExplorer";
 import { scanOptionsFromInput } from "../features/cleanup/cleanupView";
 import { useCleanupReview } from "../features/cleanup/useCleanupReview";
 import { useCleanupScan } from "../features/cleanup/useCleanupScan";
@@ -20,7 +29,7 @@ import type { Preferences } from "../contracts/settings";
 import { Sidebar } from "./shell/Sidebar";
 import { mainNav, navigate, useFocusHeadingOnRouteChange, useV2Route, v2Routes, type V2Route } from "./shell/routes";
 import { ActivityRoute, DashboardRoute, MouseRoute, SettingsRoute } from "./homeRoutes";
-import { CleanupRoute, DeveloperRoute, PreviewRoute, ProcessesRoute, QuarantineRoute, ReviewRoute, StorageRoute, SystemRoute } from "./liveRoutes";
+import { AppsRoute, CleanupRoute, DeveloperRoute, PreviewRoute, ProcessesRoute, QuarantineRoute, ReviewRoute, StorageRoute, SystemRoute } from "./liveRoutes";
 import "./v2.css";
 
 /** The destinations release builds ship: every screen, each backed by real data. */
@@ -51,6 +60,14 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
   // Like System: read from launch while Kleari is open to look at, faster on its page.
   const processes = useProcessMonitor();
   const activity = useActivity();
+  // App-level so a running Apps scan and its result survive leaving the page.
+  const apps = useApps(review.refresh);
+  // App-level so the folder you were browsing is still open when you come back to Storage.
+  const explorer = useStorageExplorer(review.refresh);
+  // App-level so a running search and each tool's result survive leaving the page.
+  const files = useFiles(review.refresh);
+  // App-level so a running task's result still shows after leaving the page.
+  const maintenance = useMaintenance(review.refresh);
   // App-level so a Mouse save, and the combination changes waiting their turn, finish after
   // leaving the Mouse page; read and watched only while it is open.
   const mouse = useMouse(route === "mouse");
@@ -94,9 +111,13 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
     review: () => <ReviewRoute review={review} initialQuery={reviewQuery} />,
     preview: () => <PreviewRoute review={review} quarantine={quarantine} />,
     quarantine: () => <QuarantineRoute quarantine={quarantine} />,
-    storage: () => <StorageRoute storage={storage} review={review} cleanup={cleanup} />,
+    storage: () => <StorageRoute storage={storage} review={review} cleanup={cleanup} explorer={explorer} />,
     system: () => <SystemRoute monitor={system} />,
     developer: () => <DeveloperRoute developer={developer} review={review} />,
+    apps: () => <AppsRoute apps={apps} />,
+    files: () => <FilesScreen files={files} />,
+    browser: () => <BrowserScreen monitor={processes} />,
+    maintenance: () => <MaintenanceScreen maintenance={maintenance} onOpenLoginItems={() => void openSystemSettings("loginItems")} />,
     processes: () => <ProcessesRoute monitor={processes} />,
     mouse: () => <MouseRoute settings={settings} mouse={mouse} combos={mouseCombos} />,
     activity: () => <ActivityRoute activity={activity} />,
@@ -110,6 +131,7 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
       <main className="v2-main" key={route}>
         {screens[route]()}
       </main>
+      <SetupWelcome settings={settings} />
       <UpdateOffer offer={updates.offer} state={updates.state} onInstall={() => void updates.install()} onLater={updates.dismiss} />
     </div>
   );

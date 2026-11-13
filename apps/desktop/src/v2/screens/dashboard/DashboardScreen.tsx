@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Glyph, type IconName } from "../../ui/icons";
 import { Button, Dot, IconTile, LinkButton, ScrollBody, seriesPoints, type Tone } from "../../ui/components";
 import { formatGb } from "../../ui/format";
@@ -61,6 +61,8 @@ interface DashboardScreenProps {
   onSearch: (query: string) => void;
   /** Starts a read-only Storage analysis; absent where analysis isn't available. */
   onAnalyze?: () => void;
+  /** Issue alerts, shown under the readings when there are any. */
+  alerts?: ReactNode;
 }
 
 function MetricCard({ metric }: { metric: DashboardMetric }) {
@@ -155,7 +157,7 @@ interface QuickAction {
   icon: IconName;
 }
 
-export function DashboardScreen({ data, onSearch, onAnalyze }: DashboardScreenProps) {
+export function DashboardScreen({ data, onSearch, onAnalyze, alerts }: DashboardScreenProps) {
   const [query, setQuery] = useState("");
   const search = useRef<HTMLInputElement>(null);
 
@@ -228,6 +230,7 @@ export function DashboardScreen({ data, onSearch, onAnalyze }: DashboardScreenPr
         <section aria-label="System readings" className="v2-grid-4">
           {data.metrics.map((metric) => <MetricCard key={metric.label} metric={metric} />)}
         </section>
+        {alerts}
 
         <div className="dash-pair">
           <section aria-labelledby="dash-storage" className="v2-card dash-storage">

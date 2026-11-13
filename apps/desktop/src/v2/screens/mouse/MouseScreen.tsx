@@ -31,6 +31,7 @@ import { ComboEditor } from "./ComboEditor";
 import { MouseDiagram } from "./MouseDiagram";
 import { ShortcutRecorder } from "./ShortcutRecorder";
 import "./mouse.css";
+import { AccessSteps } from "../../ui/AccessSteps";
 
 /** Whether the settings are working now, and what would stop them (they work only while
  * Kleari runs). */
@@ -216,6 +217,7 @@ export function MouseScreen({ status, finder, lit, finderUnavailable, error, onS
                 right clicks only while a combination uses one), never your keystrokes or where the pointer goes, and keep none of them. (The button finder below sees only clicks and scrolls inside Kleari’s own
                 window, while this page is open.) Turn Kleari on in Privacy &amp; Security › Accessibility; this page notices by itself.
               </span>
+              <AccessSteps kind="accessibility" compact />
             </div>
             <Button variant="soft" size="sm" onClick={() => void onRequestAccess().then((message) => message && toast.show(message, "warn"))}>Allow…</Button>
             <Button variant="soft" size="sm" onClick={onOpenAccessibility}>Open System Settings</Button>

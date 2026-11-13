@@ -24,8 +24,10 @@ use serde::Serialize;
 
 use crate::developer::{measure_dir, open_absolute, Links};
 use crate::quarantine::Identity;
+use crate::storage::category::{category_of, FileCategory};
 use crate::storage::fsdir::FileStat;
 use crate::system_monitor::display_path;
+use crate::system_monitor::open_paths::{self, OpenPaths};
 use crate::system_monitor::running_apps::RunningBundle;
 use policy::{Assessment, Category, Certainty, Eligibility, Evidence, Kind, Risk, WhyNot};
 pub use scan::{ScanMode, ScanOptions};
@@ -37,6 +39,8 @@ pub enum Source {
     Scan,
     Storage,
     Developer,
+    /// The Apps page: leftovers of removed apps and installers.
+    Apps,
 }
 
 /// One item as Rust keeps it.
@@ -63,31 +67,45 @@ pub struct Candidate {
     pub project: Option<PathBuf>,
 }
 
-/// The facts behind an assessment that don't change from moment to moment. Running apps and
-/// the volume are read again whenever the policy re-runs.
+/// The facts behind an assessment that don't change from moment to moment. Running apps,
+/// what is open (whether a project is in use) and the volume are read again whenever the
+/// policy re-runs.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct StoredFacts {
     pub lockfile: bool,
-    pub project_active: bool,
     pub idle_days: u64,
     pub larger_than: u64,
+    /// For app leftovers: their app was removed with Kleari.
+    pub owner_removed: bool,
 }
 
 const XCODE_BUNDLE: &str = "com.apple.dt.Xcode";
 const SIMULATOR_BUNDLE: &str = "com.apple.iphonesimulator";
 
-/// Runs the policy for `kind` with the stored facts and the apps running now.
+/// Runs the policy for `kind` with the stored facts, the apps running now and whether its
+/// project is in use now.
 pub fn assess_now(
     kind: &Kind,
     name: &str,
     stored: StoredFacts,
     running: &[RunningBundle],
+    project_in_use: bool,
     same_volume: bool,
 ) -> Assessment {
-    let running_app = running
-        .iter()
-        .find(|app| app.id.eq_ignore_ascii_case(name))
-        .map(|app| app.name.as_str());
+    // A leftover belongs to its app, matched by bundle ID or name; a cache to the app whose
+    // bundle ID it is named.
+    let running_app = match kind {
+        Kind::AppLeftover { owner } => running
+            .iter()
+            .find(|app| app.id.eq_ignore_ascii_case(owner) || app.name.eq_ignore_ascii_case(owner)),
+        // `<bundle ID>.plist` belongs to the app with that bundle ID.
+        Kind::BrokenPreference => {
+            let id = name.strip_suffix(".plist").unwrap_or(name);
+            running.iter().find(|app| app.id.eq_ignore_ascii_case(id))
+        }
+        _ => running.iter().find(|app| app.id.eq_ignore_ascii_case(name)),
+    }
+    .map(|app| app.name.as_str());
     policy::assess(
         kind,
         &policy::Facts {
@@ -96,12 +114,35 @@ pub fn assess_now(
             xcode_running: running.iter().any(|app| app.id == XCODE_BUNDLE),
             simulator_running: running.iter().any(|app| app.id == SIMULATOR_BUNDLE),
             lockfile: stored.lockfile,
-            project_active: stored.project_active,
+            project_active: project_in_use,
             idle_days: stored.idle_days,
             larger_than: stored.larger_than,
             same_volume,
+            owner_removed: stored.owner_removed,
         },
     )
+}
+
+impl Candidate {
+    /// Whether this item's project has a file or its folder open in some app now. Without a
+    /// reading of what is open, every project counts as in use (fail closed).
+    pub fn project_in_use(&self, open: Option<&OpenPaths>) -> bool {
+        self.project
+            .as_deref()
+            .is_some_and(|project| open_paths::in_use(open, project))
+    }
+
+    /// Runs the policy again now that the item's project is known.
+    pub fn reassess(
+        &mut self,
+        running: &[RunningBundle],
+        open: Option<&OpenPaths>,
+        same_volume: bool,
+    ) {
+        let name = display_name_of(&self.path);
+        let in_use = self.project_in_use(open);
+        self.assessment = assess_now(&self.kind, &name, self.facts, running, in_use, same_volume);
+    }
 }
 
 /// One item as the Review page shows it.
@@ -127,6 +168,8 @@ pub struct Finding {
     pub source: Source,
     /// The Developer catalog ID of a known tool cache; the frontend has its name.
     pub tool: Option<&'static str>,
+    /// What kind of file a large or old file is (video, disk image, …), by its extension.
+    pub file_category: Option<FileCategory>,
 }
 
 impl Candidate {
@@ -159,6 +202,8 @@ impl Candidate {
                 Kind::Catalog(id) => Some(id),
                 _ => None,
             },
+            file_category: matches!(self.kind, Kind::LargeFile | Kind::OldFile)
+                .then(|| category_of(&self.path)),
         }
     }
 

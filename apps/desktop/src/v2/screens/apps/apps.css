@@ -1,0 +1,14 @@
+/* The Apps page reuses the Developer page's layout (developer.css); these are its additions. */
+
+/* Installed-app rows have no checkbox; this keeps their columns aligned with the others. */
+.apps-spacer {
+  width: 16px;
+  flex: none;
+}
+
+.apps-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}

@@ -31,6 +31,14 @@ pub enum Category {
     Large,
     /// Files not opened for a long time (inspect only).
     Old,
+    /// What apps leave behind: data of removed apps, and installers already used.
+    Apps,
+    /// Files and folders you chose yourself on the Storage page.
+    Chosen,
+    /// Preferences that no longer open, and login items whose program is gone.
+    Broken,
+    /// Your launch agents, chosen in Maintenance › Login items.
+    Startup,
 }
 
 impl Category {
@@ -44,6 +52,10 @@ impl Category {
             Self::Logs => "logs",
             Self::Large => "large",
             Self::Old => "old",
+            Self::Apps => "apps",
+            Self::Chosen => "chosen",
+            Self::Broken => "broken",
+            Self::Startup => "startup",
         }
     }
 }
@@ -97,6 +109,8 @@ pub enum WhyNot {
     /// It's on another disk than the quarantine folder.
     OtherVolume,
     ChangedSinceScan,
+    /// Something inside is open in an app.
+    OpenInApp,
 }
 
 /// What Kleari observed about an item. The frontend has the wording.
@@ -136,6 +150,21 @@ pub enum EvidenceCode {
     NotOpenedFor,
     NotKnownCache,
     OtherVolume,
+    LeftoverOfRemovedApp,
+    LeftoverNoApp,
+    LosesAppData,
+    InstallerFile,
+    DownloadAgain,
+    ChosenByYou,
+    OpenInApp,
+    NothingOpen,
+    PreferencesUnreadable,
+    AppMakesNewPreferences,
+    ProgramMissing,
+    AgentNotStarted,
+    InXcodePreviews,
+    StartsAtLogin,
+    StopsAtNextLogin,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -229,6 +258,21 @@ pub enum Kind {
     LargeFile,
     /// A file not opened for a long time.
     OldFile,
+    /// Data an app keeps in the user's Library (see `LEFTOVER_FOLDERS`), named for the app
+    /// with bundle ID or name `owner`, found after the app was removed.
+    AppLeftover { owner: String },
+    /// An installer (`.dmg`, `.pkg`, `.mpkg`, `.xip`) directly in Downloads or on the Desktop.
+    Installer,
+    /// A file or folder you chose on the Storage page (see `chosen_in_bounds`).
+    UserChosen,
+    /// A `.plist` directly in `~/Library/Preferences` that doesn't open as a property list.
+    BrokenPreference,
+    /// A launch agent directly in `~/Library/LaunchAgents` whose program no longer exists.
+    BrokenLaunchAgent,
+    /// `~/Library/Developer/Xcode/UserData/Previews`, SwiftUI previews Xcode builds again.
+    XcodePreviews,
+    /// A launch agent directly in `~/Library/LaunchAgents` you chose to stop (not Apple's).
+    LaunchAgent,
 }
 
 /// Package managers whose caches live in `~/Library/Caches` under these names.
@@ -261,7 +305,143 @@ pub fn category(kind: &Kind) -> Category {
         Kind::BuildFolder { .. } => Category::Build,
         Kind::LargeFile => Category::Large,
         Kind::OldFile => Category::Old,
+        Kind::AppLeftover { .. } | Kind::Installer => Category::Apps,
+        Kind::UserChosen => Category::Chosen,
+        Kind::BrokenPreference | Kind::BrokenLaunchAgent => Category::Broken,
+        Kind::XcodePreviews => Category::Xcode,
+        Kind::LaunchAgent => Category::Startup,
     }
+}
+
+/// Folders directly in the home folder that are never chosen as a whole (their contents can
+/// be): moving one would break macOS's layout or sync.
+const HOME_FOLDERS: &[&str] = &[
+    "Desktop",
+    "Documents",
+    "Downloads",
+    "Library",
+    "Movies",
+    "Music",
+    "Pictures",
+    "Public",
+    "Applications",
+    ".Trash",
+];
+
+/// The only parts of the Library where you may choose something yourself.
+const CHOSEN_IN_LIBRARY: &[&str] = &["Library/Caches", "Library/Logs", "Library/Developer"];
+
+/// Packages whose insides belong to their app: the package may be chosen, never part of it.
+const PACKAGE_SUFFIXES: &[&str] = &[
+    ".app",
+    ".photoslibrary",
+    ".musiclibrary",
+    ".fcpbundle",
+    ".bundle",
+    ".framework",
+    ".xcarchive",
+    ".imovielibrary",
+    ".tvlibrary",
+    ".logicx",
+];
+
+/// Whether `relative` (below the home folder, already free of the never-touched places) may be
+/// chosen: not a top-level home folder itself, in the Library only below Caches, Logs or
+/// Developer, never in the Trash, and never inside a package.
+fn chosen_in_bounds(relative: &Path) -> bool {
+    let parts: Vec<&str> = relative
+        .components()
+        .filter_map(|part| part.as_os_str().to_str())
+        .collect();
+    if parts.len() != relative.components().count() || parts.is_empty() {
+        return false;
+    }
+    if parts.len() == 1 && HOME_FOLDERS.contains(&parts[0]) {
+        return false;
+    }
+    if parts[0] == ".Trash" {
+        return false;
+    }
+    if parts[0] == "Library"
+        && !CHOSEN_IN_LIBRARY
+            .iter()
+            .any(|allowed| relative.starts_with(allowed) && relative != Path::new(allowed))
+    {
+        return false;
+    }
+    !parts[..parts.len() - 1].iter().any(|part| {
+        let lower = part.to_lowercase();
+        PACKAGE_SUFFIXES
+            .iter()
+            .any(|suffix| lower.ends_with(suffix))
+    })
+}
+
+/// Folders in the home folder where apps keep their data, each entry named for its app.
+pub const LEFTOVER_FOLDERS: &[&str] = &[
+    "Library/Application Support",
+    "Library/Caches",
+    "Library/Preferences",
+    "Library/Preferences/ByHost",
+    "Library/Saved Application State",
+    "Library/Containers",
+    "Library/Group Containers",
+    "Library/HTTPStorages",
+    "Library/WebKit",
+    "Library/Logs",
+    "Library/Cookies",
+    "Library/Application Scripts",
+    "Library/LaunchAgents",
+];
+
+/// Installer file extensions, lowercase.
+pub const INSTALLER_EXTENSIONS: &[&str] = &["dmg", "pkg", "mpkg", "xip"];
+
+/// Whether `name`, an entry directly in a leftover folder, belongs to the app with bundle ID
+/// or name `owner`: the same name (ignoring case and a `.plist`, `.savedState` or
+/// `.binarycookies` suffix), the name followed by a dot (`ByHost/<id>.<host>.plist`, a launch
+/// agent `<id>.helper.plist`), or a group container `<team>.<id>`. Apple's own never match.
+pub fn leftover_matches(name: &str, owner: &str) -> bool {
+    let name = name.to_lowercase();
+    let owner = owner.trim().to_lowercase();
+    if owner.chars().count() < 3
+        || owner.starts_with("com.apple.")
+        || name.starts_with("com.apple.")
+        || owner.contains('/')
+    {
+        return false;
+    }
+    let stem = [".plist", ".savedstate", ".binarycookies"]
+        .iter()
+        .find_map(|suffix| name.strip_suffix(suffix))
+        .unwrap_or(&name);
+    stem == owner
+        || stem
+            .strip_prefix(owner.as_str())
+            .is_some_and(|rest| rest.starts_with('.'))
+        || (owner.contains('.') && stem.ends_with(&format!(".{owner}")))
+}
+
+/// Whether `path` is an entry directly in one of `LEFTOVER_FOLDERS` of `home`, not Apple's.
+pub fn in_leftover_folder(path: &Path, home: &Path) -> bool {
+    let (Some(parent), Some(name)) = (path.parent(), path.file_name().and_then(|n| n.to_str()))
+    else {
+        return false;
+    };
+    plain(path)
+        && plain(home)
+        && !name.to_lowercase().starts_with("com.apple.")
+        && LEFTOVER_FOLDERS
+            .iter()
+            .any(|folder| parent == home.join(folder))
+}
+
+/// Whether `name` is an installer file by its extension.
+pub fn is_installer_name(name: &str) -> bool {
+    Path::new(name)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| INSTALLER_EXTENSIONS.contains(&extension.to_lowercase().as_str()))
 }
 
 fn catalog_is_xcode(id: &str) -> bool {
@@ -287,6 +467,9 @@ pub struct Facts<'a> {
     pub larger_than: u64,
     /// It is on the quarantine folder's volume.
     pub same_volume: bool,
+    /// For app leftovers: the app was removed with Kleari just now, so they are certainly
+    /// its data rather than matched by name alone.
+    pub owner_removed: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -481,6 +664,101 @@ fn assess_kind(kind: &Kind, facts: &Facts<'_>) -> Assessment {
                 warn(E::NotKnownCache),
             ],
         ),
+        Kind::AppLeftover { .. } => {
+            if let Some(app) = facts.running_app {
+                return blocked(
+                    Risk::Low,
+                    Certainty::High,
+                    Eligibility::NotNow,
+                    WhyNot::AppRunning,
+                    vec![warn(E::AppRunning).with_app(app)],
+                );
+            }
+            if facts.owner_removed {
+                eligible(
+                    Risk::Low,
+                    Certainty::High,
+                    vec![ok(E::LeftoverOfRemovedApp), warn(E::LosesAppData)],
+                )
+            } else {
+                // Matched by name to an app that isn't installed: likely, not certain.
+                eligible(
+                    Risk::Medium,
+                    Certainty::Medium,
+                    vec![ok(E::LeftoverNoApp), warn(E::LosesAppData)],
+                )
+            }
+        }
+        Kind::Installer => eligible(
+            Risk::Low,
+            Certainty::High,
+            vec![ok(E::InstallerFile), info(E::DownloadAgain)],
+        ),
+        // `project_active` is whether anything inside is open in an app now.
+        Kind::UserChosen if facts.project_active => blocked(
+            Risk::Medium,
+            Certainty::Unknown,
+            Eligibility::NotNow,
+            WhyNot::OpenInApp,
+            vec![warn(E::ChosenByYou), warn(E::OpenInApp)],
+        ),
+        Kind::UserChosen => eligible(
+            Risk::Medium,
+            Certainty::Unknown,
+            vec![warn(E::ChosenByYou), ok(E::NothingOpen)],
+        ),
+        Kind::BrokenPreference => {
+            if let Some(app) = facts.running_app {
+                return blocked(
+                    Risk::Low,
+                    Certainty::High,
+                    Eligibility::NotNow,
+                    WhyNot::AppRunning,
+                    vec![
+                        ok(E::PreferencesUnreadable),
+                        warn(E::AppRunning).with_app(app),
+                    ],
+                );
+            }
+            eligible(
+                Risk::Low,
+                Certainty::High,
+                vec![
+                    ok(E::PreferencesUnreadable),
+                    info(E::AppMakesNewPreferences),
+                ],
+            )
+        }
+        Kind::LaunchAgent => eligible(
+            Risk::Medium,
+            Certainty::High,
+            vec![warn(E::StartsAtLogin), info(E::StopsAtNextLogin)],
+        ),
+        Kind::BrokenLaunchAgent => eligible(
+            Risk::Low,
+            Certainty::High,
+            vec![ok(E::ProgramMissing), info(E::AgentNotStarted)],
+        ),
+        Kind::XcodePreviews => {
+            if facts.xcode_running {
+                return blocked(
+                    Risk::Low,
+                    Certainty::High,
+                    Eligibility::NotNow,
+                    WhyNot::XcodeRunning,
+                    vec![ok(E::InXcodePreviews), warn(E::XcodeRunning)],
+                );
+            }
+            eligible(
+                Risk::Low,
+                Certainty::High,
+                vec![
+                    ok(E::InXcodePreviews),
+                    ok(E::XcodeNotRunning),
+                    info(E::RebuildSlower),
+                ],
+            )
+        }
     }
 }
 
@@ -566,6 +844,11 @@ fn assess_build(name: &str, facts: &Facts<'_>) -> Assessment {
     }
 }
 
+/// Whether `name` is a build folder a project's tools make (`node_modules`, `.next`, …).
+pub fn is_build_folder(name: &str) -> bool {
+    BUILD_FOLDERS.contains(&name)
+}
+
 /// Build-folder names a project may have, from the Developer page's stacks.
 const BUILD_FOLDERS: &[&str] = &[
     "node_modules",
@@ -639,7 +922,15 @@ pub fn within_bounds(
     let Ok(relative) = path.strip_prefix(home) else {
         return false;
     };
-    if relative.as_os_str().is_empty() || never_touched(relative) {
+    if relative.as_os_str().is_empty() {
+        return false;
+    }
+    // The one way into Application Support and the containers, which are otherwise never
+    // touched: an entry directly in a leftover folder, named for the app it belongs to.
+    if let Kind::AppLeftover { owner } = kind {
+        return in_leftover_folder(path, home) && leftover_matches(name, owner);
+    }
+    if never_touched(relative) {
         return false;
     }
     let under = |folder: &str| parent == home.join(folder);
@@ -665,9 +956,22 @@ pub fn within_bounds(
                 && !relative.starts_with("Library")
                 && !relative.starts_with(".Trash")
         }
+        Kind::Installer => (under("Downloads") || under("Desktop")) && is_installer_name(name),
+        Kind::UserChosen => chosen_in_bounds(relative),
+        Kind::BrokenPreference => {
+            under("Library/Preferences")
+                && name.ends_with(".plist")
+                && !name.to_lowercase().starts_with("com.apple.")
+        }
+        Kind::BrokenLaunchAgent | Kind::LaunchAgent => {
+            under("Library/LaunchAgents")
+                && name.ends_with(".plist")
+                && !name.to_lowercase().starts_with("com.apple.")
+        }
+        Kind::XcodePreviews => path == home.join("Library/Developer/Xcode/UserData/Previews"),
         // Never moved, so never in bounds.
         Kind::SimulatorDevice | Kind::LargeFile | Kind::OldFile => false,
-        Kind::Temp => false,
+        Kind::Temp | Kind::AppLeftover { .. } => false,
     }
 }
 
@@ -742,6 +1046,7 @@ pub fn restorable(
         "pkg" => in_bounds(&Kind::CachesPackage) || catalog_kinds(false),
         "xcode" => {
             [
+                Kind::XcodePreviews,
                 Kind::DerivedData,
                 Kind::Archive,
                 Kind::DeviceSupport,
@@ -756,6 +1061,13 @@ pub fn restorable(
         "logs" => [Kind::Log, Kind::CrashReport, Kind::Temp]
             .iter()
             .any(in_bounds),
+        // The app it belonged to isn't recorded: any entry directly in a leftover folder.
+        "apps" => in_leftover_folder(path, home) || in_bounds(&Kind::Installer),
+        "chosen" => in_bounds(&Kind::UserChosen),
+        "broken" => [Kind::BrokenPreference, Kind::BrokenLaunchAgent]
+            .iter()
+            .any(in_bounds),
+        "startup" => in_bounds(&Kind::LaunchAgent),
         _ => false,
     }
 }

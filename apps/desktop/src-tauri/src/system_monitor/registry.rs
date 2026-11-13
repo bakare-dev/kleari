@@ -19,6 +19,29 @@ pub fn dictionary_integers(class: &str, property: &str, keys: &[&str]) -> Option
     })
 }
 
+/// For every registered service of an IOKit class: the integer properties `keys` and the
+/// string property `name_key` (a device's name).
+#[cfg(target_os = "macos")]
+pub fn each(class: &str, name_key: &str, keys: &[&str]) -> Vec<(Option<String>, Vec<Option<i64>>)> {
+    macos::each_service(class, |service| {
+        (
+            macos::string(service, name_key),
+            keys.iter()
+                .map(|key| macos::integer(service, key))
+                .collect(),
+        )
+    })
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn each(
+    _class: &str,
+    _name_key: &str,
+    _keys: &[&str],
+) -> Vec<(Option<String>, Vec<Option<i64>>)> {
+    Vec::new()
+}
+
 #[cfg(not(target_os = "macos"))]
 pub fn integers(_class: &str, _keys: &[&str]) -> Option<Vec<Option<i64>>> {
     None
@@ -39,9 +62,54 @@ mod macos {
 
     use objc2_core_foundation::{CFDictionary, CFNumber, CFRetained, CFString, CFType};
     use objc2_io_kit::{
-        io_registry_entry_t, kIOMainPortDefault, IOObjectRelease, IORegistryEntryCreateCFProperty,
-        IOServiceGetMatchingService, IOServiceMatching,
+        io_iterator_t, io_registry_entry_t, kIOMainPortDefault, IOIteratorNext, IOObjectRelease,
+        IORegistryEntryCreateCFProperty, IOServiceGetMatchingService, IOServiceGetMatchingServices,
+        IOServiceMatching,
     };
+
+    /// Most services visited for one class.
+    const MAX_SERVICES: usize = 64;
+
+    /// Runs `read` against every matching service (at most `MAX_SERVICES`), releasing each.
+    pub fn each_service<T>(class: &str, mut read: impl FnMut(io_registry_entry_t) -> T) -> Vec<T> {
+        let mut found = Vec::new();
+        let Ok(class) = CString::new(class) else {
+            return found;
+        };
+        // SAFETY: `class` is a valid NUL-terminated C string for the duration of the call.
+        let Some(matching) = (unsafe { IOServiceMatching(class.as_ptr()) }) else {
+            return found;
+        };
+        let matching: CFRetained<CFDictionary> = (&matching).into();
+        let mut iterator: io_iterator_t = 0;
+        // SAFETY: the default port, a matching dictionary the call consumes, and a writable
+        // iterator.
+        let status = unsafe {
+            IOServiceGetMatchingServices(kIOMainPortDefault, Some(matching), &mut iterator)
+        };
+        if status != 0 || iterator == 0 {
+            return found;
+        }
+        loop {
+            let service = IOIteratorNext(iterator);
+            if service == 0 {
+                break;
+            }
+            if found.len() < MAX_SERVICES {
+                found.push(read(service));
+            }
+            let _ = IOObjectRelease(service);
+        }
+        let _ = IOObjectRelease(iterator);
+        found
+    }
+
+    pub fn string(service: io_registry_entry_t, key: &str) -> Option<String> {
+        property(service, key)?
+            .downcast_ref::<CFString>()
+            .map(ToString::to_string)
+            .filter(|text| !text.is_empty() && text.len() <= 200)
+    }
 
     /// Runs `read` against the first matching service and releases it afterwards.
     pub fn with_service<T>(class: &str, read: impl FnOnce(io_registry_entry_t) -> T) -> Option<T> {

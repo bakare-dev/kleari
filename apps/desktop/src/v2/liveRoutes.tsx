@@ -18,6 +18,9 @@ import type { useCleanupScan } from "../features/cleanup/useCleanupScan";
 import type { useQuarantine } from "../features/cleanup/useQuarantine";
 import { buildDeveloperView } from "../features/developer/developerView";
 import type { useDeveloperScan } from "../features/developer/useDeveloperScan";
+import type { Apps } from "../features/apps/useApps";
+import type { StorageExplorer as StorageExplorerState } from "../features/storage/useStorageExplorer";
+import { AppsScreen } from "./screens/apps/AppsScreen";
 import { useProcessesPage, type ProcessMonitor } from "../features/processes/useProcessesPage";
 import { useSystemPage, type SystemMonitor } from "../features/system/useSystemPage";
 import { buildStorageView } from "../features/storage/storageAnalysisView";
@@ -71,8 +74,28 @@ export function DeveloperRoute({ developer, review }: { developer: ReturnType<ty
   );
 }
 
+/** The Apps scan runs only when asked; removing an app always asks first. */
+export function AppsRoute({ apps }: { apps: Apps }) {
+  const { state } = apps;
+  return (
+    <AppsScreen
+      result={state.result}
+      running={state.running}
+      note={state.error ?? (state.stopped ? "The scan was stopped. Showing the last full scan." : null)}
+      sent={apps.sent}
+      onScan={apps.scan}
+      onCancel={apps.cancel}
+      onSend={apps.send}
+      onRemove={(app) => apps.remove(app.id, app.name)}
+      onOpenAppManagement={() => {
+        void openSystemSettings("appManagement");
+      }}
+    />
+  );
+}
+
 /** Capacity is read on each visit; the analysis runs only when asked. */
-export function StorageRoute({ storage, review, cleanup }: { storage: ReturnType<typeof useStorageAnalysis>; review: CleanupReview; cleanup: CleanupScan }) {
+export function StorageRoute({ storage, review, cleanup, explorer }: { storage: ReturnType<typeof useStorageAnalysis>; review: CleanupReview; cleanup: CleanupScan; explorer: StorageExplorerState }) {
   const overview = useStorageOverview(storage.state.result);
   const view = buildStorageView({ overview, analysis: storage.state, nowMs: Date.now() });
   return (
@@ -83,6 +106,7 @@ export function StorageRoute({ storage, review, cleanup }: { storage: ReturnType
       onOpenPrivacySettings={openFullDiskAccessSettings}
       inReview={review.storageSent}
       onAddToReview={(file) => review.addStorageFile(file.reviewId, file.name)}
+      explorer={explorer}
       onScanInCleanup={(mode: ScanMode) => {
         // Opens Cleanup with the mode chosen; the scan starts only when asked there.
         cleanup.prepare({ mode });

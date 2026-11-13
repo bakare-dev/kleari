@@ -11,6 +11,10 @@ export const categoryMeta: Record<FindingCategory, { label: string; tone: Tone; 
   logs: { label: "Logs and temp", tone: "teal", icon: "clock" },
   large: { label: "Large files", tone: "orange", icon: "file" },
   old: { label: "Old files", tone: "yellow", icon: "archive" },
+  apps: { label: "App leftovers", tone: "pink", icon: "apps" },
+  chosen: { label: "Chosen by you", tone: "orange", icon: "folder" },
+  broken: { label: "Broken items", tone: "red", icon: "warning" },
+  startup: { label: "Login items", tone: "indigo", icon: "power" },
 };
 
 export const riskStatus: Record<Level, Status> = { Low: "ok", Medium: "warn", Unknown: "muted" };

@@ -40,10 +40,15 @@ squash or rebase, so the branches keep sharing history.
 
 **Safety (non-negotiable).**
 - Scanning only reads. Nothing changes, moves or deletes a user's file except Cleanup's move
-  into quarantine, Quarantine's restore and its separately confirmed permanent delete.
+  into quarantine, Quarantine's restore and its separately confirmed permanent delete, and
+  Apps moving a confirmed app to the Trash through macOS
+  ([ADR-017](docs/adr/ADR-017-apps-and-leftovers.md)), and Maintenance's fixed tasks, each
+  confirmed and run through macOS's own administrator prompt
+  ([ADR-020](docs/adr/ADR-020-maintenance-tasks.md)).
 - Rust decides everything that touches files; the interface never sends a path to act on.
 - Never follow symlinks out of scope, never overwrite on restore, and fail closed when unsure.
-- No root helper, no broad new permission, no shell command built from data.
+- No root helper, no broad new permission, no shell command built from data. Administrator
+  rights only through macOS's own prompt, per action, for a constant script (ADR-020).
 
 **Privacy (non-negotiable).**
 - Nothing about the user's Mac or files leaves it. No telemetry, analytics, crash upload,

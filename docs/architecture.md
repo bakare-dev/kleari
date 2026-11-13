@@ -63,7 +63,7 @@ Three commands, each with its own capability permission. Docker decision record:
 - **`add_developer_folder`** opens `NSOpenPanel` from Rust. The folder stays in `DeveloperState` for the session; the frontend gets only its name, and a scan follows.
 
 `src/contracts/developer.ts` validates every response (bounds, parts not larger than their folder, project totals). `src/features/developer/developerView.ts` maps it to the screen:
-- catalog names and explanations, and risk labels: low, check first, Xcode-managed, or active (a commit within 14 days, never suggested);
+- catalog names and explanations, and risk labels: low, check first, Xcode-managed, or active (a file in it, or the folder, open in some app; never suggested, and checked again before anything moves);
 - totals, with the share of used space taken from the Storage overview; when any part is a minimum, or the project search missed something (a skipped location, unreadable folders, the 500-project cap), the total shows "≥" and the share "at least", and the project total shows "≥" for the search cases;
 - Docker's states: not installed, not running, running (complete or a minimum), and not checked.
 

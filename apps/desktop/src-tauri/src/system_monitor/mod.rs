@@ -10,17 +10,23 @@ mod collector;
 mod details;
 mod display;
 mod names;
+pub mod open_paths;
 mod process_list;
 mod process_sampler;
 mod processes;
 #[cfg(target_os = "macos")]
 mod ps;
-mod registry;
+pub(crate) mod registry;
 pub mod running_apps;
 mod startup;
 mod sysctl;
 
 pub use activity::{ActivitySampler, SystemActivity};
+
+/// A numeric sysctl value, for the issue checks.
+pub fn sysctl_integer(name: &str) -> Option<u64> {
+    sysctl::integer(name)
+}
 pub use battery::RawBattery;
 pub use collector::SystemSampler;
 pub use details::SystemDetails;

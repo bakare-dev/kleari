@@ -9,6 +9,7 @@ import type { UninstallOutcome } from "../../../features/settings/useSettings";
 import type { UpdateState } from "../../../features/settings/useUpdates";
 import { installable, updateStatus } from "./Updates";
 import "./settings.css";
+import { AccessSteps } from "../../ui/AccessSteps";
 
 /** Kleari's bundle identifier (tauri.conf.json), which macOS keys its permissions by. */
 export const BUNDLE_ID = "dev.bakare.kleari";
@@ -39,7 +40,7 @@ interface SettingsScreenProps {
   saveFailed?: boolean;
   onSave: (preferences: Preferences) => Change;
   onOpenAtLogin: (enabled: boolean) => Change;
-  onNotify: (key: "notifyScan" | "notifyQuarantine", on: boolean) => Change;
+  onNotify: (key: "notifyScan" | "notifyQuarantine" | "notifyIssues", on: boolean) => Change;
   onSchedule: (schedule: ScanSchedule) => Change;
   onAddExclusion: () => Change;
   onRemoveExclusion: (path: string) => Change;
@@ -359,7 +360,10 @@ export function SettingsScreen(props: SettingsScreenProps) {
                   }
                 />
                 {state?.loginItem === "requiresApproval" && (
-                  <Row label="Approve in System Settings" sub="General › Login Items" control={<Button variant="soft" size="sm" onClick={() => props.onOpenPane("loginItems")}>Open</Button>} />
+                  <>
+                    <Row label="Approve in System Settings" sub="General › Login Items" control={<Button variant="soft" size="sm" onClick={() => props.onOpenPane("loginItems")}>Open</Button>} />
+                    <div className="set-steps"><AccessSteps kind="loginItems" compact /></div>
+                  </>
                 )}
                 <Row
                   label="Show in menu bar"
@@ -403,7 +407,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
               <Group title="What to look at" note="These only leave findings out. Nothing becomes eligible to move because of them.">
                 <Row
                   label="Include hidden files"
-                  sub="Files and folders that start with a dot, in a Deep scan"
+                  sub="Private dotfiles such as .env and .ssh, in a Deep scan. Build and cache folders such as .next are always searched"
                   control={<Switch label="Include hidden files" checked={preferences?.scanDefaults.hidden ?? false} disabled={!preferences} onChange={(on) => preferences && set("scanDefaults", { ...preferences.scanDefaults, hidden: on })} />}
                 />
                 <Row label="Skip large files changed in the last" sub="Recently changed large files are never suggested" control={stepper("skipRecentDays", "recent-file window", 0, 90, 1, "days")} />
@@ -484,6 +488,9 @@ export function SettingsScreen(props: SettingsScreenProps) {
                   control={state ? <Badge status={state.fullDiskAccess ? "ok" : "muted"}>{state.fullDiskAccess ? "Granted" : "Not granted"}</Badge> : null}
                 />
                 <Row label="Change in System Settings" sub="Privacy and Security › Full Disk Access" control={<Button variant="soft" size="sm" onClick={() => props.onOpenPane("fullDiskAccess")}>Open</Button>} />
+                {state && !state.fullDiskAccess && (
+                  <div className="set-steps"><AccessSteps kind="fullDiskAccess" compact /></div>
+                )}
               </Group>
             </>
           )}
@@ -512,8 +519,12 @@ export function SettingsScreen(props: SettingsScreenProps) {
               <Group title="Notify me when" note={state ? notificationNote[state.notifications] : undefined}>
                 <Row label="A Cleanup scan finishes" sub="With what it found; nothing is changed" control={<Switch label="A Cleanup scan finishes" checked={preferences?.notifyScan ?? false} disabled={!state} onChange={(on) => after(props.onNotify("notifyScan", on))} />} />
                 <Row label="Quarantine gets large" sub="Set the size in Quarantine" control={<Switch label="Quarantine gets large" checked={preferences?.notifyQuarantine ?? false} disabled={!state} onChange={(on) => after(props.onNotify("notifyQuarantine", on))} />} />
+                <Row label="Something needs attention" sub="A full disk or drive, a device’s low battery, heavy memory pressure or fast battery drain, checked every 15 minutes" control={<Switch label="Something needs attention" checked={preferences?.notifyIssues ?? false} disabled={!state} onChange={(on) => after(props.onNotify("notifyIssues", on))} />} />
                 {state?.notifications === "denied" && (
-                  <Row label="Allow in System Settings" sub="Notifications › Kleari" control={<Button variant="soft" size="sm" onClick={() => props.onOpenPane("notifications")}>Open</Button>} />
+                  <>
+                    <Row label="Allow in System Settings" sub="Notifications › Kleari" control={<Button variant="soft" size="sm" onClick={() => props.onOpenPane("notifications")}>Open</Button>} />
+                    <div className="set-steps"><AccessSteps kind="notifications" compact /></div>
+                  </>
                 )}
               </Group>
               <Group title="Style">
