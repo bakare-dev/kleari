@@ -38,12 +38,15 @@ downloads come from the versioned release.
    is merged and verified; remove anything not shipped or not checked. Review security,
    privacy, data-integrity and compatibility effects, and pick the version
    ([versioning.md](versioning.md)).
-2. **Prepare** (a pull request into the branch being released): set the version in
+2. **Prepare**, in one pull request: for a beta, into `main`, then promote `main` into `beta`
+   (a pull request from `main`); for a stable release, first promote `beta` into `release`
+   (a pull request from `beta`), then a pull request into `release` from a `release-prep/…`
+   branch. Promotions use a merge commit, never squash or rebase
+   ([CONTRIBUTING.md](../CONTRIBUTING.md#2-branches)). In it, set the version in
    `apps/desktop/package.json`, `apps/desktop/src-tauri/Cargo.toml` (and `Cargo.lock`) and
    `apps/desktop/src-tauri/tauri.conf.json`; move the entries into a dated version heading,
    leaving an empty `Unreleased`; write `docs/releases/<version>.md`, starting with a link to
-   [Read me before you install](install.md#read-me-before-you-install). For a stable
-   release, first merge `beta` into `release`.
+   [Read me before you install](install.md#read-me-before-you-install).
 3. **Check** from a clean, up-to-date checkout of that branch: every command in
    [CONTRIBUTING.md](../CONTRIBUTING.md#4-checks), plus a manual pass on Apple silicon with
    macOS 14 or later (permissions, Cleanup move and restore, an update from the previous
@@ -70,8 +73,9 @@ downloads come from the versioned release.
    - replace `latest.json` on the `beta-channel` release with the same file
      (`gh release upload beta-channel latest.json --clobber`), creating `beta-channel` as a
      pre-release the first time.
-7. **After a stable release**, fast-forward `main` to `release`, and merge `release` back into
-   `beta` if it took a fix.
+7. **After a stable release** (or a `hotfix/…` into `release`), merge `release` back into
+   `main` with a pull request from `release`, so the version change and any fix aren't lost;
+   `beta` gets them with the next promotion from `main`.
 8. **Confirm**: download the assets back and compare them; check that an installed copy finds
    the update on its channel.
 
