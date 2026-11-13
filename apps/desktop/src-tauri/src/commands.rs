@@ -68,6 +68,8 @@ pub enum CommandErrorCode {
     MenuBarUnavailable,
     AppsScanInProgress,
     AppsScanFailed,
+    FilesScanInProgress,
+    FilesScanFailed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

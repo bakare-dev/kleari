@@ -2,6 +2,8 @@ import { useCallback, useState, type ReactNode } from "react";
 import { useSettingsShortcut } from "../app/navigation";
 import { useActivity } from "../features/activity/useActivity";
 import { useApps } from "../features/apps/useApps";
+import { useFiles } from "../features/files/useFiles";
+import { FilesScreen } from "./screens/files/FilesScreen";
 import { useStorageExplorer } from "../features/storage/useStorageExplorer";
 import { scanOptionsFromInput } from "../features/cleanup/cleanupView";
 import { useCleanupReview } from "../features/cleanup/useCleanupReview";
@@ -57,6 +59,8 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
   const apps = useApps(review.refresh);
   // App-level so the folder you were browsing is still open when you come back to Storage.
   const explorer = useStorageExplorer(review.refresh);
+  // App-level so a running search and each tool's result survive leaving the page.
+  const files = useFiles(review.refresh);
   // App-level so a Mouse save, and the combination changes waiting their turn, finish after
   // leaving the Mouse page; read and watched only while it is open.
   const mouse = useMouse(route === "mouse");
@@ -104,6 +108,7 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
     system: () => <SystemRoute monitor={system} />,
     developer: () => <DeveloperRoute developer={developer} review={review} />,
     apps: () => <AppsRoute apps={apps} />,
+    files: () => <FilesScreen files={files} />,
     processes: () => <ProcessesRoute monitor={processes} />,
     mouse: () => <MouseRoute settings={settings} mouse={mouse} combos={mouseCombos} />,
     activity: () => <ActivityRoute activity={activity} />,

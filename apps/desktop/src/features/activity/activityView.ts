@@ -69,7 +69,7 @@ export function activityEvent(event: EventData): ActivityEvent {
         "review",
         "send",
         `Sent ${plural(event.items, "item")} to review`,
-        event.subject === "storage" ? "From Storage · to inspect, never moved" : "From Developer · nothing moved",
+        `From ${reviewSources[event.subject ?? ""] ?? "Developer"} · nothing moved`,
         { route: "review", label: "Open review" },
       );
     case "quarantine":
@@ -117,6 +117,9 @@ export function activityEvent(event: EventData): ActivityEvent {
       return make("system", "apps", `Moved ${event.subject ?? "an app"} to the Trash`, "From Apps · Finder’s Put Back returns it", { route: "apps", label: "Open Apps" });
   }
 }
+
+/** Where items sent to review came from, by the event's subject. */
+const reviewSources: Record<string, string> = { storage: "Storage", developer: "Developer", apps: "Apps", files: "Files" };
 
 function dayLabel(ms: number, nowMs: number): { label: string; sub: string } {
   const date = new Date(ms);

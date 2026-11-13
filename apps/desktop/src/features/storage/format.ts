@@ -27,6 +27,8 @@ export const storageErrorText: Record<StorageErrorKind, string> = {
   mouseUnavailable: "Kleari couldn’t read or apply the Mouse settings. Try again.",
   appsScanInProgress: "An Apps scan is already running.",
   appsScanFailed: "The Apps scan couldn’t finish. Nothing was changed.",
+  filesScanInProgress: "A Files search is already running.",
+  filesScanFailed: "The search couldn’t finish. Nothing was changed.",
   updateNeedsApp: "Updates work from the Kleari app you installed, not this development build.",
   uninstallNeedsApp: "Uninstall works from the Kleari app you installed, not this development build. Nothing was moved.",
   invalidResponse: "Kleari received an unexpected response and didn't display it.",

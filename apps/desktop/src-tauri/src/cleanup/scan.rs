@@ -911,7 +911,7 @@ const TOOL_DOT_FOLDERS: &[&str] = &[
 /// Whether the large and old search skips `name` as hidden. With hidden files off, only
 /// private dotfiles are skipped (`.env`, `.ssh`, `.git`, …), never a tool's build or cache
 /// folder such as `.next`.
-pub(super) fn hidden_skipped(name: &[u8], hidden: bool) -> bool {
+pub(crate) fn hidden_skipped(name: &[u8], hidden: bool) -> bool {
     if hidden || !name.starts_with(b".") {
         return false;
     }
@@ -921,7 +921,7 @@ pub(super) fn hidden_skipped(name: &[u8], hidden: bool) -> bool {
     !(policy::is_build_folder(name) || TOOL_DOT_FOLDERS.contains(&name))
 }
 
-fn skipped_folder(name: &[u8]) -> bool {
+pub(crate) fn skipped_folder(name: &[u8]) -> bool {
     const SUFFIXES: &[&[u8]] = &[
         b".app",
         b".photoslibrary",

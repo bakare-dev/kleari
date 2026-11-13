@@ -22,6 +22,9 @@ sysinfo = { version = "0.40.1", default-features = false, features = ["system", 
 plist = { version = "1.10.3", default-features = false }
 # Docker's `system/df` and npm's package.json (Developer page). Already in the tree via Tauri.
 serde_json = "1"
+# SHA-256 to tell identical files apart on the Files page (Duplicates). Already in the tree via
+# Tauri.
+sha2 = "0.10"
 # tray-icon: the menu-bar item (its icon is raw pixels, so no image decoder is added).
 tauri = { version = "2", features = ["tray-icon"] }
 # Local history of cleanups and quarantine (ADR-006). SQLite is compiled in (`bundled`) so
@@ -44,10 +47,10 @@ libc = "0.2.191"
 # thermal state and opening System Settings.
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6.5", default-features = false, features = ["std"] }
-objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "block2", "objc2-core-graphics", "NSApplication", "NSEvent", "NSGraphics", "NSGraphicsContext", "NSOpenPanel", "NSPanel", "NSResponder", "NSRunningApplication", "NSSavePanel", "NSScreen", "NSWindow", "NSWorkspace", "libc"] }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "block2", "objc2-core-graphics", "NSApplication", "NSEvent", "NSGraphics", "NSGraphicsContext", "NSImage", "NSImageRep", "NSOpenPanel", "NSPanel", "NSResponder", "NSRunningApplication", "NSSavePanel", "NSScreen", "NSWindow", "NSWorkspace", "libc"] }
 objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFBase", "CFDate", "CFDictionary", "CFMachPort", "CFNumber", "CFRunLoop", "CFString"] }
 # CGEvent*: the Mouse module's event tap and the events it posts (ADR-016).
-objc2-core-graphics = { version = "0.3.2", default-features = false, features = ["std", "libc", "CGDirectDisplay", "CGDisplayConfiguration", "CGError", "CGEvent", "CGEventSource", "CGEventTypes", "CGRemoteOperation"] }
+objc2-core-graphics = { version = "0.3.2", default-features = false, features = ["std", "libc", "CGBitmapContext", "CGColorSpace", "CGContext", "CGDirectDisplay", "CGDisplayConfiguration", "CGError", "CGEvent", "CGEventSource", "CGEventTypes", "CGImage", "CGRemoteOperation"] }
 objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSBundle", "NSDictionary", "NSError", "NSFileManager", "NSProcessInfo", "NSString", "NSURL", "NSValue"] }
 # Notifications (Settings › Notifications) and the completion blocks their API takes. Both
 # are already in the tree via Tauri.
