@@ -1,0 +1,87 @@
+/* The Maintenance page scrolls as a whole. */
+.mt-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  overflow: auto;
+  padding: 4px 28px 22px;
+}
+
+.mt-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.mt-task {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+}
+
+.mt-task-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mt-task-head h2 {
+  flex: 1;
+}
+
+.mt-line {
+  font-size: 13px;
+}
+
+.mt-task-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.mt-task-foot .v2-button,
+.mt-task-foot button {
+  margin-left: auto;
+}
+
+.mt-login,
+.mt-not {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+}
+
+.mt-login-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mt-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mt-rows li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 2px;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+@media (max-width: 640px) {
+  .mt-body {
+    padding: 4px 16px 22px;
+  }
+}

@@ -3,6 +3,9 @@ import { useSettingsShortcut } from "../app/navigation";
 import { useActivity } from "../features/activity/useActivity";
 import { useApps } from "../features/apps/useApps";
 import { useFiles } from "../features/files/useFiles";
+import { useMaintenance } from "../features/maintenance/useMaintenance";
+import { MaintenanceScreen } from "./screens/maintenance/MaintenanceScreen";
+import { openSystemSettings } from "../lib/systemPageIpc";
 import { FilesScreen } from "./screens/files/FilesScreen";
 import { useStorageExplorer } from "../features/storage/useStorageExplorer";
 import { scanOptionsFromInput } from "../features/cleanup/cleanupView";
@@ -61,6 +64,8 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
   const explorer = useStorageExplorer(review.refresh);
   // App-level so a running search and each tool's result survive leaving the page.
   const files = useFiles(review.refresh);
+  // App-level so a running task's result still shows after leaving the page.
+  const maintenance = useMaintenance(review.refresh);
   // App-level so a Mouse save, and the combination changes waiting their turn, finish after
   // leaving the Mouse page; read and watched only while it is open.
   const mouse = useMouse(route === "mouse");
@@ -109,6 +114,7 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
     developer: () => <DeveloperRoute developer={developer} review={review} />,
     apps: () => <AppsRoute apps={apps} />,
     files: () => <FilesScreen files={files} />,
+    maintenance: () => <MaintenanceScreen maintenance={maintenance} onOpenLoginItems={() => void openSystemSettings("loginItems")} />,
     processes: () => <ProcessesRoute monitor={processes} />,
     mouse: () => <MouseRoute settings={settings} mouse={mouse} combos={mouseCombos} />,
     activity: () => <ActivityRoute activity={activity} />,

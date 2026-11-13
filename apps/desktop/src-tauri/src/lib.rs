@@ -12,6 +12,8 @@ mod finder;
 mod history;
 mod ids;
 mod login_item;
+mod maintenance;
+mod maintenance_commands;
 mod menubar;
 mod mouse;
 mod notifications;
@@ -44,6 +46,7 @@ pub fn run() {
         .manage(apps::AppsState::default())
         .manage(storage::explorer::ExplorerState::default())
         .manage(files::FilesState::default())
+        .manage(maintenance_commands::MaintenanceState::default())
         .manage(cleanup::CleanupState::default())
         .manage(quarantine::QuarantineState::default())
         .manage(menubar::PopoverState::default())
@@ -113,6 +116,9 @@ pub fn run() {
             files_commands::start_files_scan,
             files_commands::cancel_files_scan,
             files_commands::send_files_to_review,
+            maintenance_commands::get_maintenance_info,
+            maintenance_commands::run_maintenance_task,
+            maintenance_commands::send_launch_agent_to_review,
             cleanup_commands::get_cleanup_scope,
             cleanup_commands::request_folder_access,
             cleanup_commands::add_cleanup_folder,

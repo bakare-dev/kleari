@@ -1173,6 +1173,38 @@ fn broken_preferences_and_login_items_are_found_but_not_apples_or_working_ones()
 }
 
 #[test]
+fn a_login_item_you_choose_is_in_bounds_only_in_your_launch_agents_and_never_apples() {
+    let home = Path::new("/Users/someone");
+    let agent = |path: &str| {
+        policy::within_bounds(&Kind::LaunchAgent, Path::new(path), home, None, |_| {
+            Vec::new()
+        })
+    };
+    assert!(agent(
+        "/Users/someone/Library/LaunchAgents/com.example.helper.plist"
+    ));
+    assert!(!agent(
+        "/Users/someone/Library/LaunchAgents/com.apple.something.plist"
+    ));
+    assert!(!agent("/Library/LaunchAgents/com.example.helper.plist"));
+    assert!(!agent(
+        "/Users/someone/Library/LaunchAgents/com.example.helper"
+    ));
+    assert!(policy::restorable(
+        "startup",
+        Path::new("/Users/someone/Library/LaunchAgents/com.example.helper.plist"),
+        &[],
+        home,
+        None
+    ));
+    let assessed = policy::assess(&Kind::LaunchAgent, &facts("com.example.helper.plist"));
+    assert_eq!(
+        (assessed.risk, assessed.eligibility),
+        (Risk::Medium, Eligibility::Eligible)
+    );
+}
+
+#[test]
 fn xcode_previews_are_found_by_the_developer_scan() {
     let home = Home::new("previews");
     home.write(

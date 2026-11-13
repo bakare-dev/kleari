@@ -225,7 +225,7 @@ export function modeDefinitions(input: {
   return { standard: build("standard"), deep: build("deep"), dev: build("dev") };
 }
 
-const categoryOrder: readonly FindingCategory[] = ["cache", "pkg", "logs", "xcode", "node", "build", "broken", "apps", "chosen", "large", "old"];
+const categoryOrder: readonly FindingCategory[] = ["cache", "pkg", "logs", "xcode", "node", "build", "broken", "startup", "apps", "chosen", "large", "old"];
 
 function resultLines(findings: readonly ReviewFinding[], result: CleanupScanResult): ScanResultLine[] {
   const lines: ScanResultLine[] = [];
@@ -378,6 +378,10 @@ export function evidenceText(entry: EvidenceEntry): string {
       return "Nothing will start from it; macOS stops trying at your next login";
     case "inXcodePreviews":
       return "SwiftUI previews Xcode builds again when you open a preview";
+    case "startsAtLogin":
+      return "Starts a program each time you log in; the app that installed it may stop working as it did";
+    case "stopsAtNextLogin":
+      return "It stops starting from your next login; restore it from Quarantine to bring it back";
   }
 }
 
@@ -418,6 +422,8 @@ function reasonFor(finding: ReviewFinding): string {
       return `Large ${fileKindLabel[finding.fileCategory ?? "other"]} to look over`;
     case "old":
       return `${capitalize(fileKindLabel[finding.fileCategory ?? "other"])} you haven’t opened in a while`;
+    case "startup":
+      return "A login item you chose to stop";
     case "broken":
       return codes.has("programMissing") ? "Login item whose program is gone" : "Damaged preferences file";
     case "chosen":
@@ -475,7 +481,7 @@ export function findingView(finding: ReviewFinding, nowMs: number): Finding {
 }
 
 export function categoryCounts(findings: readonly Finding[]): Record<FindingCategory, number> {
-  const counts: Record<FindingCategory, number> = { cache: 0, xcode: 0, pkg: 0, node: 0, build: 0, logs: 0, large: 0, old: 0, apps: 0, chosen: 0, broken: 0 };
+  const counts: Record<FindingCategory, number> = { cache: 0, xcode: 0, pkg: 0, node: 0, build: 0, logs: 0, large: 0, old: 0, apps: 0, chosen: 0, broken: 0, startup: 0 };
   for (const finding of findings) {
     counts[finding.category] += 1;
   }
@@ -558,6 +564,9 @@ export function consequences(categories: readonly FindingCategory[]): string {
   }
   if (has("logs")) {
     parts.push("apps start new logs when they need them");
+  }
+  if (has("startup")) {
+    parts.push("login items you chose stop starting from your next login");
   }
   if (has("broken")) {
     parts.push("apps make new preferences with their defaults");

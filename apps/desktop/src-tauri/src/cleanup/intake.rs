@@ -415,6 +415,31 @@ impl Intake<'_> {
         Some(candidate)
     }
 
+    /// A launch agent you chose to stop in Maintenance › Login items.
+    pub fn launch_agent(
+        &self,
+        path: std::path::PathBuf,
+        stat: &crate::storage::fsdir::FileStat,
+    ) -> Option<Candidate> {
+        if crate::preferences::touches_excluded(&path, self.excluded)
+            || !policy::within_bounds(&Kind::LaunchAgent, &path, self.home, None, |_| Vec::new())
+        {
+            return None;
+        }
+        let name = super::display_name_of(&path);
+        let mut candidate = self.candidate(
+            Kind::LaunchAgent,
+            Source::Apps,
+            path,
+            stat,
+            StoredFacts::default(),
+            name,
+        );
+        candidate.bytes = stat.blocks.saturating_mul(512);
+        candidate.files = 1;
+        Some(candidate)
+    }
+
     /// Files and folders chosen on the Storage page's Browse view.
     pub fn chosen_items(&self, items: Vec<crate::storage::explorer::Chosen>) -> Vec<Candidate> {
         items

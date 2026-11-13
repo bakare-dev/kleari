@@ -9,7 +9,7 @@ import { ContractError, nonNegativeInteger, nullable, oneOf, record } from "./sy
 export const scanModes = ["standard", "deep", "dev"] as const;
 export type ScanMode = (typeof scanModes)[number];
 
-export const findingCategories = ["cache", "xcode", "pkg", "node", "build", "logs", "large", "old", "apps", "chosen", "broken"] as const;
+export const findingCategories = ["cache", "xcode", "pkg", "node", "build", "logs", "large", "old", "apps", "chosen", "broken", "startup"] as const;
 export type FindingCategory = (typeof findingCategories)[number];
 
 const risks = ["low", "medium", "unknown"] as const;
@@ -83,6 +83,8 @@ export const evidenceCodes = [
   "programMissing",
   "agentNotStarted",
   "inXcodePreviews",
+  "startsAtLogin",
+  "stopsAtNextLogin",
 ] as const;
 export type EvidenceCode = (typeof evidenceCodes)[number];
 

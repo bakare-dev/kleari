@@ -113,13 +113,33 @@ export function activityEvent(event: EventData): ActivityEvent {
         ? make("system", "close", `Asked ${app} to quit`, "From Processes · the app decides, and may ask to save")
         : make("system", "close", `Couldn’t ask ${app} to quit`, "From Processes · macOS didn’t deliver the request");
     }
+    case "maintenance": {
+      const task = maintenanceNames[event.subject ?? ""] ?? "A maintenance task";
+      return event.outcome === "completed"
+        ? make("system", "gear", `${task}: done`, "From Maintenance · you confirmed it")
+        : event.outcome === "cancelled"
+          ? make("system", "gear", `${task}: cancelled`, "From Maintenance · nothing was changed")
+          : make("system", "gear", `${task}: didn’t finish`, "From Maintenance · macOS reported a problem", { route: "maintenance", label: "Open Maintenance" });
+    }
     case "appRemoved":
       return make("system", "apps", `Moved ${event.subject ?? "an app"} to the Trash`, "From Apps · Finder’s Put Back returns it", { route: "apps", label: "Open Apps" });
   }
 }
 
+/** Maintenance tasks' names, by task ID. */
+const maintenanceNames: Record<string, string> = {
+  freeRam: "Free up memory",
+  flushDns: "Flush the DNS cache",
+  thinSnapshots: "Free up purgeable space",
+  reindexSpotlight: "Reindex Spotlight",
+  clearSystemCaches: "Clear system caches",
+  clearSystemLogs: "Clear old system logs",
+  removeDeletedUsers: "Remove deleted users",
+  emptyTrash: "Empty the Trash",
+};
+
 /** Where items sent to review came from, by the event's subject. */
-const reviewSources: Record<string, string> = { storage: "Storage", developer: "Developer", apps: "Apps", files: "Files" };
+const reviewSources: Record<string, string> = { storage: "Storage", developer: "Developer", apps: "Apps", files: "Files", maintenance: "Maintenance" };
 
 function dayLabel(ms: number, nowMs: number): { label: string; sub: string } {
   const date = new Date(ms);

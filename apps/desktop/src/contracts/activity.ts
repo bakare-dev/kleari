@@ -5,7 +5,7 @@
 import { findingCategories, historyReasons, type FindingCategory, type HistoryUnavailableReason } from "./cleanup";
 import { ContractError, nonNegativeInteger, nullable, oneOf, record } from "./systemMetrics";
 
-export const eventKinds = ["quarantine", "restore", "delete", "scan", "analysis", "developerScan", "review", "access", "quit", "appRemoved"] as const;
+export const eventKinds = ["quarantine", "restore", "delete", "scan", "analysis", "developerScan", "review", "access", "quit", "appRemoved", "maintenance"] as const;
 export type EventKind = (typeof eventKinds)[number];
 
 const MAX_EVENTS = 500;

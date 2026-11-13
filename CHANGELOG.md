@@ -42,6 +42,10 @@ The first release of Kleari.
   to Cleanup's review. Also lists data left by apps that are gone and installers in Downloads
   and on the Desktop, to send to review. Nothing in your Library moves until you approve it,
   and then only into quarantine.
+- **Maintenance:** free up memory, flush the DNS cache, free up purgeable space, reindex
+  Spotlight, clear system caches and old system logs, remove deleted users and empty the
+  Trash, each when you choose it, with macOS's own password prompt where needed; and login and
+  background items, where you can stop one of your own. What isn't offered says why.
 - **Files:** Large & Old files, exact Duplicates (one copy always kept), Similar Images,
   Downloads by the app that downloaded them, and AI clutter (model downloads, AI apps' caches
   and logs). What you choose goes to Cleanup's review and moves only into quarantine.

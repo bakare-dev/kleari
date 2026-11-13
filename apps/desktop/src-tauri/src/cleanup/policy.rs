@@ -37,6 +37,8 @@ pub enum Category {
     Chosen,
     /// Preferences that no longer open, and login items whose program is gone.
     Broken,
+    /// Your launch agents, chosen in Maintenance › Login items.
+    Startup,
 }
 
 impl Category {
@@ -53,6 +55,7 @@ impl Category {
             Self::Apps => "apps",
             Self::Chosen => "chosen",
             Self::Broken => "broken",
+            Self::Startup => "startup",
         }
     }
 }
@@ -160,6 +163,8 @@ pub enum EvidenceCode {
     ProgramMissing,
     AgentNotStarted,
     InXcodePreviews,
+    StartsAtLogin,
+    StopsAtNextLogin,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -266,6 +271,8 @@ pub enum Kind {
     BrokenLaunchAgent,
     /// `~/Library/Developer/Xcode/UserData/Previews`, SwiftUI previews Xcode builds again.
     XcodePreviews,
+    /// A launch agent directly in `~/Library/LaunchAgents` you chose to stop (not Apple's).
+    LaunchAgent,
 }
 
 /// Package managers whose caches live in `~/Library/Caches` under these names.
@@ -302,6 +309,7 @@ pub fn category(kind: &Kind) -> Category {
         Kind::UserChosen => Category::Chosen,
         Kind::BrokenPreference | Kind::BrokenLaunchAgent => Category::Broken,
         Kind::XcodePreviews => Category::Xcode,
+        Kind::LaunchAgent => Category::Startup,
     }
 }
 
@@ -721,6 +729,11 @@ fn assess_kind(kind: &Kind, facts: &Facts<'_>) -> Assessment {
                 ],
             )
         }
+        Kind::LaunchAgent => eligible(
+            Risk::Medium,
+            Certainty::High,
+            vec![warn(E::StartsAtLogin), info(E::StopsAtNextLogin)],
+        ),
         Kind::BrokenLaunchAgent => eligible(
             Risk::Low,
             Certainty::High,
@@ -950,7 +963,7 @@ pub fn within_bounds(
                 && name.ends_with(".plist")
                 && !name.to_lowercase().starts_with("com.apple.")
         }
-        Kind::BrokenLaunchAgent => {
+        Kind::BrokenLaunchAgent | Kind::LaunchAgent => {
             under("Library/LaunchAgents")
                 && name.ends_with(".plist")
                 && !name.to_lowercase().starts_with("com.apple.")
@@ -1054,6 +1067,7 @@ pub fn restorable(
         "broken" => [Kind::BrokenPreference, Kind::BrokenLaunchAgent]
             .iter()
             .any(in_bounds),
+        "startup" => in_bounds(&Kind::LaunchAgent),
         _ => false,
     }
 }
