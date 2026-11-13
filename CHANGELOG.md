@@ -42,6 +42,8 @@ The first release of Kleari.
   to Cleanup's review. Also lists data left by apps that are gone and installers in Downloads
   and on the Desktop, to send to review. Nothing in your Library moves until you approve it,
   and then only into quarantine.
+- **Mouse:** switch apps with a held button and the wheel (like ⌘⇥: let go to choose), step
+  through an app's windows (⌘`), and buttons for "last app used" and "next window".
 - **Browser care:** CPU and memory of Safari, Chrome, Brave and Edge, their tabs (after you
   allow it in macOS's Automation prompt), and closing the tabs you choose.
 - **Issue alerts** on the Dashboard: a nearly full disk or drive, memory pressure, fast

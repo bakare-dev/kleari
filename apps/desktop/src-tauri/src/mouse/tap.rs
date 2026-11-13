@@ -571,6 +571,18 @@ fn perform(effect: Effect, at: CGPoint, held: CGEventFlags) {
                 media_key(media, down);
             }
         }
+        Effect::Command(down) => {
+            // kVK_Command: held for the app switcher, released when the buttons are.
+            if let Some(event) = CGEvent::new_keyboard_event(None, 55, down) {
+                let flags = if down {
+                    CGEventFlags::MaskCommand
+                } else {
+                    CGEventFlags::empty()
+                };
+                CGEvent::set_flags(Some(&event), flags);
+                post(&event);
+            }
+        }
     }
 }
 
