@@ -39,7 +39,7 @@ fn valid_id(id: &str) -> bool {
     !id.is_empty() && id.len() <= 64 && id.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-fn check_ids(ids: &[String]) -> Result<(), CommandError> {
+pub(crate) fn check_ids(ids: &[String]) -> Result<(), CommandError> {
     if ids.len() <= MAX_IDS && ids.iter().all(|id| valid_id(id)) {
         Ok(())
     } else {
@@ -47,7 +47,7 @@ fn check_ids(ids: &[String]) -> Result<(), CommandError> {
     }
 }
 
-fn home() -> Result<PathBuf, CommandError> {
+pub(crate) fn home() -> Result<PathBuf, CommandError> {
     storage::home_dir().ok_or_else(|| CommandErrorCode::CleanupUnavailable.into())
 }
 
@@ -161,7 +161,7 @@ fn running(app: &AppHandle) -> Result<Vec<RunningBundle>, CommandError> {
         .map_err(|running_apps::Unavailable| CommandErrorCode::CleanupUnavailable.into())
 }
 
-fn blocking_failed<T>(_: T) -> CommandError {
+pub(crate) fn blocking_failed<T>(_: T) -> CommandError {
     CommandErrorCode::CleanupUnavailable.into()
 }
 

@@ -223,7 +223,7 @@ export function modeDefinitions(input: {
   return { standard: build("standard"), deep: build("deep"), dev: build("dev") };
 }
 
-const categoryOrder: readonly FindingCategory[] = ["cache", "pkg", "logs", "xcode", "node", "build", "large", "old"];
+const categoryOrder: readonly FindingCategory[] = ["cache", "pkg", "logs", "xcode", "node", "build", "apps", "large", "old"];
 
 function resultLines(findings: readonly ReviewFinding[], result: CleanupScanResult): ScanResultLine[] {
   const lines: ScanResultLine[] = [];
@@ -349,6 +349,16 @@ export function evidenceText(entry: EvidenceEntry): string {
       return "Not a known cache, so only you can decide";
     case "otherVolume":
       return "On another disk than Kleari’s quarantine folder";
+    case "leftoverOfRemovedApp":
+      return "Left behind by an app you removed with Kleari";
+    case "leftoverNoApp":
+      return "Named for an app that isn’t installed, and unchanged for a month or more";
+    case "losesAppData":
+      return "The app’s settings and data go with it if you reinstall it later";
+    case "installerFile":
+      return "An installer: apps run from where they were installed, not from this file";
+    case "downloadAgain":
+      return "You can download it again from the app’s maker";
   }
 }
 
@@ -389,6 +399,12 @@ function reasonFor(finding: ReviewFinding): string {
       return `Large ${fileKindLabel[finding.fileCategory ?? "other"]} to look over`;
     case "old":
       return `${capitalize(fileKindLabel[finding.fileCategory ?? "other"])} you haven’t opened in a while`;
+    case "apps":
+      return codes.has("installerFile")
+        ? "An installer you’ve already used"
+        : codes.has("leftoverOfRemovedApp")
+          ? "Data left by an app you removed"
+          : "Data left by an app that’s gone";
   }
 }
 
@@ -436,7 +452,7 @@ export function findingView(finding: ReviewFinding, nowMs: number): Finding {
 }
 
 export function categoryCounts(findings: readonly Finding[]): Record<FindingCategory, number> {
-  const counts: Record<FindingCategory, number> = { cache: 0, xcode: 0, pkg: 0, node: 0, build: 0, logs: 0, large: 0, old: 0 };
+  const counts: Record<FindingCategory, number> = { cache: 0, xcode: 0, pkg: 0, node: 0, build: 0, logs: 0, large: 0, old: 0, apps: 0 };
   for (const finding of findings) {
     counts[finding.category] += 1;
   }
@@ -519,6 +535,9 @@ export function consequences(categories: readonly FindingCategory[]): string {
   }
   if (has("logs")) {
     parts.push("apps start new logs when they need them");
+  }
+  if (has("apps")) {
+    parts.push("removed apps’ data and used installers wait in Quarantine, so a reinstalled app can get its settings back");
   }
   const text = parts.join(", and ");
   return text ? text.charAt(0).toUpperCase() + text.slice(1) : "Restore any item from Quarantine if you need it back";

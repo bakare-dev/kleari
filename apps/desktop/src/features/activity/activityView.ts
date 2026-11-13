@@ -113,6 +113,8 @@ export function activityEvent(event: EventData): ActivityEvent {
         ? make("system", "close", `Asked ${app} to quit`, "From Processes · the app decides, and may ask to save")
         : make("system", "close", `Couldn’t ask ${app} to quit`, "From Processes · macOS didn’t deliver the request");
     }
+    case "appRemoved":
+      return make("system", "apps", `Moved ${event.subject ?? "an app"} to the Trash`, "From Apps · Finder’s Put Back returns it", { route: "apps", label: "Open Apps" });
   }
 }
 

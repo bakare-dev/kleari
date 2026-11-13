@@ -25,6 +25,8 @@ export const storageErrorText: Record<StorageErrorKind, string> = {
   uninstallFailed: "Kleari couldn't find its folders, so nothing was moved.",
   updateFailed: "Kleari couldn't reach GitHub or the update didn't check out, so nothing changed. Check your connection and try again.",
   mouseUnavailable: "Kleari couldn’t read or apply the Mouse settings. Try again.",
+  appsScanInProgress: "An Apps scan is already running.",
+  appsScanFailed: "The Apps scan couldn’t finish. Nothing was changed.",
   updateNeedsApp: "Updates work from the Kleari app you installed, not this development build.",
   uninstallNeedsApp: "Uninstall works from the Kleari app you installed, not this development build. Nothing was moved.",
   invalidResponse: "Kleari received an unexpected response and didn't display it.",

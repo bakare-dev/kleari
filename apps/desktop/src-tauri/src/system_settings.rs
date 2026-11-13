@@ -15,6 +15,8 @@ pub enum SettingsPane {
     Notifications,
     /// Privacy & Security › Accessibility, which the Mouse module needs.
     Accessibility,
+    /// Privacy & Security › App Management, which removing another app needs.
+    AppManagement,
 }
 
 impl SettingsPane {
@@ -37,6 +39,9 @@ impl SettingsPane {
             }
             Self::Accessibility => {
                 "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+            }
+            Self::AppManagement => {
+                "x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles"
             }
         }
     }

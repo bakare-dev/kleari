@@ -131,10 +131,12 @@ pub enum EventKind {
     Access,
     /// An app asked to quit from Processes (`subject`: its display name).
     Quit,
+    /// An app moved to the Trash from Apps (`subject`: its display name).
+    AppRemoved,
 }
 
 impl EventKind {
-    const ALL: [Self; 9] = [
+    const ALL: [Self; 10] = [
         Self::Quarantine,
         Self::Restore,
         Self::Delete,
@@ -144,6 +146,7 @@ impl EventKind {
         Self::Review,
         Self::Access,
         Self::Quit,
+        Self::AppRemoved,
     ];
 
     const fn as_str(self) -> &'static str {
@@ -157,6 +160,7 @@ impl EventKind {
             Self::Review => "review",
             Self::Access => "access",
             Self::Quit => "quit",
+            Self::AppRemoved => "appRemoved",
         }
     }
 

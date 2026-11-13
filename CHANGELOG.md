@@ -37,6 +37,11 @@ The first release of Kleari.
 - **Updates** from Kleari's releases, signed and installed only when you choose, and
   **Beta updates** in Settings › About to also get betas.
 - **Uninstall** from Settings › About, moving Kleari and its data to the Trash.
+- **Apps:** every app you installed, with what it keeps in your Library. **Remove** moves an
+  app to the Trash (Put Back works) after you confirm, and sends what it left in your Library
+  to Cleanup's review. Also lists data left by apps that are gone and installers in Downloads
+  and on the Desktop, to send to review. Nothing in your Library moves until you approve it,
+  and then only into quarantine.
 
 ### Changed
 

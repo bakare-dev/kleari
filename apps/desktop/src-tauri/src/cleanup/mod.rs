@@ -39,6 +39,8 @@ pub enum Source {
     Scan,
     Storage,
     Developer,
+    /// The Apps page: leftovers of removed apps and installers.
+    Apps,
 }
 
 /// One item as Rust keeps it.
@@ -73,6 +75,8 @@ pub struct StoredFacts {
     pub lockfile: bool,
     pub idle_days: u64,
     pub larger_than: u64,
+    /// For app leftovers: their app was removed with Kleari.
+    pub owner_removed: bool,
 }
 
 const XCODE_BUNDLE: &str = "com.apple.dt.Xcode";
@@ -88,10 +92,15 @@ pub fn assess_now(
     project_in_use: bool,
     same_volume: bool,
 ) -> Assessment {
-    let running_app = running
-        .iter()
-        .find(|app| app.id.eq_ignore_ascii_case(name))
-        .map(|app| app.name.as_str());
+    // A leftover belongs to its app, matched by bundle ID or name; a cache to the app whose
+    // bundle ID it is named.
+    let running_app = match kind {
+        Kind::AppLeftover { owner } => running
+            .iter()
+            .find(|app| app.id.eq_ignore_ascii_case(owner) || app.name.eq_ignore_ascii_case(owner)),
+        _ => running.iter().find(|app| app.id.eq_ignore_ascii_case(name)),
+    }
+    .map(|app| app.name.as_str());
     policy::assess(
         kind,
         &policy::Facts {
@@ -104,6 +113,7 @@ pub fn assess_now(
             idle_days: stored.idle_days,
             larger_than: stored.larger_than,
             same_volume,
+            owner_removed: stored.owner_removed,
         },
     )
 }

@@ -37,7 +37,8 @@
       parent such as `~/Library/Caches`, a catalog path, a known build-folder name), strictly
       inside the home folder (or the temporary folder for temp files). Nothing may be in or
       contain `.git`, `.ssh`, `.gnupg`, Keychains, Mail, Messages, Containers, Group
-      Containers, Application Support, iCloud or CloudStorage.
+      Containers, Application Support, iCloud or CloudStorage. (Amended by ADR-017: an app's own
+      leftover, directly in a Library folder and named for that app, is the one exception.)
   - **Where items come from.** Only the Cleanup scan, the Developer scan or the Storage
     analysis creates items. Each item's real path and identity (device, inode, folder or
     file) stay in Rust, and the frontend refers to it by an opaque hex ID.

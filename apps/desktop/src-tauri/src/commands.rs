@@ -66,6 +66,8 @@ pub enum CommandErrorCode {
     UpdateFailed,
     /// macOS didn't show (or hide) the menu-bar item, so the preference wasn't changed.
     MenuBarUnavailable,
+    AppsScanInProgress,
+    AppsScanFailed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

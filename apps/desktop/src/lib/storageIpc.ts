@@ -48,6 +48,8 @@ const backendCodes = [
   "updateFailed",
   "updateNeedsApp",
   "mouseUnavailable",
+  "appsScanInProgress",
+  "appsScanFailed",
 ] as const;
 
 export type StorageErrorKind = (typeof backendCodes)[number] | "backendUnavailable" | "invalidResponse" | "unknown";

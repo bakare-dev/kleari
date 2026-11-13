@@ -928,6 +928,99 @@ fn an_approved_preview_moves_items_into_quarantine_and_they_can_be_restored() {
 }
 
 #[test]
+fn a_removed_apps_leftover_moves_through_preview_into_quarantine_and_restores() {
+    let home = Home::new("app-leftover");
+    let data = home.write(
+        "Library/Application Support/com.example.Gone/data",
+        2_000_000,
+    );
+    let prefs = home.write("Library/Preferences/com.example.Gone.plist", 1_000);
+    let history = home.history();
+    let home_path = home.home();
+    let bundle = crate::apps::Bundle {
+        id: "a1".to_owned(),
+        path: home_path.join("Applications/Gone.app"),
+        stat: stat_path(&data).expect("stat"),
+        name: "Gone".to_owned(),
+        bundle_id: Some("com.example.Gone".to_owned()),
+        apple: false,
+    };
+    let cancel = AtomicBool::new(false);
+    let items = crate::apps::leftovers_for_removed(&bundle, &home_path, now_ms(), &cancel);
+    assert_eq!(items.len(), 2);
+    let intake = super::intake::Intake {
+        home: &home_path,
+        running: &[],
+        open: Some(&NOTHING_OPEN),
+        store_dev: history.store.volume(),
+        now_ms: now_ms(),
+        excluded: &[],
+    };
+    let candidates = intake.app_items(items);
+    assert!(candidates
+        .iter()
+        .all(|item| item.category() == policy::Category::Apps
+            && item.assessment.eligibility == Eligibility::Eligible
+            && item.assessment.risk == Risk::Low));
+    let state = CleanupState::default();
+    let ids = state.add_sent(candidates);
+
+    // While the app is open again, its data isn't planned.
+    let running = [RunningBundle {
+        id: "com.example.Gone".to_owned(),
+        name: "Gone".to_owned(),
+    }];
+    let open_again = checks(&home_path, &history, &cancel, &running);
+    let preview = execute::create_preview(&state, &ids, &open_again, now_ms());
+    assert!(preview
+        .items
+        .iter()
+        .all(|item| item.state == PlannedState::NotEligible));
+
+    let checks = checks(&home_path, &history, &cancel, &[]);
+    let preview = execute::create_preview(&state, &ids, &checks, now_ms());
+    assert!(preview
+        .items
+        .iter()
+        .all(|item| item.state == PlannedState::Planned));
+    let outcome = execute::approve(
+        &state,
+        &preview.id,
+        &checks,
+        &history,
+        "sent",
+        now_ms,
+        |_| {},
+    );
+    let ApproveOutcome::Finished { items: moved, .. } = outcome else {
+        panic!("finished: {outcome:?}");
+    };
+    assert!(moved.iter().all(|item| item.state == MoveState::Moved));
+    assert!(!data.exists() && !prefs.exists());
+
+    let held = history.db.held_items().expect("held");
+    let held_ids: Vec<String> = held.iter().map(|item| item.id.clone()).collect();
+    let results = crate::quarantine::restore_items(
+        &history.db,
+        &history.store,
+        &crate::quarantine::Scope {
+            home: &home_path,
+            temp: None,
+            added: &[],
+            excluded: &[],
+        },
+        &held_ids,
+        now_ms(),
+    )
+    .expect("restore");
+    assert!(results
+        .iter()
+        .all(|result| format!("{:?}", result.outcome) == "Restored"));
+    assert_eq!(fs::metadata(&data).expect("back").len(), 2_000_000);
+    assert!(prefs.exists());
+}
+
+#[test]
 fn a_folder_containing_an_excluded_folder_is_never_measured_or_offered() {
     let home = Home::new("excluded-inside");
     home.write("Library/Caches/com.example.Google/Private/blob", 2_000_000);

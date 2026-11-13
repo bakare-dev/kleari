@@ -11,6 +11,7 @@ export const categoryMeta: Record<FindingCategory, { label: string; tone: Tone; 
   logs: { label: "Logs and temp", tone: "teal", icon: "clock" },
   large: { label: "Large files", tone: "orange", icon: "file" },
   old: { label: "Old files", tone: "yellow", icon: "archive" },
+  apps: { label: "App leftovers", tone: "pink", icon: "apps" },
 };
 
 export const riskStatus: Record<Level, Status> = { Low: "ok", Medium: "warn", Unknown: "muted" };

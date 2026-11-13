@@ -344,6 +344,37 @@ impl Intake<'_> {
             .collect()
     }
 
+    /// Leftovers and installers from the Apps page.
+    pub fn app_items(&self, items: Vec<crate::apps::ReviewItem>) -> Vec<Candidate> {
+        items
+            .into_iter()
+            // Excluded in Settings since the Apps scan: dropped unread.
+            .filter(|item| !crate::preferences::touches_excluded(&item.path, self.excluded))
+            .map(|item| {
+                let facts = StoredFacts {
+                    owner_removed: item.owner_removed,
+                    ..StoredFacts::default()
+                };
+                let mut candidate = self.candidate(
+                    item.kind,
+                    Source::Apps,
+                    item.path,
+                    &item.stat,
+                    facts,
+                    item.name,
+                );
+                candidate.bytes = item.measured.bytes;
+                candidate.files = item.measured.files;
+                candidate.lower_bound = item.measured.lower_bound;
+                candidate.modified_ms = u64::try_from(item.measured.newest_modified_s)
+                    .ok()
+                    .filter(|&seconds| seconds > 0)
+                    .and_then(|seconds| seconds.checked_mul(1000));
+                candidate
+            })
+            .collect()
+    }
+
     /// A large file from the Storage page: always inspect only.
     pub fn storage_file(&self, file: LargeFile) -> Option<Candidate> {
         if crate::preferences::touches_excluded(&file.source.path, self.excluded) {

@@ -75,8 +75,9 @@ pub fn move_to_trash(locations: &[PathBuf], home: Option<&Path>) -> Uninstalled 
     done
 }
 
+/// Moves `path` to the Trash through macOS, which keeps "Put Back" working.
 #[cfg(target_os = "macos")]
-fn trash(path: &Path) -> bool {
+pub fn trash(path: &Path) -> bool {
     use objc2_foundation::{NSFileManager, NSURL};
     let Some(url) = NSURL::from_file_path(path) else {
         return false;
@@ -87,7 +88,7 @@ fn trash(path: &Path) -> bool {
 }
 
 #[cfg(not(target_os = "macos"))]
-fn trash(_path: &Path) -> bool {
+pub fn trash(_path: &Path) -> bool {
     false
 }
 

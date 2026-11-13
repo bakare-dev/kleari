@@ -1,4 +1,6 @@
 mod activity;
+mod apps;
+mod apps_commands;
 mod cleanup;
 mod cleanup_commands;
 mod commands;
@@ -36,6 +38,7 @@ pub fn run() {
         .manage(storage::StorageState::default())
         .manage(storage::analysis::AnalysisState::default())
         .manage(developer::DeveloperState::default())
+        .manage(apps::AppsState::default())
         .manage(cleanup::CleanupState::default())
         .manage(quarantine::QuarantineState::default())
         .manage(menubar::PopoverState::default())
@@ -95,6 +98,10 @@ pub fn run() {
             commands::start_developer_scan,
             commands::cancel_developer_scan,
             commands::add_developer_folder,
+            apps_commands::start_apps_scan,
+            apps_commands::cancel_apps_scan,
+            apps_commands::send_app_items_to_review,
+            apps_commands::remove_app,
             cleanup_commands::get_cleanup_scope,
             cleanup_commands::request_folder_access,
             cleanup_commands::add_cleanup_folder,

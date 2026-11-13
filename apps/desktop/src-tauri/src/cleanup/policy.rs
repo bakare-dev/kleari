@@ -31,6 +31,8 @@ pub enum Category {
     Large,
     /// Files not opened for a long time (inspect only).
     Old,
+    /// What apps leave behind: data of removed apps, and installers already used.
+    Apps,
 }
 
 impl Category {
@@ -44,6 +46,7 @@ impl Category {
             Self::Logs => "logs",
             Self::Large => "large",
             Self::Old => "old",
+            Self::Apps => "apps",
         }
     }
 }
@@ -136,6 +139,11 @@ pub enum EvidenceCode {
     NotOpenedFor,
     NotKnownCache,
     OtherVolume,
+    LeftoverOfRemovedApp,
+    LeftoverNoApp,
+    LosesAppData,
+    InstallerFile,
+    DownloadAgain,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -229,6 +237,11 @@ pub enum Kind {
     LargeFile,
     /// A file not opened for a long time.
     OldFile,
+    /// Data an app keeps in the user's Library (see `LEFTOVER_FOLDERS`), named for the app
+    /// with bundle ID or name `owner`, found after the app was removed.
+    AppLeftover { owner: String },
+    /// An installer (`.dmg`, `.pkg`, `.mpkg`, `.xip`) directly in Downloads or on the Desktop.
+    Installer,
 }
 
 /// Package managers whose caches live in `~/Library/Caches` under these names.
@@ -261,7 +274,75 @@ pub fn category(kind: &Kind) -> Category {
         Kind::BuildFolder { .. } => Category::Build,
         Kind::LargeFile => Category::Large,
         Kind::OldFile => Category::Old,
+        Kind::AppLeftover { .. } | Kind::Installer => Category::Apps,
     }
+}
+
+/// Folders in the home folder where apps keep their data, each entry named for its app.
+pub const LEFTOVER_FOLDERS: &[&str] = &[
+    "Library/Application Support",
+    "Library/Caches",
+    "Library/Preferences",
+    "Library/Preferences/ByHost",
+    "Library/Saved Application State",
+    "Library/Containers",
+    "Library/Group Containers",
+    "Library/HTTPStorages",
+    "Library/WebKit",
+    "Library/Logs",
+    "Library/Cookies",
+    "Library/Application Scripts",
+    "Library/LaunchAgents",
+];
+
+/// Installer file extensions, lowercase.
+pub const INSTALLER_EXTENSIONS: &[&str] = &["dmg", "pkg", "mpkg", "xip"];
+
+/// Whether `name`, an entry directly in a leftover folder, belongs to the app with bundle ID
+/// or name `owner`: the same name (ignoring case and a `.plist`, `.savedState` or
+/// `.binarycookies` suffix), the name followed by a dot (`ByHost/<id>.<host>.plist`, a launch
+/// agent `<id>.helper.plist`), or a group container `<team>.<id>`. Apple's own never match.
+pub fn leftover_matches(name: &str, owner: &str) -> bool {
+    let name = name.to_lowercase();
+    let owner = owner.trim().to_lowercase();
+    if owner.chars().count() < 3
+        || owner.starts_with("com.apple.")
+        || name.starts_with("com.apple.")
+        || owner.contains('/')
+    {
+        return false;
+    }
+    let stem = [".plist", ".savedstate", ".binarycookies"]
+        .iter()
+        .find_map(|suffix| name.strip_suffix(suffix))
+        .unwrap_or(&name);
+    stem == owner
+        || stem
+            .strip_prefix(owner.as_str())
+            .is_some_and(|rest| rest.starts_with('.'))
+        || (owner.contains('.') && stem.ends_with(&format!(".{owner}")))
+}
+
+/// Whether `path` is an entry directly in one of `LEFTOVER_FOLDERS` of `home`, not Apple's.
+pub fn in_leftover_folder(path: &Path, home: &Path) -> bool {
+    let (Some(parent), Some(name)) = (path.parent(), path.file_name().and_then(|n| n.to_str()))
+    else {
+        return false;
+    };
+    plain(path)
+        && plain(home)
+        && !name.to_lowercase().starts_with("com.apple.")
+        && LEFTOVER_FOLDERS
+            .iter()
+            .any(|folder| parent == home.join(folder))
+}
+
+/// Whether `name` is an installer file by its extension.
+pub fn is_installer_name(name: &str) -> bool {
+    Path::new(name)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| INSTALLER_EXTENSIONS.contains(&extension.to_lowercase().as_str()))
 }
 
 fn catalog_is_xcode(id: &str) -> bool {
@@ -287,6 +368,9 @@ pub struct Facts<'a> {
     pub larger_than: u64,
     /// It is on the quarantine folder's volume.
     pub same_volume: bool,
+    /// For app leftovers: the app was removed with Kleari just now, so they are certainly
+    /// its data rather than matched by name alone.
+    pub owner_removed: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -481,6 +565,36 @@ fn assess_kind(kind: &Kind, facts: &Facts<'_>) -> Assessment {
                 warn(E::NotKnownCache),
             ],
         ),
+        Kind::AppLeftover { .. } => {
+            if let Some(app) = facts.running_app {
+                return blocked(
+                    Risk::Low,
+                    Certainty::High,
+                    Eligibility::NotNow,
+                    WhyNot::AppRunning,
+                    vec![warn(E::AppRunning).with_app(app)],
+                );
+            }
+            if facts.owner_removed {
+                eligible(
+                    Risk::Low,
+                    Certainty::High,
+                    vec![ok(E::LeftoverOfRemovedApp), warn(E::LosesAppData)],
+                )
+            } else {
+                // Matched by name to an app that isn't installed: likely, not certain.
+                eligible(
+                    Risk::Medium,
+                    Certainty::Medium,
+                    vec![ok(E::LeftoverNoApp), warn(E::LosesAppData)],
+                )
+            }
+        }
+        Kind::Installer => eligible(
+            Risk::Low,
+            Certainty::High,
+            vec![ok(E::InstallerFile), info(E::DownloadAgain)],
+        ),
     }
 }
 
@@ -644,7 +758,15 @@ pub fn within_bounds(
     let Ok(relative) = path.strip_prefix(home) else {
         return false;
     };
-    if relative.as_os_str().is_empty() || never_touched(relative) {
+    if relative.as_os_str().is_empty() {
+        return false;
+    }
+    // The one way into Application Support and the containers, which are otherwise never
+    // touched: an entry directly in a leftover folder, named for the app it belongs to.
+    if let Kind::AppLeftover { owner } = kind {
+        return in_leftover_folder(path, home) && leftover_matches(name, owner);
+    }
+    if never_touched(relative) {
         return false;
     }
     let under = |folder: &str| parent == home.join(folder);
@@ -670,9 +792,10 @@ pub fn within_bounds(
                 && !relative.starts_with("Library")
                 && !relative.starts_with(".Trash")
         }
+        Kind::Installer => (under("Downloads") || under("Desktop")) && is_installer_name(name),
         // Never moved, so never in bounds.
         Kind::SimulatorDevice | Kind::LargeFile | Kind::OldFile => false,
-        Kind::Temp => false,
+        Kind::Temp | Kind::AppLeftover { .. } => false,
     }
 }
 
@@ -761,6 +884,8 @@ pub fn restorable(
         "logs" => [Kind::Log, Kind::CrashReport, Kind::Temp]
             .iter()
             .any(in_bounds),
+        // The app it belonged to isn't recorded: any entry directly in a leftover folder.
+        "apps" => in_leftover_folder(path, home) || in_bounds(&Kind::Installer),
         _ => false,
     }
 }
