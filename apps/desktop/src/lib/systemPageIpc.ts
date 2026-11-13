@@ -24,7 +24,7 @@ export function fetchStartupItems(): Promise<StartupItems> {
   return invokeValidated("list_startup_items", parseStartupItems);
 }
 
-export type SettingsPane = "softwareUpdate" | "loginItems" | "fullDiskAccess" | "filesAndFolders" | "notifications" | "accessibility" | "appManagement";
+export type SettingsPane = "softwareUpdate" | "loginItems" | "fullDiskAccess" | "filesAndFolders" | "notifications" | "accessibility" | "appManagement" | "automation";
 
 /** Asks macOS to open one fixed System Settings pane. Resolves to whether it opened. */
 export async function openSystemSettings(pane: SettingsPane): Promise<boolean> {

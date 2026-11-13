@@ -1617,3 +1617,22 @@ input[type="checkbox"]:disabled {
   color: var(--mp-text-2);
   font-size: 11.5px;
 }
+
+/* Step-by-step permission guides (AccessSteps). */
+.v2-access-steps {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.v2-access-steps ol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--mp-text);
+  font-size: 12px;
+  line-height: 1.45;
+}

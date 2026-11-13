@@ -5,6 +5,7 @@ import { useApps } from "../features/apps/useApps";
 import { useFiles } from "../features/files/useFiles";
 import { useMaintenance } from "../features/maintenance/useMaintenance";
 import { MaintenanceScreen } from "./screens/maintenance/MaintenanceScreen";
+import { BrowserScreen } from "./screens/browser/BrowserScreen";
 import { openSystemSettings } from "../lib/systemPageIpc";
 import { FilesScreen } from "./screens/files/FilesScreen";
 import { useStorageExplorer } from "../features/storage/useStorageExplorer";
@@ -114,6 +115,7 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
     developer: () => <DeveloperRoute developer={developer} review={review} />,
     apps: () => <AppsRoute apps={apps} />,
     files: () => <FilesScreen files={files} />,
+    browser: () => <BrowserScreen monitor={processes} />,
     maintenance: () => <MaintenanceScreen maintenance={maintenance} onOpenLoginItems={() => void openSystemSettings("loginItems")} />,
     processes: () => <ProcessesRoute monitor={processes} />,
     mouse: () => <MouseRoute settings={settings} mouse={mouse} combos={mouseCombos} />,

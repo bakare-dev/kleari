@@ -1,6 +1,7 @@
 mod activity;
 mod apps;
 mod apps_commands;
+mod browser;
 mod cleanup;
 mod cleanup_commands;
 mod commands;
@@ -47,6 +48,7 @@ pub fn run() {
         .manage(apps::AppsState::default())
         .manage(storage::explorer::ExplorerState::default())
         .manage(files::FilesState::default())
+        .manage(browser::BrowserState::default())
         .manage(maintenance_commands::MaintenanceState::default())
         .manage(cleanup::CleanupState::default())
         .manage(quarantine::QuarantineState::default())
@@ -123,6 +125,8 @@ pub fn run() {
             maintenance_commands::run_maintenance_task,
             maintenance_commands::send_launch_agent_to_review,
             issues::get_issues,
+            browser::list_browser_tabs,
+            browser::close_browser_tabs,
             cleanup_commands::get_cleanup_scope,
             cleanup_commands::request_folder_access,
             cleanup_commands::add_cleanup_folder,

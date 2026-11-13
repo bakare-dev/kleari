@@ -42,6 +42,8 @@ The first release of Kleari.
   to Cleanup's review. Also lists data left by apps that are gone and installers in Downloads
   and on the Desktop, to send to review. Nothing in your Library moves until you approve it,
   and then only into quarantine.
+- **Browser care:** CPU and memory of Safari, Chrome, Brave and Edge, their tabs (after you
+  allow it in macOS's Automation prompt), and closing the tabs you choose.
 - **Issue alerts** on the Dashboard: a nearly full disk or drive, memory pressure, fast
   battery drain, a Bluetooth device's low battery, a large Trash and apps not opened in six
   months, each with where to deal with it; notified while Kleari runs if you turn it on in
