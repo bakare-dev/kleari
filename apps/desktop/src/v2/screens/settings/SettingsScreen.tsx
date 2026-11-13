@@ -403,7 +403,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
               <Group title="What to look at" note="These only leave findings out. Nothing becomes eligible to move because of them.">
                 <Row
                   label="Include hidden files"
-                  sub="Files and folders that start with a dot, in a Deep scan"
+                  sub="Private dotfiles such as .env and .ssh, in a Deep scan. Build and cache folders such as .next are always searched"
                   control={<Switch label="Include hidden files" checked={preferences?.scanDefaults.hidden ?? false} disabled={!preferences} onChange={(on) => preferences && set("scanDefaults", { ...preferences.scanDefaults, hidden: on })} />}
                 />
                 <Row label="Skip large files changed in the last" sub="Recently changed large files are never suggested" control={stepper("skipRecentDays", "recent-file window", 0, 90, 1, "days")} />

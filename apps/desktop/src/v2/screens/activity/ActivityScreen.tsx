@@ -50,6 +50,8 @@ interface ActivityScreenProps {
   unavailable?: string | null;
   /** More happened in the kept window than is listed. */
   truncated?: boolean;
+  /** The log hasn't been read yet: show nothing rather than an empty log. */
+  loading?: boolean;
 }
 
 const kindMeta: Record<ActivityKind, { tag: string; tone: Tone; status: Status; group: ActivityGroup }> = {
@@ -72,7 +74,7 @@ const filters: readonly { value: ActivityGroup | "all"; label: string }[] = [
   { value: "system", label: "System" },
 ];
 
-export function ActivityScreen({ days, stats, retentionDays, onExport, unavailable, truncated }: ActivityScreenProps) {
+export function ActivityScreen({ days, stats, retentionDays, onExport, unavailable, truncated, loading }: ActivityScreenProps) {
   const [filter, setFilter] = useState<ActivityGroup | "all">("all");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
@@ -188,7 +190,7 @@ export function ActivityScreen({ days, stats, retentionDays, onExport, unavailab
               </ol>
             </section>
           ))}
-          {shown.length === 0 && !unavailable && (
+          {shown.length === 0 && !unavailable && !loading && (
             <span className="act-empty">
               {days.length === 0 ? "Nothing recorded yet. Scans, moves, restores and deletes appear here as they happen." : "Nothing in the log matches this filter."}
             </span>

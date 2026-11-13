@@ -10,6 +10,7 @@ mod collector;
 mod details;
 mod display;
 mod names;
+pub mod open_paths;
 mod process_list;
 mod process_sampler;
 mod processes;

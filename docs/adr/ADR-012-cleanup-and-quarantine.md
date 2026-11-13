@@ -22,7 +22,7 @@
         `package.json`, matched as globs with `!` exclusions. Any other lockfile above
         belongs to another project and doesn't count. The search stops at the repository
         root holding `.git`, the home folder or 8 levels;
-      - other build folders of projects without a commit in the last 14 days.
+      - other build folders of projects with nothing in them open in any app (checked at the scan and again before anything moves; originally, projects without a commit in the last 14 days).
     - *Never moved (inspect only):*
       - Apple's own caches (`com.apple.*`);
       - simulator devices and runtimes (manage them in Xcode);

@@ -3,6 +3,7 @@
 // never arrive here: only opaque IDs, names and `~/…` locations.
 
 import { parseDockerState, type DockerState } from "./developer";
+import { fileCategories, type FileCategory } from "./storage";
 import { ContractError, nonNegativeInteger, nullable, oneOf, record } from "./systemMetrics";
 
 export const scanModes = ["standard", "deep", "dev"] as const;
@@ -101,6 +102,8 @@ export interface ReviewFinding {
   source: FindingSource;
   /** A Developer catalog ID for a known tool cache. */
   tool: string | null;
+  /** What kind of file a large or old file is, by its extension. */
+  fileCategory: FileCategory | null;
 }
 
 export interface ReviewScan {
@@ -334,6 +337,7 @@ function finding(value: unknown, field: string): ReviewFinding {
     evidence: list(fields.evidence, `${field}.evidence`, MAX_EVIDENCE).map((entry, index) => evidence(entry, `${field}.evidence[${index}]`)),
     source: oneOf(["scan", "storage", "developer"] as const, fields.source, `${field}.source`),
     tool: nullable(fields.tool, (tool) => text(tool, `${field}.tool`)),
+    fileCategory: nullable(fields.fileCategory, (category) => oneOf(fileCategories, category, `${field}.fileCategory`)),
   };
 }
 

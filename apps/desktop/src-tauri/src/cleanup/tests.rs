@@ -11,7 +11,11 @@ use super::*;
 use crate::history::History;
 use crate::persistence::{Database, ItemState, Unavailable};
 use crate::quarantine::Store;
+use crate::system_monitor::open_paths::OpenPaths;
 use crate::system_monitor::running_apps::RunningBundle;
+
+/// Nothing open in any app.
+static NOTHING_OPEN: OpenPaths = OpenPaths::NOTHING;
 
 const DAY: Duration = Duration::from_secs(86_400);
 
@@ -122,6 +126,26 @@ fn run_scan_keeping(
     keep: &dyn Fn(&Candidate) -> bool,
     excluded: &[PathBuf],
 ) -> scan::Outcome {
+    run_scan_with_open(
+        home,
+        history,
+        mode,
+        running,
+        keep,
+        excluded,
+        Some(&NOTHING_OPEN),
+    )
+}
+
+fn run_scan_with_open(
+    home: &Home,
+    history: &History,
+    mode: ScanMode,
+    running: &[RunningBundle],
+    keep: &dyn Fn(&Candidate) -> bool,
+    excluded: &[PathBuf],
+    open: Option<&OpenPaths>,
+) -> scan::Outcome {
     let home_path = home.home();
     let cancel = AtomicBool::new(false);
     let roots = vec![home_path.clone()];
@@ -129,6 +153,7 @@ fn run_scan_keeping(
         home: &home_path,
         temp: None,
         running,
+        open,
         now_ms: now_ms(),
         options: options(),
         store_dev: history.store.volume(),
@@ -207,6 +232,24 @@ fn only_recently_changed_large_files_are_left_out_and_preferences_are_checked() 
         project: None,
     };
     let keep = |candidate: &Candidate| kept_by_preferences(candidate, &preferences, &[], now);
+    // Large and old files say what kind of file they are; other findings don't.
+    let video = home.write("Movies/IMG_5349.MOV", 10);
+    assert_eq!(
+        item(Kind::LargeFile, video, 1).finding().file_category,
+        Some(crate::storage::category::FileCategory::Video)
+    );
+    assert_eq!(
+        item(Kind::LargeFile, file.clone(), 1)
+            .finding()
+            .file_category,
+        Some(crate::storage::category::FileCategory::DiskImage)
+    );
+    assert_eq!(
+        item(Kind::AppCache, cache.clone(), 1)
+            .finding()
+            .file_category,
+        None
+    );
     assert!(!keep(&item(Kind::LargeFile, file.clone(), 98)));
     assert!(keep(&item(Kind::LargeFile, file, 80)));
     // A cache changed yesterday is still listed: the rule is for large files only.
@@ -285,6 +328,7 @@ fn checks<'a>(
         home,
         temp: None,
         running,
+        open: Some(&NOTHING_OPEN),
         store_dev: history.store.volume(),
         added: &[],
         cancel,
@@ -564,6 +608,26 @@ fn a_stored_original_is_restorable_only_at_a_place_its_category_comes_from() {
 }
 
 #[test]
+fn hidden_files_off_skips_dotfiles_but_not_build_folders() {
+    for private in [".env", ".ssh", ".git", ".DS_Store", ".zsh_history"] {
+        assert!(scan::hidden_skipped(private.as_bytes(), false), "{private}");
+        assert!(!scan::hidden_skipped(private.as_bytes(), true), "{private}");
+    }
+    for tool in [
+        ".next",
+        ".nuxt",
+        ".turbo",
+        ".venv",
+        ".gradle",
+        ".cache",
+        ".terraform",
+    ] {
+        assert!(!scan::hidden_skipped(tool.as_bytes(), false), "{tool}");
+    }
+    assert!(!scan::hidden_skipped(b"src", false));
+}
+
+#[test]
 fn scan_options_accept_only_the_menu_values() {
     assert!(options().valid());
     assert!(!ScanOptions {
@@ -714,6 +778,79 @@ fn a_developer_scan_finds_xcode_data_and_checks_node_modules_lockfiles() {
             .eligibility,
         Eligibility::NeedsCheck
     );
+}
+
+#[test]
+fn a_project_open_in_some_app_is_held_back_until_nothing_in_it_is_open() {
+    let home = Home::new("in-use");
+    home.write("Code/web/package.json", 10);
+    home.write("Code/web/package-lock.json", 10);
+    home.write("Code/web/node_modules/pkg/index.js", 20_000);
+    home.write("Code/old/package.json", 10);
+    home.write("Code/old/package-lock.json", 10);
+    home.write("Code/old/node_modules/pkg/index.js", 20_000);
+    let history = home.history();
+    let home_path = home.home();
+    // An editor has a file in web open; nothing in old is open, whatever its Git history.
+    let open = OpenPaths::from_paths(vec![home_path.join("Code/web/src/App.tsx")]);
+
+    let outcome = run_scan_with_open(
+        &home,
+        &history,
+        ScanMode::Dev,
+        &[],
+        &|_| true,
+        &[],
+        Some(&open),
+    );
+    let web = by_name(&outcome.items, "web/node_modules");
+    assert_eq!(web.assessment.eligibility, Eligibility::NotNow);
+    assert_eq!(web.assessment.why_not, Some(WhyNot::ActiveProject));
+    assert_eq!(
+        by_name(&outcome.items, "old/node_modules")
+            .assessment
+            .eligibility,
+        Eligibility::Eligible
+    );
+
+    // Without a reading of what is open, nothing in a project is suggested (fail closed).
+    let unread = run_scan_with_open(&home, &history, ScanMode::Dev, &[], &|_| true, &[], None);
+    assert_eq!(
+        by_name(&unread.items, "old/node_modules")
+            .assessment
+            .eligibility,
+        Eligibility::NotNow
+    );
+
+    // Approval reads what is open again: old, opened since the scan, isn't planned.
+    let state = CleanupState::default();
+    let old = by_name(&outcome.items, "old/node_modules").clone();
+    state.set_scan(
+        ScanInfo {
+            mode: ScanMode::Dev,
+            started_at_ms: now_ms(),
+            cancelled: false,
+        },
+        outcome.items.clone(),
+    );
+    let cancel = AtomicBool::new(false);
+    let opened_since = OpenPaths::from_paths(vec![home_path.join("Code/old")]);
+    let now_open = Checks {
+        open: Some(&opened_since),
+        ..checks(&home_path, &history, &cancel, &[])
+    };
+    let preview =
+        execute::create_preview(&state, std::slice::from_ref(&old.id), &now_open, now_ms());
+    assert_eq!(preview.items[0].state, PlannedState::NotEligible);
+    let unread = Checks {
+        open: None,
+        ..checks(&home_path, &history, &cancel, &[])
+    };
+    let preview = execute::create_preview(&state, std::slice::from_ref(&old.id), &unread, now_ms());
+    assert_eq!(preview.items[0].state, PlannedState::NotEligible);
+    let closed = checks(&home_path, &history, &cancel, &[]);
+    let preview = execute::create_preview(&state, std::slice::from_ref(&old.id), &closed, now_ms());
+    assert_eq!(preview.items[0].state, PlannedState::Planned);
 }
 
 fn scanned(home: &Home, history: &History, state: &CleanupState) -> Vec<Candidate> {

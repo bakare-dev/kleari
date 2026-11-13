@@ -16,6 +16,7 @@ use crate::storage::{
     self, picker, FileFilter, FolderChoice, ProgressDto, ScanError, ScanSummary, StateError,
     StorageState,
 };
+use crate::system_monitor::open_paths;
 use crate::system_monitor::running_apps::{self, QuitOutcome};
 use crate::system_monitor::{
     self, ActivitySampler, ProcessList, ProcessListSampler, StartupItems, SystemActivity,
@@ -321,10 +322,12 @@ pub async fn start_developer_scan(
     let started_at_ms = unix_time_ms();
     let result = tauri::async_runtime::spawn_blocking(move || {
         let home = storage::home_dir();
+        let open = open_paths::read().ok();
         developer::scan(
             home.as_deref(),
             &added,
             &excluded,
+            open.as_ref(),
             &cancel,
             started_at_ms,
             |progress| {

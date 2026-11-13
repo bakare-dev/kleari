@@ -29,6 +29,7 @@ use crate::quarantine::{
 };
 use crate::storage::analysis::AnalysisState;
 use crate::storage::{self, picker, temp_dir};
+use crate::system_monitor::open_paths::{self, OpenPaths};
 use crate::system_monitor::running_apps::{self, RunningBundle};
 
 /// IDs come from Rust (hex digits); anything else, or too many, is rejected.
@@ -288,6 +289,8 @@ pub fn run_scan(
     // A scan without the running apps marks nothing as in use; preview and approval read
     // them again and refuse to go on without them.
     let running = running_apps::running_bundles(app).unwrap_or_default();
+    // Unread, every project counts as in use (fail closed); read again before anything moves.
+    let open = open_paths::read().ok();
     let history = app.state::<History>();
     let cleanup = app.state::<CleanupState>();
     let added = cleanup.added_folders();
@@ -314,6 +317,7 @@ pub fn run_scan(
         home: &home,
         temp: temp.as_deref(),
         running: &running,
+        open: open.as_ref(),
         now_ms: started_at_ms,
         options,
         store_dev: history.store.volume(),
@@ -434,6 +438,7 @@ pub async fn send_developer_items_to_review(
     tauri::async_runtime::spawn_blocking(move || {
         let home = home()?;
         let running = running_apps::running_bundles(&app).unwrap_or_default();
+        let open = open_paths::read().ok();
         let history = app.state::<History>();
         // Folders excluded since the Developer scan: their items aren't sent, or read. Unknown
         // exclusions send nothing.
@@ -448,6 +453,7 @@ pub async fn send_developer_items_to_review(
         let intake = Intake {
             home: &home,
             running: &running,
+            open: open.as_ref(),
             store_dev: history.store.volume(),
             now_ms: unix_time_ms(),
             excluded: &excluded,
@@ -484,9 +490,11 @@ pub async fn add_storage_file_to_review(
         };
         let history = app.state::<History>();
         let excluded = history.exclusions()?;
+        // A single file from Storage: no project, so nothing to check is open.
         let intake = Intake {
             home: &home,
             running: &[],
+            open: Some(&OpenPaths::NOTHING),
             store_dev: history.store.volume(),
             now_ms: unix_time_ms(),
             excluded: &excluded,
@@ -538,6 +546,8 @@ fn with_checks<T>(
 ) -> Result<T, CommandError> {
     let home = home()?;
     let running = running(app)?;
+    // Unread, every project counts as in use, so nothing in a project moves.
+    let open = open_paths::read().ok();
     let history = app.state::<History>();
     let cleanup = app.state::<CleanupState>();
     let added = cleanup.added_folders();
@@ -556,6 +566,7 @@ fn with_checks<T>(
         home: &home,
         temp: temp.as_deref(),
         running: &running,
+        open: open.as_ref(),
         store_dev: history.store.volume(),
         added: &added,
         cancel: &cancel,

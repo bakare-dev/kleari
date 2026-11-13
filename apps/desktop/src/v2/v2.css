@@ -227,7 +227,7 @@ input[type="checkbox"]:disabled {
   letter-spacing: -0.02em;
 }
 
-.v2-wordmark-pilot {
+.v2-wordmark-fill {
   background: var(--mp-wordmark);
   -webkit-background-clip: text;
   background-clip: text;

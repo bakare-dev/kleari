@@ -25,6 +25,7 @@ use crate::developer::projects;
 use crate::developer::{catalog, measure_dir, open_absolute, Links, Measured};
 use crate::quarantine::Identity;
 use crate::storage::fsdir::{display_name, DirHandle, FileStat};
+use crate::system_monitor::open_paths::OpenPaths;
 use crate::system_monitor::running_apps::RunningBundle;
 use crate::system_monitor::{display_path, non_local_mounts};
 
@@ -162,6 +163,8 @@ pub struct Context<'a> {
     pub home: &'a Path,
     pub temp: Option<&'a Path>,
     pub running: &'a [RunningBundle],
+    /// What is open now; `None` (couldn't be read) counts every project as in use.
+    pub open: Option<&'a OpenPaths>,
     pub now_ms: u64,
     pub options: ScanOptions,
     /// The quarantine folder's volume; items elsewhere are inspect only.
@@ -191,8 +194,6 @@ pub struct Outcome {
 const MIN_BYTES: u64 = 1_000_000;
 /// Temporary files must be this many days untouched.
 pub const TEMP_IDLE_DAYS: u64 = 7;
-/// A project with a commit within this many days is active.
-const ACTIVE_DAYS: u64 = 14;
 /// Old files are listed only from this size.
 const OLD_MIN_BYTES: u64 = 100_000_000;
 /// Large and old files kept, each.
@@ -317,7 +318,16 @@ impl<'a> Collector<'a> {
     ) -> &mut Candidate {
         let same_volume = self.ctx.store_dev.is_none_or(|dev| dev == stat.dev);
         let file_name = super::display_name_of(&path);
-        let assessment = assess_now(&kind, &file_name, facts, self.ctx.running, same_volume);
+        // A project, and so whether it is in use, is known only for build folders, reassessed
+        // once it is set.
+        let assessment = assess_now(
+            &kind,
+            &file_name,
+            facts,
+            self.ctx.running,
+            false,
+            same_volume,
+        );
         let (bytes, files, lower_bound) = measured
             .map_or((stat.blocks.saturating_mul(512), 1, false), |measured| {
                 (measured.bytes, measured.files, measured.lower_bound)
@@ -694,8 +704,7 @@ impl<'a> Collector<'a> {
             .filter(|root| !self.excluded(root))
             .cloned()
             .collect();
-        let now_ms = self.ctx.now_ms;
-        let mut found: Vec<(PathBuf, FileStat, Measured, bool, bool)> = Vec::new();
+        let mut found: Vec<(PathBuf, FileStat, Measured, bool)> = Vec::new();
         let links = &mut self.links;
         let cancel = self.ctx.cancel;
         // The search can take a while; what it found so far is reported as it goes.
@@ -740,13 +749,10 @@ impl<'a> Collector<'a> {
                 let lockfile = LOCKFILES
                     .iter()
                     .any(|lock| dir.stat_child(lock).is_ok_and(|lock| lock.is_file()));
-                let active = project.last_commit_ms.is_some_and(|commit| {
-                    now_ms.saturating_sub(commit) < ACTIVE_DAYS * DAY_S * 1000
-                });
                 let measured = measure_dir(child, dev, links, cancel);
                 if measured.bytes > 0 {
                     found_bytes = found_bytes.saturating_add(measured.bytes);
-                    found.push((project.path, stat, measured, lockfile, active));
+                    found.push((project.path, stat, measured, lockfile));
                     if last_report.elapsed() >= PROGRESS_INTERVAL {
                         last_report = std::time::Instant::now();
                         report(Progress {
@@ -764,19 +770,20 @@ impl<'a> Collector<'a> {
                 .iter()
                 .map(|root| display_path(root, Some(home))),
         );
-        for (project, stat, measured, lockfile, active) in found {
+        for (project, stat, measured, lockfile) in found {
             let project_name = super::display_name_of(&project);
             // In a workspace the lockfile is at the workspace root, above the package.
             let lockfile =
                 lockfile || super::intake::has_lockfile(&project, home, self.ctx.excluded);
             let facts = StoredFacts {
                 lockfile,
-                project_active: active,
                 ..StoredFacts::default()
             };
             let kind = Kind::BuildFolder {
                 name: "node_modules".to_owned(),
             };
+            let (running, open) = (self.ctx.running, self.ctx.open);
+            let same_volume = self.ctx.store_dev.is_none_or(|dev| dev == stat.dev);
             let item = self.add(
                 kind,
                 project.join("node_modules"),
@@ -786,6 +793,7 @@ impl<'a> Collector<'a> {
             );
             item.name = format!("{project_name}/node_modules");
             item.project = Some(project);
+            item.reassess(running, open, same_volume);
         }
     }
 
@@ -853,7 +861,7 @@ impl<'a> Collector<'a> {
                 .collect();
             for name in names {
                 let bytes = name.to_bytes();
-                if !hidden && bytes.starts_with(b".") {
+                if hidden_skipped(bytes, hidden) {
                     continue;
                 }
                 let child = path.join(OsStr::from_bytes(bytes));
@@ -884,6 +892,35 @@ impl<'a> Collector<'a> {
 
 /// Folders a large-file search doesn't enter: app bundles and libraries (one item each to
 /// macOS), and places with their own pages.
+/// Dot-folders tools make that aren't private: build output, dependencies and caches. Their
+/// name starts with a dot only to keep them out of the way, so the large and old files in
+/// them are searched even with hidden files off.
+const TOOL_DOT_FOLDERS: &[&str] = &[
+    ".cache",
+    ".expo",
+    ".angular",
+    ".output",
+    ".vercel",
+    ".netlify",
+    ".serverless",
+    ".terraform",
+    ".yarn",
+    ".pnpm-store",
+];
+
+/// Whether the large and old search skips `name` as hidden. With hidden files off, only
+/// private dotfiles are skipped (`.env`, `.ssh`, `.git`, …), never a tool's build or cache
+/// folder such as `.next`.
+pub(super) fn hidden_skipped(name: &[u8], hidden: bool) -> bool {
+    if hidden || !name.starts_with(b".") {
+        return false;
+    }
+    let Ok(name) = std::str::from_utf8(name) else {
+        return true;
+    };
+    !(policy::is_build_folder(name) || TOOL_DOT_FOLDERS.contains(&name))
+}
+
 fn skipped_folder(name: &[u8]) -> bool {
     const SUFFIXES: &[&[u8]] = &[
         b".app",

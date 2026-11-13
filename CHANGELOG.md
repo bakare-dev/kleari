@@ -14,8 +14,8 @@ The first release of Kleari.
   findings and what quarantine holds.
 - **Cleanup:** Standard, Deep and Developer scans that only read; each finding explained with
   its risk; nothing moves until you approve a preview, and then only into quarantine. Items
-  an app is using, Apple's caches and recently committed projects' build folders are never
-  offered.
+  an app is using, Apple's caches and the build folders of projects open in an app are
+  never offered.
 - **Scheduled scans** (Settings › Scanning): daily or weekly, read-only, with a notification
   that opens the review.
 - **Quarantine:** restore anything (never overwriting what is there now), or delete
@@ -37,5 +37,23 @@ The first release of Kleari.
 - **Updates** from Kleari's releases, signed and installed only when you choose, and
   **Beta updates** in Settings › About to also get betas.
 - **Uninstall** from Settings › About, moving Kleari and its data to the Trash.
+
+### Changed
+
+- **Active projects** are now projects with a file, or the folder itself, open in an app
+  (an editor, a terminal or a dev server), checked when you scan and again before anything
+  moves. A recent Git commit no longer makes a project active, so a project you aren't
+  working on can be selected.
+- **Hidden files off** now skips only private dotfiles such as `.env` and `.ssh`. Build and
+  cache folders such as `.next`, `.turbo` and `.venv` are always searched for large and old
+  files.
+- **Large and old files** say what kind of file they are (video, disk image, archive, …)
+  instead of "Large file Kleari can't classify".
+- **Activity** reads the log when Kleari opens, so the page isn't blank while it loads.
+
+### Fixed
+
+- The sidebar and the menu-bar popover showed an old name instead of "Kleari".
+- The menu-bar popover appeared without its styling in release builds.
 
 [Unreleased]: https://github.com/bakare-dev/kleari/commits/beta

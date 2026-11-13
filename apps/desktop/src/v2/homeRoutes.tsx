@@ -41,6 +41,7 @@ export function ActivityRoute({ activity }: { activity: Activity }) {
       retentionDays={list?.status === "available" ? list.retentionDays : 90}
       truncated={list?.status === "available" && list.truncated}
       unavailable={list?.status === "unavailable" ? historyReasonText[list.reason] : activity.error}
+      loading={list === null && activity.error === null}
     />
   );
 }

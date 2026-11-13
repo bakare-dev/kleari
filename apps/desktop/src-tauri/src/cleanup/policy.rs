@@ -566,6 +566,11 @@ fn assess_build(name: &str, facts: &Facts<'_>) -> Assessment {
     }
 }
 
+/// Whether `name` is a build folder a project's tools make (`node_modules`, `.next`, …).
+pub fn is_build_folder(name: &str) -> bool {
+    BUILD_FOLDERS.contains(&name)
+}
+
 /// Build-folder names a project may have, from the Developer page's stacks.
 const BUILD_FOLDERS: &[&str] = &[
     "node_modules",

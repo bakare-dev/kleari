@@ -16,6 +16,7 @@ use super::{assess_now, current_state, new_id, Bound, Candidate, CleanupState, P
 use crate::history::History;
 use crate::persistence::{BatchRecord, Event, EventKind, ItemRecord, ItemState, Unavailable};
 use crate::quarantine::Failure;
+use crate::system_monitor::open_paths::OpenPaths;
 use crate::system_monitor::running_apps::RunningBundle;
 
 /// What the checks need: where things may be, what is running, where the quarantine is.
@@ -23,6 +24,8 @@ pub struct Checks<'a> {
     pub home: &'a Path,
     pub temp: Option<&'a Path>,
     pub running: &'a [RunningBundle],
+    /// What is open now; `None` (couldn't be read) counts every project as in use.
+    pub open: Option<&'a OpenPaths>,
     pub store_dev: Option<u64>,
     /// Folders added through the picker, where build folders may also come from.
     pub added: &'a [PathBuf],
@@ -93,7 +96,8 @@ impl Checks<'_> {
         (self.keep)(&fresh)
     }
 
-    /// Eligible right now, with the apps running now and on the quarantine's volume.
+    /// Eligible right now: with the apps running now, its project not in use and on the
+    /// quarantine's volume.
     fn eligible_now(&self, item: &Candidate) -> bool {
         let same_volume = self.store_dev.is_some_and(|dev| dev == item.identity.dev);
         let file_name = super::display_name_of(&item.path);
@@ -103,6 +107,7 @@ impl Checks<'_> {
                 &file_name,
                 item.facts,
                 self.running,
+                item.project_in_use(self.open),
                 same_volume,
             )
             .eligibility

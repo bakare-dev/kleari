@@ -17,6 +17,7 @@ import type {
   StepId,
   WhyNot,
 } from "../../contracts/cleanup";
+import type { FileCategory } from "../../contracts/storage";
 import { categoryMeta } from "../../v2/screens/cleanup/findingMeta";
 import type {
   Finding,
@@ -260,7 +261,7 @@ export const whyNotText: Record<WhyNot, string> = {
   xcodeRunning: "Quit Xcode and scan again to include this.",
   simulatorRunning: "Quit the Simulator and scan again to include this.",
   noLockfile: "Kleari only offers node_modules when a lockfile next to it can install the same packages again.",
-  activeProject: "You committed to this project in the last 14 days, so Kleari leaves its build folders alone.",
+  activeProject: "Something in this project is open in an app (an editor, a terminal or a dev server), so Kleari leaves its build folders alone until it’s closed.",
   appleCache: "macOS and Apple’s apps use this while running. Kleari leaves it alone.",
   manageInXcode: "Remove simulators and runtimes in Xcode (Window › Devices and Simulators, or Settings › Components) so Xcode stays consistent.",
   userFile: "Large and old files are listed for you to look at in Finder. Kleari won’t move them.",
@@ -333,9 +334,9 @@ export function evidenceText(entry: EvidenceEntry): string {
     case "noLockfile":
       return "No lockfile was found, so a reinstall may get different packages";
     case "projectActive":
-      return "You committed to this project in the last 14 days";
+      return "Something in the project is open in an app";
     case "projectInactive":
-      return "No commits to the project in the last 14 days";
+      return "Nothing in the project is open in any app";
     case "buildOutput":
       return "Made by a build or an install";
     case "reinstallNeeded":
@@ -385,10 +386,26 @@ function reasonFor(finding: ReviewFinding): string {
     case "logs":
       return codes.has("tempOlderThan") ? "Temporary files left behind" : "Old logs and crash reports";
     case "large":
-      return "Large file Kleari can’t classify";
+      return `Large ${fileKindLabel[finding.fileCategory ?? "other"]} to look over`;
     case "old":
-      return "A file you haven’t opened in a while";
+      return `${capitalize(fileKindLabel[finding.fileCategory ?? "other"])} you haven’t opened in a while`;
   }
+}
+
+/** What a large or old file is, by its extension; Kleari decides nothing from it. */
+const fileKindLabel: Record<FileCategory, string> = {
+  video: "video",
+  image: "image",
+  audio: "audio file",
+  archive: "archive",
+  diskImage: "disk image",
+  document: "document",
+  code: "code or build file",
+  other: "file",
+};
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function displayName(finding: ReviewFinding): string {

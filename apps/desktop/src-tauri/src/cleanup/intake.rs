@@ -9,11 +9,9 @@ use super::{assess_now, location_of, new_id, Candidate, Source, StoredFacts};
 use crate::developer::{open_absolute, ReviewItem, ReviewKind};
 use crate::quarantine::Identity;
 use crate::storage::analysis::LargeFile;
+use crate::system_monitor::open_paths::OpenPaths;
 use crate::system_monitor::running_apps::RunningBundle;
 
-/// A project with a commit within this many days is active.
-const ACTIVE_DAYS: u64 = 14;
-const DAY_MS: u64 = 86_400_000;
 /// Storage lists files from this size.
 const STORAGE_LARGE_BYTES: u64 = 1_000_000_000;
 
@@ -264,6 +262,8 @@ fn glob_segment(pattern: &str, segment: &str) -> bool {
 pub struct Intake<'a> {
     pub home: &'a Path,
     pub running: &'a [RunningBundle],
+    /// What is open now; `None` (couldn't be read) counts every project as in use.
+    pub open: Option<&'a OpenPaths>,
     pub store_dev: Option<u64>,
     pub now_ms: u64,
     /// Folders excluded in Settings now: an item in or containing one is dropped before
@@ -285,7 +285,8 @@ impl Intake<'_> {
         let file_name = super::display_name_of(&path);
         Candidate {
             id: new_id(self.now_ms),
-            assessment: assess_now(&kind, &file_name, facts, self.running, same_volume),
+            // Build folders are reassessed once their project is set.
+            assessment: assess_now(&kind, &file_name, facts, self.running, false, same_volume),
             location: location_of(&path, Some(self.home)),
             identity: Identity::of(stat),
             name,
@@ -314,17 +315,10 @@ impl Intake<'_> {
                         super::display_name_of(&item.path),
                         None,
                     ),
-                    ReviewKind::Build {
-                        name,
-                        project,
-                        last_commit_ms,
-                    } => {
+                    ReviewKind::Build { name, project, .. } => {
                         let facts = StoredFacts {
                             lockfile: name == "node_modules"
                                 && has_lockfile(&project, self.home, self.excluded),
-                            project_active: last_commit_ms.is_some_and(|commit| {
-                                self.now_ms.saturating_sub(commit) < ACTIVE_DAYS * DAY_MS
-                            }),
                             ..StoredFacts::default()
                         };
                         let shown = format!("{}/{name}", super::display_name_of(&project));
@@ -341,6 +335,10 @@ impl Intake<'_> {
                     .filter(|&seconds| seconds > 0)
                     .and_then(|seconds| seconds.checked_mul(1000));
                 candidate.project = project;
+                let same_volume = self
+                    .store_dev
+                    .is_none_or(|dev| dev == candidate.identity.dev);
+                candidate.reassess(self.running, self.open, same_volume);
                 candidate
             })
             .collect()
