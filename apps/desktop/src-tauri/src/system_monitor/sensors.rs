@@ -134,8 +134,8 @@ pub fn read_fans() -> Option<Vec<Fan>> {
     macos::fans()
 }
 
-/// Every temperature sensor with its reading, for the tests.
-#[cfg(test)]
+/// Every temperature sensor with its reading, for the macOS-only test that reads them.
+#[cfg(all(test, target_os = "macos"))]
 pub fn temperature_readings() -> Option<Vec<(String, f64)>> {
     macos::temperature_readings()
 }
