@@ -20,6 +20,9 @@ pub struct SystemDetails {
     pub startup_volume: Reading<VolumeInfo>,
     /// Milliseconds since the Unix epoch when the Mac last started.
     pub boot_time_ms: Reading<u64>,
+    /// When the Mac last woke from sleep (`kern.waketime`); unavailable when it hasn't slept
+    /// since it started.
+    pub last_wake_ms: Reading<u64>,
     pub battery_health: Reading<BatteryHealth>,
 }
 
@@ -71,9 +74,13 @@ pub struct VolumeInfo {
 #[serde(rename_all = "camelCase")]
 pub struct BatteryHealth {
     pub cycle_count: Option<u64>,
-    /// Full-charge capacity as a share of design capacity, capped at 100. `None` when either
-    /// capacity is missing or zero.
+    /// The cycles the battery is designed for (`DesignCycleCount9C`), when reported.
+    pub design_cycle_count: Option<u64>,
+    /// macOS's own "Maximum Capacity" (System Information); without it, full-charge capacity
+    /// as a share of design capacity, capped at 100. `None` when neither is known.
     pub maximum_capacity_percent: Option<f64>,
+    /// macOS says the battery should be serviced ("Service Recommended").
+    pub service_recommended: bool,
 }
 
 /// Raw values before availability decisions. Display is read separately on the main thread.
@@ -90,6 +97,7 @@ pub struct RawDetails {
     pub display: Option<RawDisplay>,
     pub startup_volume: Option<(String, u64)>,
     pub boot_time_s: Option<u64>,
+    pub wake_time_s: Option<u64>,
     pub battery: RawBatteryHealth,
 }
 
@@ -101,15 +109,18 @@ pub struct RawDisplay {
     pub height_mm: f64,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub enum RawBatteryHealth {
     /// No `AppleSmartBattery` service: the Mac has no internal battery.
     #[default]
     NotPresent,
     Present {
         cycle_count: Option<i64>,
+        design_cycle_count: Option<i64>,
         design_capacity: Option<i64>,
         nominal_capacity: Option<i64>,
+        /// What macOS states (`system_profiler`), when it could be read.
+        reported: Option<super::power_profile::ReportedHealth>,
     },
 }
 
@@ -166,6 +177,12 @@ pub fn to_details(raw: RawDetails) -> SystemDetails {
                 .filter(|&seconds| seconds > 0)
                 .and_then(|seconds| seconds.checked_mul(1000)),
         ),
+        last_wake_ms: available(
+            raw.wake_time_s
+                // A wake before this startup belongs to an earlier session.
+                .filter(|&wake| raw.boot_time_s.is_some_and(|boot| wake > boot))
+                .and_then(|seconds| seconds.checked_mul(1000)),
+        ),
         battery_health: map_battery_health(&raw.battery),
     }
 }
@@ -186,11 +203,13 @@ fn map_display(display: RawDisplay) -> DisplayInfo {
     }
 }
 
-fn map_battery_health(battery: &RawBatteryHealth) -> Reading<BatteryHealth> {
+pub(crate) fn map_battery_health(battery: &RawBatteryHealth) -> Reading<BatteryHealth> {
     let RawBatteryHealth::Present {
         cycle_count,
+        design_cycle_count,
         design_capacity,
         nominal_capacity,
+        reported,
     } = battery
     else {
         return Reading::Unavailable {
@@ -198,20 +217,32 @@ fn map_battery_health(battery: &RawBatteryHealth) -> Reading<BatteryHealth> {
         };
     };
     let cycle_count = cycle_count.and_then(|count| u64::try_from(count).ok());
-    let maximum_capacity_percent = match (design_capacity, nominal_capacity) {
+    // macOS's own figure first: the raw capacities can read several percent higher.
+    let computed = match (design_capacity, nominal_capacity) {
         (Some(design), Some(nominal)) if *design > 0 && *nominal > 0 => {
             // Capacities are mAh values well inside f64's exact integer range.
             Some((*nominal as f64 * 100.0 / *design as f64).min(100.0))
         }
         _ => None,
     };
+    let maximum_capacity_percent = reported
+        .as_ref()
+        .and_then(|health| health.maximum_capacity_percent)
+        .or(computed);
     if cycle_count.is_none() && maximum_capacity_percent.is_none() {
         return not_reported();
     }
     Reading::Available {
         value: BatteryHealth {
             cycle_count,
+            design_cycle_count: design_cycle_count
+                .and_then(|count| u64::try_from(count).ok())
+                .filter(|&count| count > 0),
             maximum_capacity_percent,
+            service_recommended: reported
+                .as_ref()
+                .and_then(|health| health.service_recommended)
+                .unwrap_or(false),
         },
     }
 }
@@ -238,6 +269,7 @@ pub fn read_raw() -> RawDetails {
         display: None,
         startup_volume,
         boot_time_s,
+        wake_time_s: sysctl::seconds("kern.waketime"),
         battery: read_battery_health(),
     }
 }
@@ -263,11 +295,16 @@ fn read_volume_and_boot() -> (Option<(String, u64)>, Option<u64>) {
     (volume, System::boot_time().ok())
 }
 
-fn read_battery_health() -> RawBatteryHealth {
+pub(crate) fn read_battery_health() -> RawBatteryHealth {
     const CLASS: &str = "AppleSmartBattery";
     let Some(top) = registry::integers(
         CLASS,
-        &["CycleCount", "DesignCapacity", "NominalChargeCapacity"],
+        &[
+            "CycleCount",
+            "DesignCapacity",
+            "NominalChargeCapacity",
+            "DesignCycleCount9C",
+        ],
     ) else {
         return RawBatteryHealth::NotPresent;
     };
@@ -280,7 +317,45 @@ fn read_battery_health() -> RawBatteryHealth {
     .unwrap_or_else(|| vec![None, None]);
     RawBatteryHealth::Present {
         cycle_count: top[0],
+        design_cycle_count: top[3],
         design_capacity: top[1].or(nested[0]),
         nominal_capacity: top[2].or(nested[1]),
+        reported: super::power_profile::read(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::system_monitor::power_profile::ReportedHealth;
+
+    fn health(reported: Option<ReportedHealth>) -> BatteryHealth {
+        let raw = RawBatteryHealth::Present {
+            cycle_count: Some(312),
+            design_cycle_count: Some(1000),
+            // 99 % from the raw capacities, as a friend's Mac read while macOS said 96 %.
+            design_capacity: Some(6_000),
+            nominal_capacity: Some(5_940),
+            reported,
+        };
+        match map_battery_health(&raw) {
+            Reading::Available { value } => value,
+            other => panic!("available: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn the_maximum_capacity_is_the_one_macos_states() {
+        let stated = health(Some(ReportedHealth {
+            maximum_capacity_percent: Some(96.0),
+            service_recommended: Some(true),
+        }));
+        assert_eq!(stated.maximum_capacity_percent, Some(96.0));
+        assert!(stated.service_recommended);
+        assert_eq!(stated.design_cycle_count, Some(1000));
+        // Without macOS's figure, the raw capacities are the fallback.
+        let computed = health(None);
+        assert_eq!(computed.maximum_capacity_percent, Some(99.0));
+        assert!(!computed.service_recommended);
     }
 }

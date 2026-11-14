@@ -33,6 +33,13 @@ pub fn each(class: &str, name_key: &str, keys: &[&str]) -> Vec<(Option<String>, 
     })
 }
 
+/// Runs `use_service` with the first registered service of an IOKit class (its registry
+/// entry), released afterwards. For the SMC's read-only user client (`sensors`).
+#[cfg(target_os = "macos")]
+pub fn open_service<T>(class: &str, use_service: impl FnOnce(u32) -> T) -> Option<T> {
+    macos::with_service(class, use_service)
+}
+
 #[cfg(not(target_os = "macos"))]
 pub fn each(
     _class: &str,

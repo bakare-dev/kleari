@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "popover",
-  "description": "The menu-bar popover: read-only live readings, the startup disk's capacity, the review's findings, what quarantine holds and the latest activity; opening the main window at a fixed destination, closing the popover and quitting. It can't scan, move, restore, delete or change settings.",
+  "description": "The menu-bar popover: read-only live readings (including network rates), the startup disk's capacity, the review's findings, what quarantine holds and the issue alerts; opening the main window at a fixed destination, closing the popover and quitting. It can't scan, move, restore, delete or change settings.",
   "windows": ["popover"],
   "permissions": [
     "core:default",
@@ -10,7 +10,7 @@
     "allow-get-storage-overview",
     "allow-get-cleanup-review",
     "allow-list-quarantine",
-    "allow-list-activity",
+    "allow-get-issues",
     "allow-open-main",
     "allow-hide-popover",
     "allow-quit-kleari"

@@ -601,6 +601,19 @@ impl Database {
         })
     }
 
+    /// When the latest kept event of `kind` happened (for the weekly cleanup reminder).
+    pub fn last_event_ms(&self, kind: EventKind) -> Result<Option<u64>, Unavailable> {
+        self.with(|conn| {
+            conn.query_row(
+                "SELECT MAX(at_ms) FROM history_event WHERE kind = ?1",
+                params![kind.as_str()],
+                |row| row.get::<_, Option<i64>>(0),
+            )
+            .map(|at| at.map(from_sql))
+            .map_err(write_failed)
+        })
+    }
+
     /// Every saved preference, as stored text by key.
     pub fn settings(&self) -> Result<Vec<(String, String)>, Unavailable> {
         self.with(|conn| {

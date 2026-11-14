@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Glyph, type IconName } from "../../ui/icons";
-import { Button, IconTile, PageHeader, Pill, ScrollEdgeGlass, SearchField, Segmented, StatCard, useScrolled, type Status, type Tone } from "../../ui/components";
+import { Button, IconTile, PageHeader, Pill, SearchField, Segmented, StatCard, type Status, type Tone } from "../../ui/components";
 import { hrefFor, headingIdFor, type V2Route } from "../../shell/routes";
 import "./activity.css";
 
@@ -78,7 +78,6 @@ export function ActivityScreen({ days, stats, retentionDays, onExport, unavailab
   const [filter, setFilter] = useState<ActivityGroup | "all">("all");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
-  const [scrolled, onScroll] = useScrolled();
 
   const needle = query.trim().toLowerCase();
   const matches = (event: ActivityEvent) =>
@@ -137,8 +136,7 @@ export function ActivityScreen({ days, stats, retentionDays, onExport, unavailab
           />
           <SearchField label="Search activity" value={query} onChange={setQuery} width={190} strong />
         </div>
-        <div tabIndex={0} role="region" aria-label="Activity log" className="act-log" onScroll={onScroll}>
-          <ScrollEdgeGlass visible={scrolled} />
+        <div tabIndex={0} role="region" aria-label="Activity log" className="act-log">
           {shown.map((day) => (
             <section key={day.label} aria-label={day.label} className="v2-card act-day">
               <div className="act-day-head">

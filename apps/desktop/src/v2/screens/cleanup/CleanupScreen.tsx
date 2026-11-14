@@ -382,7 +382,7 @@ export function CleanupScreen(props: CleanupScreenProps) {
         headingId={headingIdFor("cleanup")}
         subtitle="Scans only read. Nothing moves until you approve a preview."
       />
-      <ScrollBody label="Cleanup" className="clean-body" edgeGlass={false}>
+      <ScrollBody label="Cleanup" className="clean-body">
         {notices.error && (
           <div role="alert" className="v2-banner v2-banner-warn">
             <IconTile tone="orange" icon="warning" size={32} />
@@ -595,7 +595,7 @@ export function CleanupScreen(props: CleanupScreenProps) {
             <div
               className="clean-last-bar"
               role="img"
-              aria-label={`Found space by category: ${lastScan.categories.map((category) => `${category.name} ${category.gb} GB`).join(", ")}`}
+              aria-label={`Found space by category: ${lastScan.categories.map((category) => `${category.name} ${formatGb(category.gb)}`).join(", ")}`}
             >
               {lastScan.categories.map((category) => (
                 <span key={category.name} className={`tone-${category.tone}`} style={{ width: `${(lastScan.totalGb > 0 ? (category.gb / lastScan.totalGb) * 100 : 0).toFixed(1)}%` }} />
@@ -605,7 +605,7 @@ export function CleanupScreen(props: CleanupScreenProps) {
               {lastScan.categories.map((category) => (
                 <div key={category.name} className="clean-last-cat">
                   <span className="clean-last-name"><Dot tone={category.tone} />{category.name}</span>
-                  <span className="clean-last-size">{category.gb} GB <span>· {category.items} items</span></span>
+                  <span className="clean-last-size">{formatGb(category.gb)} <span>· {category.items} items</span></span>
                   <span className="clean-last-pills">
                     <Pill status={category.riskStatus}>{category.risk}</Pill>
                     <Pill status={category.eligibilityStatus}>{category.eligibility}</Pill>

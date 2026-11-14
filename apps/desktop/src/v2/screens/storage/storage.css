@@ -266,12 +266,7 @@
   list-style: none;
 }
 
-.st-folders .v2-edge,
-.st-files .v2-edge {
-  margin-bottom: -40px;
-}
-
-.st-folders li:not(.v2-edge) {
+.st-folders li {
   border-top: 1px solid var(--mp-border-solid);
 }
 
@@ -346,7 +341,7 @@
   margin: 0 6px;
 }
 
-.st-files li:not(.v2-edge) {
+.st-files li {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -528,6 +523,11 @@
   gap: 10px;
 }
 
+/* Only the folder's contents give way to a short window; the map keeps its size. */
+.st-browse > :not(.st-browse-rows) {
+  flex-shrink: 0;
+}
+
 .st-browse-head,
 .st-browse-foot {
   display: flex;
@@ -567,27 +567,44 @@
 /* The storage map: the largest entries side by side, sized by what they take. */
 .st-map {
   display: flex;
-  gap: 3px;
-  height: 64px;
+  gap: 4px;
+  height: 92px;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .st-map-cell {
   display: flex;
-  min-width: 28px;
+  min-width: 22px;
   flex-basis: 0;
   flex-direction: column;
   justify-content: flex-end;
+  gap: 1px;
   overflow: hidden;
-  padding: 6px 8px;
+  padding: 8px 10px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 8px;
   background: linear-gradient(160deg, var(--c1), var(--c2));
   color: #fff;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
   text-align: left;
   cursor: pointer;
+}
+
+.st-map-cell .v2-num {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.st-map-cell-thin {
+  padding: 0;
+}
+
+.st-map-cell-thin > * {
+  display: none;
 }
 
 .st-map-cell:disabled {

@@ -2,13 +2,34 @@
 
 import { ContractError, nonNegativeInteger, nullable, oneOf, record } from "./systemMetrics";
 
-export type IssueKind = "lowDiskSpace" | "lowDriveSpace" | "heavyMemory" | "batteryDrain" | "lowDeviceBattery" | "fullTrash" | "unusedApps";
+export const issueKinds = [
+  "lowDiskSpace",
+  "criticalDiskSpace",
+  "lowDriveSpace",
+  "heavyMemory",
+  "criticalMemory",
+  "busyCpu",
+  "batteryDrain",
+  "batteryLow",
+  "batteryCritical",
+  "batteryService",
+  "batteryCycles",
+  "batteryHot",
+  "lowDeviceBattery",
+  "fullTrash",
+  "unusedApps",
+  "manyLoginItems",
+  "cleanupDue",
+] as const;
+export type IssueKind = (typeof issueKinds)[number];
 
 export interface Issue {
   kind: IssueKind;
   severity: "warning" | "info";
   subject: string | null;
+  /** Bytes free or held, a percent, °C, a count or days, as the kind says. */
   value: number | null;
+  /** Total bytes, watts, cores or design cycles. */
   total: number | null;
 }
 
@@ -20,7 +41,7 @@ export function parseIssues(payload: unknown): Issue[] {
     const field = `[${index}]`;
     const issue = record(entry, field);
     return {
-      kind: oneOf(["lowDiskSpace", "lowDriveSpace", "heavyMemory", "batteryDrain", "lowDeviceBattery", "fullTrash", "unusedApps"] as const, issue.kind, `${field}.kind`),
+      kind: oneOf(issueKinds, issue.kind, `${field}.kind`),
       severity: oneOf(["warning", "info"] as const, issue.severity, `${field}.severity`),
       subject: nullable(issue.subject, (subject) => {
         if (typeof subject !== "string" || subject.length > 4096) {

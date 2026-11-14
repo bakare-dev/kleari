@@ -46,7 +46,14 @@ const defaultLoaders: SettingsLoaders = {
 export type UninstallOutcome = { kind: "done"; uninstalled: Uninstalled } | { kind: "held"; message: string } | { kind: "failed"; message: string };
 
 /** The notification preferences that need macOS's permission to be turned on. */
-export type NotificationKey = "notifyScan" | "notifyQuarantine" | "notifyIssues";
+export type NotificationKey =
+  | "notifyScan"
+  | "notifyQuarantine"
+  | "notifyStorage"
+  | "notifyPerformance"
+  | "notifyBattery"
+  | "notifyLoginItems"
+  | "notifyReminders";
 
 /** The outcome of a change: `null` when it took effect, otherwise what to tell the user. */
 export type ChangeResult = string | null;

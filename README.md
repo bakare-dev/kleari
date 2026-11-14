@@ -50,6 +50,7 @@ Kleari is free. If it saves you time or space:
 
 - ⭐ **Star this repository.** It helps others find Kleari.
 - ☕ **Buy me a coffee:** [buymeacoffee.com/bakaredev](https://buymeacoffee.com/bakaredev)
+- 🍺 **Buy me a malt:** [buymeamalt.com/@bakaredev](https://buymeamalt.com/@bakaredev)
 
 <a href="https://buymeacoffee.com/bakaredev"><img src="docs/design/v2/brand/qr-code.png" alt="QR code for buymeacoffee.com/bakaredev" width="160"></a>
 

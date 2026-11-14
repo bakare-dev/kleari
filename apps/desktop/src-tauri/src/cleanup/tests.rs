@@ -928,6 +928,50 @@ fn an_approved_preview_moves_items_into_quarantine_and_they_can_be_restored() {
 }
 
 #[test]
+fn a_moved_item_names_its_quarantine_item_so_it_can_be_deleted_straight_away() {
+    let home = Home::new("approve-delete");
+    let cache = home.write("Library/Caches/com.example.App/blob", 2_000_000);
+    let history = home.history();
+    let state = CleanupState::default();
+    let items = scanned(&home, &history, &state);
+    let item = by_name(&items, "com.example.App");
+    let home_path = home.home();
+    let cancel = AtomicBool::new(false);
+    let checks = checks(&home_path, &history, &cancel, &[]);
+    let preview =
+        execute::create_preview(&state, std::slice::from_ref(&item.id), &checks, now_ms());
+    let outcome = execute::approve(
+        &state,
+        &preview.id,
+        &checks,
+        &history,
+        "standard",
+        now_ms,
+        |_| {},
+    );
+    let ApproveOutcome::Finished { items: moved, .. } = outcome else {
+        panic!("finished: {outcome:?}");
+    };
+    // The moved item names the quarantine item it became, which is what Quarantine deletes.
+    let held = history.db.held_items().expect("held");
+    assert_eq!(moved[0].held_id.as_deref(), Some(held[0].id.as_str()));
+
+    let stop = AtomicBool::new(false);
+    let summary = crate::quarantine::delete_items(
+        &history.db,
+        &history.store,
+        &[held[0].id.clone()],
+        &stop,
+        now_ms,
+        |_| {},
+    )
+    .expect("delete");
+    assert_eq!(summary.deleted, [held[0].id.clone()]);
+    assert!(!cache.exists());
+    assert!(history.db.held_items().expect("held").is_empty());
+}
+
+#[test]
 fn a_removed_apps_leftover_moves_through_preview_into_quarantine_and_restores() {
     let home = Home::new("app-leftover");
     let data = home.write(

@@ -35,6 +35,8 @@ export function useFiles(onReviewChanged: () => void, loaders: FilesLoaders = de
   const [sent, setSent] = useState<ReadonlySet<string>>(new Set());
   const running = useRef(false);
   const mounted = useRef(true);
+  /** The last search asked for, so it can be run again after its files moved. */
+  const last = useRef<{ tool: Tool; options: FilesOptions } | null>(null);
 
   useEffect(() => {
     mounted.current = true;
@@ -54,6 +56,7 @@ export function useFiles(onReviewChanged: () => void, loaders: FilesLoaders = de
         return;
       }
       running.current = true;
+      last.current = { tool, options };
       setState((current) => ({ ...current, running: tool, error: null, stopped: false }));
       loaders.start(tool, options).then(
         (result) => {
@@ -103,7 +106,15 @@ export function useFiles(onReviewChanged: () => void, loaders: FilesLoaders = de
     [loaders, onReviewChanged],
   );
 
-  return { state, sent, run, cancel, send };
+  /** Runs the last search again (after what it found was moved), if there was one. */
+  const rerun = useCallback(() => {
+    if (last.current) {
+      setSent(new Set());
+      run(last.current.tool, last.current.options);
+    }
+  }, [run]);
+
+  return { state, sent, run, rerun, cancel, send };
 }
 
 export type Files = ReturnType<typeof useFiles>;

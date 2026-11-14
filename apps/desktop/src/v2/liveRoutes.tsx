@@ -215,6 +215,8 @@ export function PreviewRoute({ review, quarantine }: { review: CleanupReview; qu
       failedText={failure === undefined ? undefined : moveFailureText[failure]}
       errorText={preview.error}
       consequences={consequences([...new Set(items.map((item) => item.category))])}
+      mode={preview.mode}
+      deleteError={preview.deleteError}
       onApprove={review.approve}
       onRebuild={review.rebuild}
     />

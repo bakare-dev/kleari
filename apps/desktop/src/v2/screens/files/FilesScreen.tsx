@@ -131,7 +131,7 @@ export function FilesScreen({ files }: { files: Files }) {
         subtitle="Find your own files worth a look. Nothing moves until you approve it in Cleanup, and then only into quarantine."
         actions={<LinkButton href={hrefFor("review")} size="sm">Open review</LinkButton>}
       />
-      <div className={`files-body${result ? " files-body-above-bar" : ""}`}>
+      <div className="files-body">
         <Segmented
           label="Tool"
           value={tool}
@@ -187,53 +187,56 @@ export function FilesScreen({ files }: { files: Files }) {
           </div>
         </section>
         {(state.error || state.stopped) && <span role="status" className="v2-card-note">{state.error ?? "The search was stopped. Showing the last full result."}</span>}
-        {running && !result && (
-          <section className="v2-card files-empty" aria-label="Searching">
-            <Spinner size={30} />
-            <span className="v2-row-title">Searching…</span>
-            <span className="v2-card-note">{tool === "duplicates" || tool === "similar" ? "Comparing files can take a few minutes on a full home folder." : "This only reads names, sizes and dates."}</span>
-          </section>
-        )}
-        {result && groups.length === 0 && (
-          <section className="v2-card files-empty" aria-label="Nothing found">
-            <IconTile tone="green" icon="check" size={36} />
-            <span className="v2-row-title">Nothing found</span>
-          </section>
-        )}
-        {groups.map((group) => (
-          <section key={group.id} aria-label={meta.group(group)} className="v2-card files-group">
-            <div className="files-group-head">
-              <span className="v2-row-text">
-                <span className="v2-row-title">{meta.group(group)}</span>
-                {group.detail && <span className="v2-row-sub">{group.detail}</span>}
-              </span>
-              <span className="v2-num v2-muted">{keeps(group) ? `${formatGb(gb(group.reclaimable))} to gain` : formatGb(gb(group.bytes))}</span>
-            </div>
-            <ul className="files-rows">
-              {group.items.map((item, index) => {
-                const can = choosable(group, item, index);
-                const kept = keeps(group) && index === 0;
-                return (
-                  <li key={item.id}>
-                    <input type="checkbox" aria-label={`Choose ${item.name}`} checked={can && selection.has(item.id)} disabled={!can} onChange={() => toggle(item.id)} style={{ opacity: can ? 1 : 0.4 }} />
-                    <IconTile tone={meta.tone} icon={item.folder ? "folder" : fileIcon[item.fileCategory ?? "other"]} size={28} />
-                    <span className="v2-row-text">
-                      <span className="v2-row-title v2-ellipsis">{item.name}</span>
-                      <span className="v2-row-sub v2-ellipsis">
-                        {item.location} · {tool === "largeOld" && group.kind === "old" ? `opened ${age(item.openedMs ?? item.modifiedMs, nowMs)}` : `changed ${age(item.modifiedMs, nowMs)}`}
+        {/* The tabs and the tool stay in place; only what was found scrolls. */}
+        <div className="files-results" tabIndex={0} role="region" aria-label="What was found">
+          {running && !result && (
+            <section className="v2-card files-empty" aria-label="Searching">
+              <Spinner size={30} />
+              <span className="v2-row-title">Searching…</span>
+              <span className="v2-card-note">{tool === "duplicates" || tool === "similar" ? "Comparing files can take a few minutes on a full home folder." : "This only reads names, sizes and dates."}</span>
+            </section>
+          )}
+          {result && groups.length === 0 && (
+            <section className="v2-card files-empty" aria-label="Nothing found">
+              <IconTile tone="green" icon="check" size={36} />
+              <span className="v2-row-title">Nothing found</span>
+            </section>
+          )}
+          {groups.map((group) => (
+            <section key={group.id} aria-label={meta.group(group)} className="v2-card files-group">
+              <div className="files-group-head">
+                <span className="v2-row-text">
+                  <span className="v2-row-title">{meta.group(group)}</span>
+                  {group.detail && <span className="v2-row-sub">{group.detail}</span>}
+                </span>
+                <span className="v2-num v2-muted">{keeps(group) ? `${formatGb(gb(group.reclaimable))} to gain` : formatGb(gb(group.bytes))}</span>
+              </div>
+              <ul className="files-rows">
+                {group.items.map((item, index) => {
+                  const can = choosable(group, item, index);
+                  const kept = keeps(group) && index === 0;
+                  return (
+                    <li key={item.id}>
+                      <input type="checkbox" aria-label={`Choose ${item.name}`} checked={can && selection.has(item.id)} disabled={!can} onChange={() => toggle(item.id)} style={{ opacity: can ? 1 : 0.4 }} />
+                      <IconTile tone={meta.tone} icon={item.folder ? "folder" : fileIcon[item.fileCategory ?? "other"]} size={28} />
+                      <span className="v2-row-text">
+                        <span className="v2-row-title v2-ellipsis">{item.name}</span>
+                        <span className="v2-row-sub v2-ellipsis">
+                          {item.location} · {tool === "largeOld" && group.kind === "old" ? `opened ${age(item.openedMs ?? item.modifiedMs, nowMs)}` : `changed ${age(item.modifiedMs, nowMs)}`}
+                        </span>
                       </span>
-                    </span>
-                    <span className="v2-num files-size">{size(item)}</span>
-                    <span className="files-pill">
-                      {sent.has(item.id) ? <Pill status="link">In review</Pill> : kept ? <Pill status="ok">Keep</Pill> : !item.selectable ? <Pill status="muted">Kept as is</Pill> : null}
-                    </span>
-                  </li>
-                );
-              })}
-              {group.more > 0 && <li className="v2-muted files-more">and {plural(group.more, "smaller item")}</li>}
-            </ul>
-          </section>
-        ))}
+                      <span className="v2-num files-size">{size(item)}</span>
+                      <span className="files-pill">
+                        {sent.has(item.id) ? <Pill status="link">In review</Pill> : kept ? <Pill status="ok">Keep</Pill> : !item.selectable ? <Pill status="muted">Kept as is</Pill> : null}
+                      </span>
+                    </li>
+                  );
+                })}
+                {group.more > 0 && <li className="v2-muted files-more">and {plural(group.more, "smaller item")}</li>}
+              </ul>
+            </section>
+          ))}
+        </div>
       </div>
 
       {result && groups.length > 0 && (

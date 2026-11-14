@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import type { StorageExplorer as Explorer } from "../../../features/storage/useStorageExplorer";
 import { StorageExplorer } from "./StorageExplorer";
 import { Glyph, StatusMark } from "../../ui/icons";
-import { Button, IconTile, Modal, PageHeader, Pill, ProgressBar, ScrollEdgeGlass, Segmented, Spinner, Toast, useScrolled, useToast, type Status } from "../../ui/components";
+import { Button, IconTile, Modal, PageHeader, Pill, ProgressBar, Segmented, Spinner, Toast, useToast, type Status } from "../../ui/components";
 import { formatGb } from "../../ui/format";
 import { headingIdFor } from "../../shell/routes";
 import type { AnalysisStep, FolderNode, FolderTag, LargeFile, ManagedSpace, StorageAnalysis, StorageCapacity, StorageCategoryDetail } from "./types";
@@ -426,12 +426,10 @@ function FolderList({ tree, path, onPathChange }: { tree: FolderNode; path: read
   );
 }
 
-/** The only part of the page that scrolls, under the scroll-edge glass, as on Processes. */
+/** The only part of the page that scrolls, as on Processes. */
 function ScrollList({ label, className, children }: { label: string; className: string; children: ReactNode }) {
-  const [scrolled, onScroll] = useScrolled();
   return (
-    <ul tabIndex={0} aria-label={label} className={className} onScroll={onScroll}>
-      <ScrollEdgeGlass visible={scrolled} inset={0} as="li" />
+    <ul tabIndex={0} aria-label={label} className={className}>
       {children}
     </ul>
   );

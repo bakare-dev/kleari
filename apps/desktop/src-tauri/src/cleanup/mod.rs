@@ -125,11 +125,18 @@ pub fn assess_now(
 
 impl Candidate {
     /// Whether this item's project has a file or its folder open in some app now. Without a
-    /// reading of what is open, every project counts as in use (fail closed).
+    /// reading of what is open, every project counts as in use (fail closed). The item is the
+    /// project's build folder, the only part that counts for a project at the home folder.
     pub fn project_in_use(&self, open: Option<&OpenPaths>) -> bool {
-        self.project
-            .as_deref()
-            .is_some_and(|project| open_paths::in_use(open, project))
+        let home = crate::storage::home_dir();
+        self.project.as_deref().is_some_and(|project| {
+            open_paths::in_use(
+                open,
+                project,
+                std::slice::from_ref(&self.path),
+                home.as_deref(),
+            )
+        })
     }
 
     /// Runs the policy again now that the item's project is known.
