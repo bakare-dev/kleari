@@ -1,5 +1,8 @@
+/* The page itself doesn't scroll: banners and the summary stay put, and only the list of
+   items scrolls inside its card. A very short window falls back to scrolling the page. */
 .pv-body {
   padding-top: 4px;
+  overflow: hidden;
 }
 
 .pv-danger-text {
@@ -14,39 +17,57 @@
 
 .pv-grid {
   display: grid;
+  min-height: 0;
+  flex: 1 1 auto;
   align-items: stretch;
   gap: 16px;
-  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr);
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .pv-col {
   display: flex;
   min-width: 0;
+  min-height: 0;
   flex-direction: column;
   gap: 16px;
 }
 
 .pv-items {
+  display: flex;
+  min-height: 160px;
+  flex: 1 1 auto;
+  flex-direction: column;
   padding: 16px 12px 8px;
 }
 
 .pv-items .v2-card-head {
+  flex-shrink: 0;
   margin-bottom: 8px;
 }
 
 .pv-list {
   display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
   flex-direction: column;
   margin: 0;
   padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
+}
+
+.pv-list:focus-visible {
+  outline-offset: -2px;
 }
 
 .pv-list li {
   display: flex;
+  min-width: 0;
   align-items: center;
-  gap: 12px;
-  padding: 10px 6px;
+  gap: 10px;
+  padding: 9px 6px;
   border-top: 1px solid var(--mp-border-solid);
 }
 
@@ -56,13 +77,25 @@
 
 .pv-name {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 6px;
   font-weight: 600;
 }
 
 .pv-name .v2-pill {
+  flex-shrink: 0;
   padding: 1px 7px;
+}
+
+/* Size above what happens to it, so neither squeezes the name. */
+.pv-end {
+  display: flex;
+  max-width: 46%;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
 }
 
 .pv-path {
@@ -74,24 +107,30 @@
 }
 
 .pv-size {
-  width: 56px;
-  flex-shrink: 0;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  text-align: right;
   white-space: nowrap;
 }
 
 .pv-effect {
   display: inline-flex;
-  width: 160px;
-  flex-shrink: 0;
+  max-width: 100%;
   align-items: center;
   justify-content: flex-end;
-  gap: 5px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11.5px;
   font-weight: 600;
+  line-height: 1.25;
   text-align: right;
+}
+
+.pv-effect > span {
+  min-width: 0;
+}
+
+.pv-effect > svg,
+.pv-effect > .v2-spinner {
+  flex-shrink: 0;
 }
 
 .pv-effect-planned { color: var(--mp-link); }
@@ -102,7 +141,7 @@
 
 .pv-how {
   display: flex;
-  flex: 1;
+  flex-shrink: 0;
   flex-direction: column;
   gap: 12px;
 }
@@ -146,12 +185,16 @@
   line-height: 1.35;
 }
 
+/* Scrolls on its own only if the window is too short to show it all. */
 .pv-summary {
   display: flex;
   min-width: 0;
+  min-height: 0;
   flex-direction: column;
   gap: 14px;
   padding: 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .pv-summary-head {
@@ -263,6 +306,10 @@
   flex: 1.3;
 }
 
+.pv-delete {
+  width: 100%;
+}
+
 .pv-running {
   display: flex;
   align-items: center;
@@ -274,6 +321,11 @@
   font-weight: 600;
 }
 
+.pv-running-danger {
+  background: var(--mp-danger-bg);
+  color: var(--mp-danger-text);
+}
+
 .pv-empty {
   display: flex;
   flex-direction: column;
@@ -281,4 +333,25 @@
   gap: 10px;
   padding: 40px;
   text-align: center;
+}
+
+/* Too short to fit the list beside the steps: the whole page scrolls as before. */
+@media (max-height: 640px) {
+  .pv-body {
+    overflow-y: auto;
+  }
+
+  .pv-grid {
+    flex: none;
+    grid-template-rows: auto;
+  }
+
+  .pv-items {
+    flex: none;
+  }
+
+  .pv-list,
+  .pv-summary {
+    overflow: visible;
+  }
 }

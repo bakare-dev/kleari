@@ -10,7 +10,7 @@ use serde::Deserialize;
 use tauri::image::Image;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::window::{Effect, EffectState, EffectsBuilder};
-use tauri::{AppHandle, Emitter, LogicalPosition, Manager, Rect, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, LogicalPosition, Manager, Rect, WebviewUrl, WebviewWindowBuilder};
 
 use crate::commands::{CommandError, CommandErrorCode};
 
@@ -41,18 +41,7 @@ pub fn close_on_blur(window: &tauri::Window) {
     }
     // Best effort: if macOS refuses, it stays open until the next click on the icon.
     let _ = window.hide();
-    shown(window.app_handle(), false);
 }
-
-/// Tells the main window whether the popover is open, so its readings keep going while the
-/// popover shows (the main window is hidden then) and slow down once both are out of sight.
-fn shown(app: &AppHandle, open: bool) {
-    // Nothing to tell if the main window is gone; its readings stopped with it.
-    let _ = app.emit_to(MAIN, POPOVER_SHOWN, open);
-}
-
-/// The event `shown` sends: `true` when the popover opens, `false` when it closes.
-const POPOVER_SHOWN: &str = "popover-shown";
 
 /// Whether the popover closed on blur just now, consuming that record.
 fn just_closed(app: &AppHandle) -> bool {
@@ -163,7 +152,6 @@ fn toggle_popover(app: &AppHandle, icon: Rect) {
     };
     if window.is_visible().unwrap_or(false) {
         let _ = window.hide();
-        shown(app, false);
         return;
     }
     if just_closed(app) {
@@ -178,7 +166,6 @@ fn toggle_popover(app: &AppHandle, icon: Rect) {
     let _ = window.set_position(LogicalPosition::new(x, y));
     let _ = window.show();
     let _ = window.set_focus();
-    shown(app, window.is_visible().unwrap_or(false));
 }
 
 /// A rectangle in points (logical pixels).
@@ -294,7 +281,6 @@ pub fn open_main(app: AppHandle, destination: Destination) -> Result<(), Command
 pub fn open_at(app: &AppHandle, destination: Destination) -> Result<(), CommandError> {
     if let Some(popover) = app.get_webview_window(POPOVER) {
         let _ = popover.hide();
-        shown(app, false);
     }
     let window = app
         .get_webview_window(MAIN)
@@ -312,7 +298,6 @@ pub fn open_at(app: &AppHandle, destination: Destination) -> Result<(), CommandE
 pub fn hide_popover(app: AppHandle) {
     if let Some(popover) = app.get_webview_window(POPOVER) {
         let _ = popover.hide();
-        shown(&app, false);
     }
 }
 

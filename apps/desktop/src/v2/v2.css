@@ -1022,13 +1022,24 @@ input[type="checkbox"]:disabled {
 }
 
 .v2-live-dot.pulse {
+  position: relative;
   background: var(--v2-online);
-  animation: v2-pulse 1.6s ease-in-out infinite;
+}
+
+/* The ring grows and fades with transform and opacity only, which the compositor animates
+   without repainting the page each frame (a box-shadow pulse repainted it 60 times a second). */
+.v2-live-dot.pulse::after {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.45);
+  content: "";
+  animation: v2-pulse 1.6s ease-out infinite;
 }
 
 @keyframes v2-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45); }
-  50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(2); }
 }
 
 /* Search field */
@@ -1126,64 +1137,6 @@ input[type="checkbox"]:disabled {
 }
 
 .v2-stat-lg .v2-stat-sub { font-size: 11.5px; }
-
-/* Scroll-edge glass: a sticky band that fades in once content scrolls beneath it. */
-.v2-edge {
-  position: sticky;
-  z-index: 3;
-  top: 0;
-  display: block;
-  height: 40px;
-  flex-shrink: 0;
-  margin-bottom: -54px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
-}
-
-.v2-edge.visible {
-  opacity: 1;
-}
-
-@supports (animation-timeline: scroll()) {
-  .v2-edge {
-    animation: v2-glass-in linear both;
-    animation-range: 0 28px;
-    animation-timeline: scroll(nearest block);
-  }
-}
-
-@keyframes v2-glass-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.v2-edge-blur {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, var(--mp-edge-top) 0%, var(--mp-edge-mid) 55%, rgba(255, 255, 255, 0) 100%);
-  -webkit-backdrop-filter: blur(16px) saturate(1.9) brightness(1.04);
-  backdrop-filter: blur(16px) saturate(1.9) brightness(1.04);
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%);
-  mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%);
-}
-
-.v2-edge-line {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0), var(--mp-edge-line) 20%, var(--mp-edge-line) 80%, rgba(255, 255, 255, 0));
-}
-
-.v2-edge-sheen {
-  position: absolute;
-  top: 1px;
-  height: 14px;
-  border-radius: 0 0 50% 50% / 0 0 100% 100%;
-  background: radial-gradient(ellipse at 50% 0%, var(--mp-edge-sheen), rgba(255, 255, 255, 0) 70%);
-}
 
 /* Floating glass action bar */
 
@@ -1460,21 +1413,19 @@ input[type="checkbox"]:disabled {
   font-size: 12.5px;
 }
 
-/* Glass header for sticky table headings. */
+/* Sticky table headings: opaque, so nothing blurs beneath them while the table scrolls. */
 .v2-th-glass {
   position: sticky;
   z-index: 1;
   top: 0;
   border-bottom: 1px solid var(--mp-border-solid);
-  background: var(--mp-th-glass);
-  -webkit-backdrop-filter: blur(16px) saturate(1.9);
-  backdrop-filter: blur(16px) saturate(1.9);
+  background: var(--mp-card);
 }
 
 /* Reduced motion keeps state changes but drops decorative movement. */
 @media (prefers-reduced-motion: reduce) {
   .v2-spinner,
-  .v2-live-dot.pulse,
+  .v2-live-dot.pulse::after,
   .v2-sheen,
   .v2-spin {
     animation: none;
@@ -1483,8 +1434,7 @@ input[type="checkbox"]:disabled {
   .v2-progress-fill,
   .v2-gauge-value,
   .v2-switch,
-  .v2-switch-knob,
-  .v2-edge {
+  .v2-switch-knob {
     transition: none;
   }
 }
@@ -1493,16 +1443,9 @@ input[type="checkbox"]:disabled {
 @media (prefers-reduced-transparency: reduce) {
   .v2-float,
   .v2-toast,
-  .v2-th-glass,
   .v2-modal-drawer,
   .v2-modal-panel {
     background: var(--mp-card);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-
-  .v2-edge-blur {
-    background: var(--mp-bg);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }

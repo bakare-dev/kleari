@@ -8,7 +8,6 @@ import {
   type AnchorHTMLAttributes,
   type KeyboardEvent,
   type ReactNode,
-  type UIEvent,
 } from "react";
 import { Glyph, type IconName } from "./icons";
 
@@ -442,51 +441,16 @@ export function FloatingBar({ children, attached = false }: { children: ReactNod
   return <div className={cx("v2-float", attached && "v2-float-attached")}>{children}</div>;
 }
 
-/**
- * Hook for the scroll-edge glass band: CSS scroll-driven animation fades it in where
- * supported, and this state is the fallback for engines without `animation-timeline`.
- */
-export function useScrolled(): [boolean, (event: UIEvent<HTMLElement>) => void] {
-  const [scrolled, setScrolled] = useState(false);
-  const onScroll = useCallback((event: UIEvent<HTMLElement>) => {
-    const next = event.currentTarget.scrollTop > 0;
-    setScrolled((current) => (current === next ? current : next));
-  }, []);
-  return [scrolled, onScroll];
-}
-
-/** The sticky band itself; render it as the first child of a scrolling element. */
-export function ScrollEdgeGlass({ visible, inset = 28, as: Element = "div" }: { visible: boolean; inset?: number; as?: "div" | "li" }) {
-  return (
-    <Element
-      className={cx("v2-edge", visible && "visible")}
-      aria-hidden="true"
-      role={Element === "li" ? "presentation" : undefined}
-      style={{ marginLeft: -inset, marginRight: -inset }}
-    >
-      <span className="v2-edge-blur" />
-      <span className="v2-edge-line" />
-      <span className="v2-edge-sheen" style={{ left: inset, right: inset }} />
-    </Element>
-  );
-}
-
 interface ScrollBodyProps {
   label: string;
   className?: string;
-  /** Horizontal padding of the scroller, so the glass band spans its full width. */
-  inset?: number;
-  /** The frosted band shown under the header once scrolled; Cleanup's first step has none. */
-  edgeGlass?: boolean;
   children: ReactNode;
 }
 
-/** A page's scrolling body with scroll-edge glass; keyboard-focusable so it can be scrolled. */
-export function ScrollBody({ label, className, inset = 28, edgeGlass = true, children }: ScrollBodyProps) {
-  const [scrolled, onScroll] = useScrolled();
+/** A page's scrolling body; keyboard-focusable so it can be scrolled. */
+export function ScrollBody({ label, className, children }: ScrollBodyProps) {
   return (
-    <div className={cx("v2-scroll", className)} onScroll={onScroll} tabIndex={0} role="region" aria-label={label}>
-      {edgeGlass && <ScrollEdgeGlass visible={scrolled} inset={inset} />}
+    <div className={cx("v2-scroll", className)} tabIndex={0} role="region" aria-label={label}>
       {children}
     </div>
   );

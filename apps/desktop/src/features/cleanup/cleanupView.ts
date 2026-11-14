@@ -529,7 +529,7 @@ export function lastScanSummary(review: ReviewList | null, nowMs: number): LastS
   return {
     title: `${review.scan ? "Last scan found" : "Review holds"} ${formatGb(toGb(total))} in ${plural(review.findings.length, "item")}`,
     sub: `${review.scan ? `${when(review.scan.startedAtMs, nowMs)} · ` : ""}${formatGb(toGb(eligibleBytes))} is eligible for quarantine. Risk and eligibility are shown separately.`,
-    totalGb: Number(toGb(total).toFixed(1)),
+    totalGb: toGb(total),
     categories: groups.map(({ category, findings }) => {
       const eligible = findings.filter((finding) => finding.eligibility === "eligible").length;
       const risks = new Set(findings.map((finding) => finding.risk));
@@ -537,7 +537,7 @@ export function lastScanSummary(review: ReviewList | null, nowMs: number): LastS
       const inspectOnly = findings.every((finding) => finding.eligibility === "inspectOnly");
       return {
         name: categoryMeta[category].label,
-        gb: Number(toGb(findings.reduce((sum, finding) => sum + finding.bytes, 0)).toFixed(1)),
+        gb: toGb(findings.reduce((sum, finding) => sum + finding.bytes, 0)),
         items: findings.length,
         tone: categoryMeta[category].tone,
         risk: `${riskText[risk]} risk`,

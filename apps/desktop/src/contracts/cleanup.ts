@@ -217,10 +217,11 @@ const moveFailures = [
 export type MoveFailure = (typeof moveFailures)[number];
 
 /** `unconfirmed`: the move happened but couldn't be checked; it is in Quarantine and
- * confirmed at the next launch, never reported as left in place. */
+ * confirmed at the next launch, never reported as left in place. A finished approval's
+ * `moved` items carry `heldId`, the quarantine item each became. */
 export type MoveProgress =
   | { id: string; state: "checking" }
-  | { id: string; state: "moved" }
+  | { id: string; state: "moved"; heldId?: string }
   | { id: string; state: "unconfirmed" }
   | { id: string; state: "failed"; reason: MoveFailure };
 
@@ -452,6 +453,9 @@ export function parseMoveProgress(payload: unknown): MoveProgress {
   const state = oneOf(["checking", "moved", "unconfirmed", "failed"] as const, fields.state, "state");
   if (state === "failed") {
     return { id: itemId, state, reason: oneOf(moveFailures, fields.reason, "reason") };
+  }
+  if (state === "moved" && fields.heldId !== undefined) {
+    return { id: itemId, state, heldId: id(fields.heldId, "heldId") };
   }
   return { id: itemId, state };
 }

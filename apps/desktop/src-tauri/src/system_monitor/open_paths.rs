@@ -38,10 +38,27 @@ impl OpenPaths {
     }
 }
 
-/// Whether `project` is in use now. Without a reading (`None`, the processes couldn't be
-/// listed) every project counts as in use, so nothing in one is suggested or moved.
-pub fn in_use(open: Option<&OpenPaths>, project: &Path) -> bool {
-    open.is_none_or(|open| open.touches(project))
+/// Whether `project` is in use now, for moving its build folders `outputs`. Without a reading
+/// (`None`, the processes couldn't be listed) every project counts as in use, so nothing in
+/// one is suggested or moved.
+///
+/// A project at the home folder itself (or above it), such as a stray `npm install` in `~`,
+/// has everything the user opens anywhere beneath it, so "something in it is open" would
+/// always be true. For such a project only what is open inside its build folders counts.
+pub fn in_use(
+    open: Option<&OpenPaths>,
+    project: &Path,
+    outputs: &[PathBuf],
+    home: Option<&Path>,
+) -> bool {
+    let Some(open) = open else {
+        return true;
+    };
+    if home.is_some_and(|home| home.starts_with(project)) {
+        outputs.iter().any(|folder| open.touches(folder))
+    } else {
+        open.touches(project)
+    }
 }
 
 /// Reads what is open now.
@@ -232,12 +249,66 @@ mod tests {
         assert!(!open.touches(Path::new("/Users/me/code/old-site")));
         // A sibling whose name starts the same isn't inside it.
         assert!(!open.touches(Path::new("/Users/me/code/ap")));
-        assert!(!in_use(Some(&open), Path::new("/Users/me/code/old-site")));
+        let home = Some(Path::new("/Users/me"));
+        assert!(!in_use(
+            Some(&open),
+            Path::new("/Users/me/code/old-site"),
+            &[],
+            home
+        ));
+        assert!(in_use(
+            Some(&open),
+            Path::new("/Users/me/code/api"),
+            &[],
+            home
+        ));
     }
 
     #[test]
     fn without_a_reading_every_project_counts_as_in_use() {
-        assert!(in_use(None, Path::new("/Users/me/code/old-site")));
+        let home = Some(Path::new("/Users/me"));
+        assert!(in_use(
+            None,
+            Path::new("/Users/me/code/old-site"),
+            &[],
+            home
+        ));
+        // Also a project at the home folder.
+        let outputs = [PathBuf::from("/Users/me/node_modules")];
+        assert!(in_use(None, Path::new("/Users/me"), &outputs, home));
+    }
+
+    #[test]
+    fn a_project_at_the_home_folder_is_in_use_only_through_its_build_folders() {
+        let home = Some(Path::new("/Users/me"));
+        let outputs = [PathBuf::from("/Users/me/node_modules")];
+        // A terminal in ~ and an editor elsewhere in the home folder don't make it active.
+        let elsewhere = OpenPaths::from_paths(vec![
+            PathBuf::from("/Users/me"),
+            PathBuf::from("/Users/me/code/api/src/main.rs"),
+        ]);
+        assert!(!in_use(
+            Some(&elsewhere),
+            Path::new("/Users/me"),
+            &outputs,
+            home
+        ));
+        // Something open inside its node_modules does.
+        let inside = OpenPaths::from_paths(vec![PathBuf::from("/Users/me/node_modules/.bin/tsc")]);
+        assert!(in_use(
+            Some(&inside),
+            Path::new("/Users/me"),
+            &outputs,
+            home
+        ));
+        // A project below the home folder still counts anything open inside it.
+        let terminal = OpenPaths::from_paths(vec![PathBuf::from("/Users/me/code/web")]);
+        assert!(in_use(
+            Some(&terminal),
+            Path::new("/Users/me/code/web"),
+            &[],
+            home
+        ));
     }
 
     #[cfg(target_os = "macos")]

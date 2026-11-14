@@ -1,18 +1,37 @@
-/* The Maintenance page scrolls as a whole. */
+/* The header and the tabs stay in place; only each tab's items scroll. */
 .mt-body {
   display: flex;
   min-height: 0;
   flex: 1 1 auto;
   flex-direction: column;
   gap: 14px;
-  overflow: auto;
+  overflow: hidden;
   padding: 4px 28px 22px;
+}
+
+.mt-body > .v2-card-note,
+.mt-body > .v2-seg {
+  flex-shrink: 0;
 }
 
 .mt-grid {
   display: grid;
+  min-height: 0;
+  flex: 1 1 auto;
+  align-content: start;
   gap: 14px;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  /* Room for the cards' shadows inside the scrolling area. */
+  margin: -4px;
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.mt-grid:focus-visible,
+.mt-rows:focus-visible,
+.mt-scroll:focus-visible {
+  outline-offset: -2px;
 }
 
 .mt-task {
@@ -49,12 +68,27 @@
   margin-left: auto;
 }
 
+/* The card fills the rest of the page; its title and note stay, its list scrolls. */
 .mt-login,
 .mt-not {
   display: flex;
+  min-height: 0;
+  flex: 0 1 auto;
   flex-direction: column;
   gap: 8px;
   padding: 14px;
+}
+
+.mt-login > :not(.mt-rows),
+.mt-not > :not(.mt-scroll) {
+  flex-shrink: 0;
+}
+
+.mt-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .mt-login-head {
@@ -66,8 +100,12 @@
 }
 
 .mt-rows {
+  min-height: 0;
+  flex: 1 1 auto;
   margin: 0;
   padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
 }
 

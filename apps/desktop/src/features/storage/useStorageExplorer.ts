@@ -84,6 +84,14 @@ export function useStorageExplorer(onReviewChanged: () => void, loaders: Explore
     [loaders],
   );
 
+  /** Measures the folder shown again (after something in it moved), if one is shown. */
+  const listingId = state.listing?.id ?? null;
+  const reload = useCallback(() => {
+    if (listingId !== null) {
+      open(listingId);
+    }
+  }, [listingId, open]);
+
   const cancel = useCallback(() => {
     loaders.cancel().catch((error: unknown) => {
       if (mounted.current) {
@@ -111,7 +119,7 @@ export function useStorageExplorer(onReviewChanged: () => void, loaders: Explore
     [loaders, onReviewChanged],
   );
 
-  return { state, sent, open, cancel, send };
+  return { state, sent, open, reload, cancel, send };
 }
 
 export type StorageExplorer = ReturnType<typeof useStorageExplorer>;

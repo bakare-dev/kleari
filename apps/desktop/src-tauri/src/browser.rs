@@ -60,19 +60,27 @@ impl Browser {
         }
     }
 
+    /// Inside `tell application`, `tab` names the browser's tab class, not the tab character,
+    /// so the separator is made before it. Titles and addresses are read one window at a time
+    /// (two Apple events per window, not two per tab); a window without tabs is skipped.
     fn list_script(self) -> String {
         format!(
-            r#"set out to ""
+            r#"set sep to character id 9
+set out to ""
 if application "{app}" is running then
   tell application "{app}"
     set wi to 0
     repeat with w in windows
       set wi to wi + 1
       try
-        set ti to 0
-        repeat with t in tabs of w
-          set ti to ti + 1
-          set out to out & wi & tab & ti & tab & ({title} of t) & tab & (URL of t) & linefeed
+        set titles to {title} of every tab of w
+        set addresses to URL of every tab of w
+        repeat with ti from 1 to count of titles
+          set t to item ti of titles
+          if t is missing value then set t to ""
+          set a to item ti of addresses
+          if a is missing value then set a to ""
+          set out to out & wi & sep & ti & sep & t & sep & a & linefeed
         end repeat
       end try
     end repeat
@@ -407,6 +415,19 @@ mod tests {
             let running = format!("if application \"{}\" is running then", browser.app_name());
             assert!(list.contains(&running) && close.contains(&running));
             assert!(close.contains("item 3 of argv") && close.contains("if (URL of t) is address"));
+        }
+    }
+
+    #[test]
+    fn the_listing_never_uses_tab_as_its_separator_inside_the_browser() {
+        // In a browser's dictionary `tab` is the tab class: joining with it failed every
+        // window, and every listing came back empty.
+        for browser in Browser::ALL {
+            let list = browser.list_script();
+            let (before, inside) = list.split_once("tell application").expect("tell block");
+            assert!(before.contains("set sep to character id 9"));
+            assert!(!inside.contains("& tab &"));
+            assert!(inside.contains("& sep &"));
         }
     }
 }

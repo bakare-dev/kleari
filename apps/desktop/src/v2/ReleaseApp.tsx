@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSettingsShortcut } from "../app/navigation";
 import { useActivity } from "../features/activity/useActivity";
 import { useApps } from "../features/apps/useApps";
@@ -87,6 +87,42 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
     (preferences: Preferences) => applyDefaults(preferences.defaultScan, scanOptionsFromInput(preferences.scanDefaults)),
     [applyDefaults],
   );
+  // After a cleanup moved or deleted items, the pages they came from scan again, so none of
+  // them lists what is gone. Only pages with a result, and only the sources that moved.
+  const finishedAt = review.preview.status === "result" ? review.preview.finishedAtMs : null;
+  const rescanned = useRef<number | null>(null);
+  const { items: previewItems, states: previewStates } = review.preview;
+  const { result: developerResult } = developer.state;
+  const { scan: scanDeveloper } = developer;
+  const { result: appsResult } = apps.state;
+  const { scan: scanApps } = apps;
+  const { result: analysisResult } = storage.state;
+  const { analyze } = storage;
+  const { rerun: rerunFiles } = files;
+  const { reload: reloadExplorer } = explorer;
+  useEffect(() => {
+    if (finishedAt === null || rescanned.current === finishedAt) {
+      return;
+    }
+    rescanned.current = finishedAt;
+    const gone = new Set(["moved", "unconfirmed", "deleted", "notDeleted"]);
+    const sources = new Set(previewItems.filter((item) => gone.has(previewStates[item.id] ?? "")).map((item) => item.source));
+    if (sources.has("developer") && developerResult) {
+      scanDeveloper();
+    }
+    if (sources.has("apps") && appsResult) {
+      scanApps();
+    }
+    if (sources.has("storage")) {
+      rerunFiles();
+      reloadExplorer();
+      if (analysisResult) {
+        analyze();
+      }
+    }
+    refreshActivity();
+  }, [finishedAt, previewItems, previewStates, developerResult, scanDeveloper, appsResult, scanApps, analysisResult, analyze, rerunFiles, reloadExplorer, refreshActivity]);
+
   const settings = useSettings(onPreferences);
   // Checks at launch once the saved choice is known; only an update found is shown.
   const updates = useUpdates(automaticUpdates(settings.state));

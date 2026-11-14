@@ -155,7 +155,7 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
           ]}
         />
         {tab === "tasks" && (
-        <section aria-label="Tasks" className="mt-grid">
+        <section aria-label="Tasks" className="mt-grid" tabIndex={0}>
           {(Object.keys(taskMeta) as Task[]).map((task) => {
             const meta = taskMeta[task];
             const entry = byTask.get(task);
@@ -200,7 +200,7 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
           ) : startup.items.length === 0 ? (
             <span className="v2-card-note">No login or background items were found.</span>
           ) : (
-            <ul className="mt-rows">
+            <ul className="mt-rows" tabIndex={0} aria-label="Login and background items">
               {startup.items.map((item) => {
                 const sent = maintenance.sentAgents.has(item.label);
                 return (
@@ -239,7 +239,7 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
         {tab === "notOffered" && (
         <section aria-labelledby="mt-not" className="v2-card mt-not">
           <h2 id="mt-not" className="v2-card-title-sm">Not offered, and why</h2>
-          <ul className="v2-info-list">
+          <ul className="v2-info-list mt-scroll" tabIndex={0} aria-label="Not offered">
             {notOffered.map((item) => (
               <li key={item.title}>
                 <span className="v2-row-text">

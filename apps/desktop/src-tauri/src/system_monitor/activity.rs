@@ -1,5 +1,5 @@
 //! Lightweight readings for the System page's live charts, sampled about once a second while
-//! the page is visible: CPU, memory, swap, memory pressure, thermal state and network and
+//! the page is visible (every 5 s on the Dashboard): CPU, memory, swap, memory pressure, thermal state and network and
 //! startup-disk throughput. It never enumerates processes (that stays in `SystemSampler`).
 //! Nothing is stored; the frontend keeps only the points seen while the page is open.
 
@@ -340,8 +340,11 @@ fn window_and_rates(
     rates(previous.counters, counters, window_ms).map(|rates| (window_ms, rates))
 }
 
-/// Readings are polled about once a second; a window longer than this is not "now".
-pub const MAX_LIVE_WINDOW: Duration = Duration::from_secs(3);
+/// The longest window a reading is shown for as "now". Readings are polled every second on
+/// the System page and every 5 s on the Dashboard, and macOS stretches an inactive window's
+/// timers (App Nap), so this has room for both; an average over minutes (after a pause or a
+/// hidden window) is still never shown.
+pub const MAX_LIVE_WINDOW: Duration = Duration::from_secs(15);
 
 /// Whether a sampling window is short enough to present as a current reading.
 pub fn is_live_window(window: Duration) -> bool {
@@ -379,5 +382,22 @@ fn read_thermal_state() -> Reading<ThermalState> {
 fn read_thermal_state() -> Reading<ThermalState> {
     Reading::Unavailable {
         reason: UnavailableReason::NotReported,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dashboard_and_app_nap_windows_still_read_as_now() {
+        // The Dashboard polls every 5 s and App Nap stretches an inactive window's timers:
+        // both used to come back as "measuring" forever.
+        assert!(is_live_window(Duration::from_secs(1)));
+        assert!(is_live_window(Duration::from_secs(5)));
+        assert!(is_live_window(Duration::from_secs(12)));
+        // An average over a pause or a hidden window is never shown as now.
+        assert!(!is_live_window(Duration::from_secs(16)));
+        assert!(!is_live_window(Duration::from_secs(120)));
     }
 }

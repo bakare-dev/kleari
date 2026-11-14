@@ -6,6 +6,40 @@ All notable user-facing changes to Kleari are documented here. This file follows
 
 ## [Unreleased]
 
+### Added
+
+- **Cleanup › Preview:** **Delete permanently instead…** next to Quarantine. After its own
+  confirmation, the items are checked and moved into quarantine as usual, then deleted from
+  there straight away; anything that can't be deleted stays in Quarantine.
+- **README:** Buy me a malt, as another way to support Kleari.
+
+### Changed
+
+- **Lighter on CPU:** the process list is read only while Processes or Browser care is on
+  screen, and live readings only while the Dashboard or System is; the live dot no longer
+  repaints the page every frame. The frosted band under the header of scrolling pages, and
+  the blur under the Review table's headings, are gone.
+- **After a cleanup** moves or deletes items, the pages they came from (Developer, Apps,
+  Files, Storage) scan again, so none still lists what is gone.
+- **Preview and approve:** the page stays still and only the list of items scrolls; long
+  names, sizes and what happens to each no longer overlap.
+- **Maintenance and Files:** the tabs and the tool stay in place; only the items scroll.
+- **Storage › Browse:** the colour map of the folder is larger and no longer shrinks to a
+  sliver beside a long folder.
+- **Dashboard:** the four readings wrap two by two in a narrow window.
+
+### Fixed
+
+- **Browser care** listed 0 tabs in 0 windows for every browser; tabs are listed again, and
+  faster with many tabs.
+- **CPU** showed "Measuring…" for a long time on the Dashboard, and System's readings dropped
+  out while Kleari's window wasn't active.
+- **Sizes** under 1 MB showed as "0 MB"; they show in KB, and Cleanup's last scan no longer
+  rounds small categories to 0 GB.
+- **Developer:** a project at your home folder (a stray `npm install` in `~`) was always
+  "Active project" because something in your home folder is always open; for it, only its
+  build folders being open counts.
+
 ## [0.1.0-beta.2] - 2026-11-13
 
 ### Added
