@@ -332,12 +332,16 @@ pub fn scan(
                 .map(|folder| folder.measured.bytes)
                 .fold(0_u64, u64::saturating_add);
             if bytes > 0 {
+                let outputs: Vec<PathBuf> = folders
+                    .iter()
+                    .map(|folder| project.path.join(&folder.name))
+                    .collect();
                 results.push(ProjectResult {
                     location: display_path(&project.path, home),
                     name: project.name,
                     stack: project.stack,
                     last_commit_ms: project.last_commit_ms,
-                    in_use: open_paths::in_use(open, &project.path),
+                    in_use: open_paths::in_use(open, &project.path, &outputs, home),
                     bytes,
                     folders,
                 });

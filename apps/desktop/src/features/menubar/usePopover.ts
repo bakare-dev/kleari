@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ActivityList } from "../../contracts/activity";
+import { parseIssues, type Issue } from "../../contracts/issues";
 import type { QuarantineList, ReviewList } from "../../contracts/cleanup";
 import type { StorageOverview } from "../../contracts/storageAnalysis";
 import type { SystemActivity, SystemDetails } from "../../contracts/systemPage";
 import { getCleanupReview, listQuarantine } from "../../lib/cleanupIpc";
 import { hidePopover, openMain, quitKleari, type MenuBarDestination } from "../../lib/menubarIpc";
-import { listActivity } from "../../lib/settingsIpc";
-import { fetchStorageOverview } from "../../lib/storageIpc";
+import { call, fetchStorageOverview } from "../../lib/storageIpc";
 import { fetchSystemActivity, fetchSystemDetails } from "../../lib/systemPageIpc";
 import { startPolling } from "../overview/metricsPoller";
 import { toErrorKind } from "../overview/useSystemMetrics";
@@ -20,7 +19,7 @@ export interface PopoverLoaders {
   overview: () => Promise<StorageOverview>;
   review: () => Promise<ReviewList>;
   quarantine: () => Promise<QuarantineList>;
-  events: () => Promise<ActivityList>;
+  issues: () => Promise<Issue[]>;
   open: (destination: MenuBarDestination) => Promise<void>;
   hide: () => Promise<void>;
   quit: () => Promise<void>;
@@ -32,7 +31,7 @@ const defaultLoaders: PopoverLoaders = {
   overview: fetchStorageOverview,
   review: getCleanupReview,
   quarantine: listQuarantine,
-  events: listActivity,
+  issues: () => call("get_issues", {}, parseIssues),
   open: openMain,
   hide: hidePopover,
   quit: quitKleari,
@@ -112,7 +111,7 @@ export function usePopover(loaders: PopoverLoaders = defaultLoaders) {
   const overview = useReadWhenShown(loaders.overview, shown);
   const review = useReadWhenShown(loaders.review, shown);
   const quarantine = useReadWhenShown(loaders.quarantine, shown);
-  const events = useReadWhenShown(loaders.events, shown);
+  const issues = useReadWhenShown(loaders.issues, shown);
   const [failedAction, setFailedAction] = useState(false);
   const { open, hide, quit } = loaders;
 
@@ -131,7 +130,7 @@ export function usePopover(loaders: PopoverLoaders = defaultLoaders) {
     return () => window.removeEventListener("keydown", onKey);
   }, [hide, run]);
 
-  const data = buildPopover({ activity, details, overview, review, quarantine, events, nowMs: Date.now() });
+  const data = buildPopover({ activity, details, overview, review, quarantine, issues, nowMs: Date.now() });
   return {
     data,
     /** An action could not reach Kleari; the popover says so. */

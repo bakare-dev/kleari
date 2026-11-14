@@ -1,17 +1,37 @@
-/* The Files page scrolls as a whole: tools can return many groups. */
+/* The tabs and the tool card stay in place; what was found scrolls below them. */
 .files-body {
   display: flex;
   min-height: 0;
   flex: 1 1 auto;
   flex-direction: column;
   gap: 14px;
-  overflow: auto;
-  padding: 4px 28px 22px;
+  overflow: hidden;
+  padding: 4px 28px 14px;
 }
 
-/* Room for the selection bar floating over the bottom. */
-.files-body-above-bar {
-  padding-bottom: 110px;
+.files-body > :not(.files-results) {
+  flex-shrink: 0;
+}
+
+.files-results {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  /* Room for the cards' shadows inside the scrolling area. */
+  margin: -4px;
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.files-results:focus-visible {
+  outline-offset: -2px;
+}
+
+.files-results > * {
+  flex-shrink: 0;
 }
 
 .files-tool {
@@ -88,7 +108,7 @@
 
 @media (max-width: 640px) {
   .files-body {
-    padding: 4px 16px 22px;
+    padding: 4px 16px 14px;
   }
 
   .files-rows li {

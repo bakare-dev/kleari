@@ -254,6 +254,10 @@ pub struct MoveResult {
     pub id: String,
     #[serde(flatten)]
     pub state: MoveState,
+    /// The quarantine item it became, set only when it moved and was confirmed (`Moved`), so
+    /// "Delete permanently" can delete exactly what this approval moved, through Quarantine.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub held_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -413,6 +417,7 @@ pub fn approve(
         ));
         results.push(MoveResult {
             id: item.id.clone(),
+            held_id: matches!(state_now, MoveState::Moved).then(|| record.id.clone()),
             state: state_now,
         });
     }

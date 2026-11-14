@@ -118,6 +118,13 @@
     inside is removed as a link, never followed. Read-only folders the item owns (Go's
     module cache) get owner write first. An item that can't be fully deleted stays held and
     is reported.
+  - **Delete permanently from Preview** is that same permanent delete, run straight after an
+    approval: the preview's "Delete permanently instead…" asks in its own confirmation
+    dialog with an acknowledgement, the approval moves the items into quarantine with every
+    check above, and then exactly the items it moved and confirmed (each result names the
+    quarantine item it became) are deleted one at a time through Quarantine's delete. An
+    item it couldn't delete, or a move that couldn't be confirmed, stays in Quarantine. There
+    is no second path that deletes a file where it is.
   - **History** (ADR-006): `history.sqlite3` in the app's data folder, owner-only, with
     explicit migrations and `synchronous = FULL`. It stores batches, items (with the
     original path, needed to restore), operation outcomes without paths, and protected-folder

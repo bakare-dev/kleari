@@ -5,7 +5,7 @@ import { detailFromHash, headingIdFor } from "../../shell/routes";
 import type { AppearancePreference, AppearanceStorageStatus } from "../../../features/settings/appearance";
 import type { AccessFolder, FolderSource, LoginItem, NotificationAccess, Preferences, ScanSchedule, ScheduleFrequency, ScheduleStatus, SettingsState, Uninstalled } from "../../../contracts/settings";
 import type { ScanMode } from "../../../contracts/cleanup";
-import type { UninstallOutcome } from "../../../features/settings/useSettings";
+import type { NotificationKey, UninstallOutcome } from "../../../features/settings/useSettings";
 import type { UpdateState } from "../../../features/settings/useUpdates";
 import { installable, updateStatus } from "./Updates";
 import "./settings.css";
@@ -40,7 +40,7 @@ interface SettingsScreenProps {
   saveFailed?: boolean;
   onSave: (preferences: Preferences) => Change;
   onOpenAtLogin: (enabled: boolean) => Change;
-  onNotify: (key: "notifyScan" | "notifyQuarantine" | "notifyIssues", on: boolean) => Change;
+  onNotify: (key: NotificationKey, on: boolean) => Change;
   onSchedule: (schedule: ScanSchedule) => Change;
   onAddExclusion: () => Change;
   onRemoveExclusion: (path: string) => Change;
@@ -67,6 +67,15 @@ const sections: readonly { id: Section; label: string; blurb: string; tone: Tone
   { id: "notifications", label: "Notifications", blurb: "When Kleari lets you know", tone: "red", icon: "bell" },
   { id: "privacy", label: "Privacy and safety", blurb: "What stays on this Mac, the activity log and built-in rules", tone: "green", icon: "shield" },
   { id: "about", label: "About", blurb: "Version, updates and uninstalling", tone: "indigo", icon: "info" },
+];
+
+/** Settings › Notifications › Alerts: one switch per group (src-tauri/src/issues.rs). */
+const alertGroups: readonly { key: Extract<NotificationKey, "notifyStorage" | "notifyPerformance" | "notifyBattery" | "notifyLoginItems" | "notifyReminders">; label: string; sub: string }[] = [
+  { key: "notifyStorage", label: "Storage", sub: "Startup disk under 15% free or almost full (under 5%), a connected drive almost full, a large Trash" },
+  { key: "notifyPerformance", label: "Performance", sub: "Memory pressure that stays high or turns critical, the processor busy for 15 minutes" },
+  { key: "notifyBattery", label: "Battery", sub: "Low (20%) and critical (10%), fully charged, fast drain, hot, service recommended, near its cycle limit, a Bluetooth device’s low battery" },
+  { key: "notifyLoginItems", label: "Login items", sub: "A new app or agent set to start at login, or many of them" },
+  { key: "notifyReminders", label: "Reminders", sub: "No Cleanup scan for 7 days, apps not opened in 6 months to uninstall in Apps" },
 ];
 
 const folderSourceText: Record<FolderSource, string> = {
@@ -519,7 +528,16 @@ export function SettingsScreen(props: SettingsScreenProps) {
               <Group title="Notify me when" note={state ? notificationNote[state.notifications] : undefined}>
                 <Row label="A Cleanup scan finishes" sub="With what it found; nothing is changed" control={<Switch label="A Cleanup scan finishes" checked={preferences?.notifyScan ?? false} disabled={!state} onChange={(on) => after(props.onNotify("notifyScan", on))} />} />
                 <Row label="Quarantine gets large" sub="Set the size in Quarantine" control={<Switch label="Quarantine gets large" checked={preferences?.notifyQuarantine ?? false} disabled={!state} onChange={(on) => after(props.onNotify("notifyQuarantine", on))} />} />
-                <Row label="Something needs attention" sub="A full disk or drive, a device’s low battery, heavy memory pressure or fast battery drain, checked every 15 minutes" control={<Switch label="Something needs attention" checked={preferences?.notifyIssues ?? false} disabled={!state} onChange={(on) => after(props.onNotify("notifyIssues", on))} />} />
+              </Group>
+              <Group title="Alerts" note="Checked while Kleari runs: the battery’s charge every minute, the rest every 15 minutes. Each alert is sent at most once a day; reminders once a week.">
+                {alertGroups.map((group) => (
+                  <Row
+                    key={group.key}
+                    label={group.label}
+                    sub={group.sub}
+                    control={<Switch label={group.label} checked={preferences?.[group.key] ?? false} disabled={!state} onChange={(on) => after(props.onNotify(group.key, on))} />}
+                  />
+                ))}
                 {state?.notifications === "denied" && (
                   <>
                     <Row label="Allow in System Settings" sub="Notifications › Kleari" control={<Button variant="soft" size="sm" onClick={() => props.onOpenPane("notifications")}>Open</Button>} />

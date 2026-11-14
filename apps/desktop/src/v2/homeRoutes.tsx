@@ -71,6 +71,12 @@ export function DashboardRoute(props: {
     refreshReview();
     refreshQuarantine();
   }, [refreshReview, refreshQuarantine]);
+  // Live readings are sampled only while a page that shows them is on screen.
+  const { watch, unwatch } = monitor;
+  useEffect(() => {
+    watch();
+    return unwatch;
+  }, [watch, unwatch]);
   const data = buildDashboard({
     activity: monitor.activity,
     history: monitor.history,

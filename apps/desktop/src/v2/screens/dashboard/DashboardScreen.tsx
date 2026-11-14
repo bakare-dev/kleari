@@ -73,7 +73,7 @@ function MetricCard({ metric }: { metric: DashboardMetric }) {
         <div className="dash-metric-text">
           <span className="dash-metric-label">{metric.label}</span>
           <span className="dash-metric-value">{metric.value}</span>
-          <span className="dash-metric-sub">{metric.sub}</span>
+          <span className="dash-metric-sub" title={metric.sub}>{metric.sub}</span>
         </div>
       </div>
       {metric.percent !== undefined && (
@@ -227,7 +227,7 @@ export function DashboardScreen({ data, onSearch, onAnalyze, alerts }: Dashboard
             </div>
           </div>
         )}
-        <section aria-label="System readings" className="v2-grid-4">
+        <section aria-label="System readings" className="dash-readings">
           {data.metrics.map((metric) => <MetricCard key={metric.label} metric={metric} />)}
         </section>
         {alerts}

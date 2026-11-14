@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { IconName } from "../../ui/icons";
-import { Button, FloatingBar, IconTile, LinkButton, PageHeader, Pill, ScrollEdgeGlass, Segmented, Spinner, StatCard, Toast, useScrolled, useToast, type Status, type Tone } from "../../ui/components";
+import { Button, FloatingBar, IconTile, LinkButton, PageHeader, Pill, Segmented, Spinner, StatCard, Toast, useToast, type Status, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
 import { headingIdFor, hrefFor } from "../../shell/routes";
 import "./developer.css";
@@ -87,7 +87,6 @@ export function DeveloperScreen(props: DeveloperScreenProps) {
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
   const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [scrolled, onScroll] = useScrolled();
   const rows = useRef<HTMLUListElement>(null);
   const toast = useToast();
 
@@ -197,8 +196,7 @@ export function DeveloperScreen(props: DeveloperScreenProps) {
               {list.length === 0 ? (
                 <span className="v2-card-note dev-list-note">{view === "projects" ? "No project build folders were found." : "No developer caches were found."}</span>
               ) : (
-                <ul ref={rows} tabIndex={0} aria-label={view === "projects" ? "Project build folder list" : "Toolchain and cache list"} className="dev-rows" onScroll={onScroll}>
-                  <ScrollEdgeGlass visible={scrolled} inset={0} as="li" />
+                <ul ref={rows} tabIndex={0} aria-label={view === "projects" ? "Project build folder list" : "Toolchain and cache list"} className="dev-rows">
                   {list.map((entry) => {
                     const can = selectable(entry);
                     const on = can && selection.has(entry.id);

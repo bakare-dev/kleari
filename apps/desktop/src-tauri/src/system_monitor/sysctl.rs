@@ -26,6 +26,20 @@ pub fn integer(name: &str) -> Option<u64> {
     }
 }
 
+/// Reads a `struct timeval` value, such as `kern.waketime`, as whole seconds since 1970.
+#[cfg(target_os = "macos")]
+pub fn seconds(name: &str) -> Option<u64> {
+    timeval_seconds(&raw(name)?)
+}
+
+/// The seconds of a `struct timeval` (a 64-bit `tv_sec` first, on every Mac Kleari runs on).
+// Used only by the macOS reader and the tests; other targets (Linux CI) report nothing.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub fn timeval_seconds(bytes: &[u8]) -> Option<u64> {
+    let seconds = i64::from_ne_bytes(bytes.get(..8)?.try_into().ok()?);
+    u64::try_from(seconds).ok().filter(|&seconds| seconds > 0)
+}
+
 #[cfg(target_os = "macos")]
 fn raw(name: &str) -> Option<Vec<u8>> {
     use std::ffi::CString;
@@ -74,4 +88,36 @@ pub fn string(_name: &str) -> Option<String> {
 #[cfg(not(target_os = "macos"))]
 pub fn integer(_name: &str) -> Option<u64> {
     None
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn seconds(_name: &str) -> Option<u64> {
+    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_timeval_reads_as_its_seconds() {
+        let mut bytes = 1_794_567_319_i64.to_ne_bytes().to_vec();
+        bytes.extend_from_slice(&190_329_i32.to_ne_bytes());
+        bytes.extend_from_slice(&[0; 4]);
+        assert_eq!(timeval_seconds(&bytes), Some(1_794_567_319));
+        // Never slept: macOS reports zero.
+        assert_eq!(timeval_seconds(&[0; 16]), None);
+        assert_eq!(timeval_seconds(&[1, 2]), None);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn the_boot_time_is_in_the_past() {
+        let boot = seconds("kern.boottime").expect("boot time");
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_secs();
+        assert!(boot < now);
+    }
 }

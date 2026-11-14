@@ -1,5 +1,5 @@
 //! Lightweight readings for the System page's live charts, sampled about once a second while
-//! the page is visible: CPU, memory, swap, memory pressure, thermal state and network and
+//! the page is visible (every 5 s on the Dashboard): CPU, memory, swap, memory pressure, thermal state and network and
 //! startup-disk throughput. It never enumerates processes (that stays in `SystemSampler`).
 //! Nothing is stored; the frontend keeps only the points seen while the page is open.
 
@@ -26,6 +26,13 @@ pub struct SystemActivity {
     pub swap: Reading<SwapReading>,
     pub memory_pressure: Reading<MemoryPressure>,
     pub thermal_state: Reading<ThermalState>,
+    /// The battery's own temperature sensor, in °C: the one temperature macOS publishes.
+    /// Not the chip's, which has no public API on Apple silicon.
+    pub battery_temperature: Reading<f64>,
+    /// The processor's (and graphics') temperature from the chip's own sensors (ADR-023).
+    pub chip_temperature: Reading<super::sensors::ChipTemperatures>,
+    /// Fan speeds; an empty list on a Mac without fans (ADR-023).
+    pub fans: Reading<Vec<super::sensors::Fan>>,
     /// The same IOKit power-source reading as `get_system_metrics`; cheap to read each second.
     pub battery: Reading<BatteryReading>,
     pub network: Reading<NetworkRates>,
@@ -209,6 +216,19 @@ impl ActivitySampler {
                 "kern.memorystatus_vm_pressure_level",
             )),
             thermal_state: read_thermal_state(),
+            battery_temperature: read_battery_temperature(),
+            chip_temperature: super::sensors::read_temperatures().map_or(
+                Reading::Unavailable {
+                    reason: NOT_REPORTED,
+                },
+                |value| Reading::Available { value },
+            ),
+            fans: super::sensors::read_fans().map_or(
+                Reading::Unavailable {
+                    reason: NOT_REPORTED,
+                },
+                |value| Reading::Available { value },
+            ),
             battery: map_battery(&read_battery()),
             network: self.sample_network(),
             disk: self.sample_disk(),
@@ -340,8 +360,11 @@ fn window_and_rates(
     rates(previous.counters, counters, window_ms).map(|rates| (window_ms, rates))
 }
 
-/// Readings are polled about once a second; a window longer than this is not "now".
-pub const MAX_LIVE_WINDOW: Duration = Duration::from_secs(3);
+/// The longest window a reading is shown for as "now". Readings are polled every second on
+/// the System page and every 5 s on the Dashboard, and macOS stretches an inactive window's
+/// timers (App Nap), so this has room for both; an average over minutes (after a pause or a
+/// hidden window) is still never shown.
+pub const MAX_LIVE_WINDOW: Duration = Duration::from_secs(15);
 
 /// Whether a sampling window is short enough to present as a current reading.
 pub fn is_live_window(window: Duration) -> bool {
@@ -351,6 +374,27 @@ pub fn is_live_window(window: Duration) -> bool {
 impl Default for ActivitySampler {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// `AppleSmartBattery`'s `Temperature`, in hundredths of a degree Celsius.
+pub fn read_battery_temperature() -> Reading<f64> {
+    match super::registry::integers("AppleSmartBattery", &["Temperature"]) {
+        None => Reading::Unavailable {
+            reason: UnavailableReason::NotPresent,
+        },
+        Some(values) => battery_celsius(values.first().copied().flatten()),
+    }
+}
+
+/// A plausible battery temperature from the sensor's hundredths of a degree, else "not reported".
+pub fn battery_celsius(hundredths: Option<i64>) -> Reading<f64> {
+    #[allow(clippy::cast_precision_loss)]
+    match hundredths.map(|value| value as f64 / 100.0) {
+        Some(celsius) if (-20.0..=90.0).contains(&celsius) => Reading::Available { value: celsius },
+        _ => Reading::Unavailable {
+            reason: UnavailableReason::NotReported,
+        },
     }
 }
 
@@ -379,5 +423,35 @@ fn read_thermal_state() -> Reading<ThermalState> {
 fn read_thermal_state() -> Reading<ThermalState> {
     Reading::Unavailable {
         reason: UnavailableReason::NotReported,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dashboard_and_app_nap_windows_still_read_as_now() {
+        // The Dashboard polls every 5 s and App Nap stretches an inactive window's timers:
+        // both used to come back as "measuring" forever.
+        assert!(is_live_window(Duration::from_secs(1)));
+        assert!(is_live_window(Duration::from_secs(5)));
+        assert!(is_live_window(Duration::from_secs(12)));
+        // An average over a pause or a hidden window is never shown as now.
+        assert!(!is_live_window(Duration::from_secs(16)));
+        assert!(!is_live_window(Duration::from_secs(120)));
+    }
+
+    #[test]
+    fn the_battery_sensor_reads_in_hundredths_of_a_degree() {
+        assert_eq!(
+            battery_celsius(Some(3509)),
+            Reading::Available { value: 35.09 }
+        );
+        assert!(matches!(
+            battery_celsius(Some(65_535)),
+            Reading::Unavailable { .. }
+        ));
+        assert!(matches!(battery_celsius(None), Reading::Unavailable { .. }));
     }
 }

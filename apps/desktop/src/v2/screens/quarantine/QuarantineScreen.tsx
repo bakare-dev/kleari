@@ -9,11 +9,9 @@ import {
   PageHeader,
   Pill,
   ProgressBar,
-  ScrollEdgeGlass,
   Spinner,
   StatCard,
   Toast,
-  useScrolled,
   useToast,
 } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
@@ -74,7 +72,6 @@ export function QuarantineScreen(props: QuarantineScreenProps) {
   const [conflict, setConflict] = useState<QuarantineItem | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const toast = useToast();
-  const [scrolled, onScroll] = useScrolled();
   const listRef = useRef<HTMLDivElement>(null);
 
   const visible = batches
@@ -184,8 +181,7 @@ export function QuarantineScreen(props: QuarantineScreenProps) {
           </div>
         )}
 
-        <div ref={listRef} tabIndex={0} role="region" aria-label="Quarantined items" className="q-list" onScroll={onScroll}>
-        <ScrollEdgeGlass visible={scrolled} inset={0} />
+        <div ref={listRef} tabIndex={0} role="region" aria-label="Quarantined items" className="q-list">
         {visible.map((batch) => {
           const open = batch.items.filter((item) => !restored.has(item.id) && actionable(item));
           const allOn = open.length > 0 && open.every((item) => selection.has(item.id));

@@ -141,7 +141,8 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
               key={entry.id}
               type="button"
               role="listitem"
-              className={`st-map-cell tone-${mapTones[index % mapTones.length]}`}
+              // A thin slice keeps its colour and tooltip; its name would only be cut off.
+              className={`st-map-cell tone-${mapTones[index % mapTones.length]}${entry.bytes / mappedBytes < 0.07 ? " st-map-cell-thin" : ""}`}
               style={{ flexGrow: entry.bytes / mappedBytes }}
               title={`${entry.name} · ${size(entry)}`}
               disabled={entry.kind !== "folder" || state.loading}

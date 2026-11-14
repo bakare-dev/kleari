@@ -39,6 +39,21 @@ export interface DiskRates {
   windowMs: number;
 }
 
+/** Processor (and graphics, where the chip names them) temperatures in °C. */
+export interface ChipTemperatures {
+  /** The average of the processor's sensors. */
+  cpu: number;
+  /** The hottest processor sensor. */
+  cpuMax: number;
+  gpu: number | null;
+}
+
+export interface Fan {
+  rpm: number;
+  minRpm: number | null;
+  maxRpm: number | null;
+}
+
 export interface SystemActivity {
   sampledAtMs: number;
   cpu: Reading<CpuReading>;
@@ -46,6 +61,12 @@ export interface SystemActivity {
   swap: Reading<SwapReading>;
   memoryPressure: Reading<MemoryPressure>;
   thermalState: Reading<ThermalState>;
+  /** The battery sensor's temperature in °C (the one macOS publishes); not the chip's. */
+  batteryTemperature: Reading<number>;
+  /** The processor's temperature from the chip's own sensors (°C). */
+  chipTemperature: Reading<ChipTemperatures>;
+  /** Fan speeds; empty on a Mac without fans. */
+  fans: Reading<Fan[]>;
   battery: Reading<BatteryReading>;
   network: Reading<NetworkRates>;
   disk: Reading<DiskRates>;
@@ -80,7 +101,12 @@ export interface VolumeInfo {
 
 export interface BatteryHealth {
   cycleCount: number | null;
+  /** The cycles the battery is designed for, when reported. */
+  designCycleCount: number | null;
+  /** macOS's own "Maximum Capacity", as System Information shows it. */
   maximumCapacityPercent: number | null;
+  /** macOS says the battery should be serviced. */
+  serviceRecommended: boolean;
 }
 
 export interface SystemDetails {
@@ -93,6 +119,8 @@ export interface SystemDetails {
   display: Reading<DisplayInfo>;
   startupVolume: Reading<VolumeInfo>;
   bootTimeMs: Reading<number>;
+  /** When the Mac last woke from sleep; unavailable when it hasn't slept since it started. */
+  lastWakeMs: Reading<number>;
   batteryHealth: Reading<BatteryHealth>;
 }
 
@@ -122,6 +150,30 @@ const MAX_STARTUP_ITEMS = 1500;
 
 function text(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0 || value.length > MAX_TEXT) {
+    throw new ContractError(field);
+  }
+  return value;
+}
+
+/** A plausible chip temperature in °C. */
+function chipCelsius(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 5 || value > 130) {
+    throw new ContractError(field);
+  }
+  return value;
+}
+
+/** A plausible fan speed. */
+function rpm(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 20_000) {
+    throw new ContractError(field);
+  }
+  return value;
+}
+
+/** A plausible sensor temperature in °C. */
+function celsius(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < -20 || value > 90) {
     throw new ContractError(field);
   }
   return value;
@@ -165,6 +217,25 @@ export function parseSystemActivity(payload: unknown): SystemActivity {
     }),
     memoryPressure: readingOf(fields.memoryPressure, "memoryPressure", (value) => oneOf(pressures, value, "memoryPressure.value")),
     thermalState: readingOf(fields.thermalState, "thermalState", (value) => oneOf(thermalStates, value, "thermalState.value")),
+    batteryTemperature: readingOf(fields.batteryTemperature, "batteryTemperature", (value) => celsius(value, "batteryTemperature.value")),
+    chipTemperature: reading(fields.chipTemperature, "chipTemperature", (chip) => ({
+      cpu: chipCelsius(chip.cpu, "chipTemperature.cpu"),
+      cpuMax: chipCelsius(chip.cpuMax, "chipTemperature.cpuMax"),
+      gpu: nullable(chip.gpu, (value) => chipCelsius(value, "chipTemperature.gpu")),
+    })),
+    fans: readingOf(fields.fans, "fans", (value) => {
+      if (!Array.isArray(value) || value.length > 8) {
+        throw new ContractError("fans.value");
+      }
+      return value.map((entry, index) => {
+        const fan = record(entry, `fans[${index}]`);
+        return {
+          rpm: rpm(fan.rpm, `fans[${index}].rpm`),
+          minRpm: nullable(fan.minRpm, (inner) => rpm(inner, `fans[${index}].minRpm`)),
+          maxRpm: nullable(fan.maxRpm, (inner) => rpm(inner, `fans[${index}].maxRpm`)),
+        };
+      });
+    }),
     battery: reading(fields.battery, "battery", battery),
     network: reading(fields.network, "network", (network) => ({
       receivedBytesPerSecond: finiteNonNegative(network.receivedBytesPerSecond, "network.receivedBytesPerSecond"),
@@ -210,9 +281,12 @@ export function parseSystemDetails(payload: unknown): SystemDetails {
       totalBytes: nonNegativeInteger(volume.totalBytes, "startupVolume.totalBytes"),
     })),
     bootTimeMs: readingOf(fields.bootTimeMs, "bootTimeMs", (value) => nonNegativeInteger(value, "bootTimeMs.value")),
+    lastWakeMs: readingOf(fields.lastWakeMs, "lastWakeMs", (value) => nonNegativeInteger(value, "lastWakeMs.value")),
     batteryHealth: reading(fields.batteryHealth, "batteryHealth", (health) => ({
       cycleCount: optionalCount(health.cycleCount, "batteryHealth.cycleCount"),
+      designCycleCount: optionalCount(health.designCycleCount, "batteryHealth.designCycleCount"),
       maximumCapacityPercent: nullable(health.maximumCapacityPercent, (value) => percent(value, "batteryHealth.maximumCapacityPercent")),
+      serviceRecommended: boolean(health.serviceRecommended, "batteryHealth.serviceRecommended"),
     })),
   };
 }
