@@ -29,6 +29,10 @@ pub struct SystemActivity {
     /// The battery's own temperature sensor, in °C: the one temperature macOS publishes.
     /// Not the chip's, which has no public API on Apple silicon.
     pub battery_temperature: Reading<f64>,
+    /// The processor's (and graphics') temperature from the chip's own sensors (ADR-023).
+    pub chip_temperature: Reading<super::sensors::ChipTemperatures>,
+    /// Fan speeds; an empty list on a Mac without fans (ADR-023).
+    pub fans: Reading<Vec<super::sensors::Fan>>,
     /// The same IOKit power-source reading as `get_system_metrics`; cheap to read each second.
     pub battery: Reading<BatteryReading>,
     pub network: Reading<NetworkRates>,
@@ -213,6 +217,18 @@ impl ActivitySampler {
             )),
             thermal_state: read_thermal_state(),
             battery_temperature: read_battery_temperature(),
+            chip_temperature: super::sensors::read_temperatures().map_or(
+                Reading::Unavailable {
+                    reason: NOT_REPORTED,
+                },
+                |value| Reading::Available { value },
+            ),
+            fans: super::sensors::read_fans().map_or(
+                Reading::Unavailable {
+                    reason: NOT_REPORTED,
+                },
+                |value| Reading::Available { value },
+            ),
             battery: map_battery(&read_battery()),
             network: self.sample_network(),
             disk: self.sample_disk(),

@@ -74,6 +74,20 @@ function startupText(state: Loadable<SystemDetails>, nowMs: number): string | nu
   return `Last start-up ${lower(when(boot, nowMs))} · up ${formatUptime(boot, nowMs)}${woke}`;
 }
 
+/**
+ * The processor's temperature and the fan speed, for the CPU tile ("58 °C · fan 2,510 rpm");
+ * `null` when neither is reported, so the tile keeps its usual line.
+ */
+export function cooling(activity: SystemActivity | null): string | null {
+  const chip = activity?.chipTemperature.status === "available" ? activity.chipTemperature.value : null;
+  const fans = activity?.fans.status === "available" ? activity.fans.value : null;
+  const parts = [
+    chip ? `${Math.round(chip.cpu)} °C` : null,
+    fans && fans.length > 0 ? `fan ${Math.round(Math.max(...fans.map((fan) => fan.rpm))).toLocaleString("en-US")} rpm` : null,
+  ].filter((part): part is string => part !== null);
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
 /** Download and upload now, from the live readings (sampled every second while open). */
 function networkRates(state: Loadable<SystemActivity>): PopoverNetwork {
   const reading = value(state)?.network;
@@ -113,7 +127,7 @@ export function buildPopover(input: {
     return marked<PopoverGauge>(storage ? input.overview : input.activity, {
       label: metric.label,
       value: metric.value,
-      sub: metric.sub,
+      sub: metric.label === "CPU" ? (cooling(activity) ?? metric.sub) : metric.sub,
       percent: metric.label === "CPU" ? cpu : (metric.percent ?? null),
       route: storage ? "storage" : "system",
       tone: metric.tone,

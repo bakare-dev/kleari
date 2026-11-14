@@ -18,6 +18,10 @@ All notable user-facing changes to Kleari are documented here. This file follows
   reminder when no scan ran for 7 days.
 - **Settings › Notifications › Alerts:** one switch per group (Storage, Performance, Battery,
   Login items, Reminders). If you had alerts on, every group stays on.
+- **System:** the processor's temperature from the chip's own sensors (average and hottest),
+  graphics where the chip reports it, and the fans' speed with their range, in a new Cooling
+  check. Read only: Kleari never changes fan speeds.
+- **Menu bar:** the CPU tile shows the processor's temperature and the fan speed.
 - **Menu bar:** the alerts that need attention, network download and upload rates, and when
   your Mac last started up, how long it has been on and when it last woke.
 
@@ -35,8 +39,9 @@ All notable user-facing changes to Kleari are documented here. This file follows
 - **Storage › Browse:** the colour map of the folder is larger and no longer shrinks to a
   sliver beside a long folder.
 - **Dashboard:** the four readings wrap two by two in a narrow window.
-- **System › Temperature** (was Thermals): the battery sensor's temperature in °C, with
-  macOS's thermal state, each named for what it is.
+- **System › Temperature** (was Thermals): the processor's temperature, or the battery
+  sensor's where the chip's can't be read, with macOS's thermal state, each named for what it
+  is.
 - **Menu bar:** Activity is no longer listed; the menu is a little taller to fit the alerts.
 - **Low disk space** is now flagged below 15% free (was 10%).
 - **Small windows:** summary cards drop their icon and wrap their label instead of cutting it

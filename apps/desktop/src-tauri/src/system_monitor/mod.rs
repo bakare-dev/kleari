@@ -19,6 +19,7 @@ mod processes;
 mod ps;
 pub(crate) mod registry;
 pub mod running_apps;
+mod sensors;
 mod startup;
 mod sysctl;
 

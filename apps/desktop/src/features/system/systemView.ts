@@ -114,6 +114,25 @@ function temperatureStatus(celsius: number, thermal: ThermalState | null): Statu
   return thermal === "serious" || celsius >= WARM_CELSIUS ? "warn" : "ok";
 }
 
+/** A processor running warm on average, and a sensor this hot, are worth noticing; Apple
+ * silicon throttles itself near 100 °C, which macOS's thermal state reports. */
+export const CHIP_WARM_CELSIUS = 80;
+export const CHIP_HOT_CELSIUS = 95;
+
+function chipPill(average: number, hottest: number, thermal: ThermalState | null): string {
+  if (thermal === "serious" || thermal === "critical") {
+    return `Cooling down · ${thermalText[thermal].meaning}`;
+  }
+  return hottest >= CHIP_HOT_CELSIUS ? "Hot" : average >= CHIP_WARM_CELSIUS ? "Warm" : "Normal";
+}
+
+function chipStatus(average: number, hottest: number, thermal: ThermalState | null): Status {
+  if (thermal === "critical") {
+    return "danger";
+  }
+  return thermal === "serious" || hottest >= CHIP_HOT_CELSIUS || average >= CHIP_WARM_CELSIUS ? "warn" : "ok";
+}
+
 const pressureText = {
   normal: { label: "Pressure normal", status: "ok" },
   warning: { label: "Pressure high", status: "warn" },
@@ -176,12 +195,32 @@ export function buildGauges(state: Loadable<SystemActivity>, details: Loadable<S
       }
     : unavailableGauge("Battery", "orange", missing(state, reasonOf(activity?.battery)));
 
-  // The battery sensor is the one temperature macOS publishes; macOS's thermal state says
-  // whether the Mac is slowing itself down to cool. Both are named for what they are.
+  // The processor's own sensors first (ADR-023), then the battery sensor, then macOS's
+  // thermal state alone (whether the Mac is slowing itself down to cool). Each is named for
+  // what it is.
+  const chip = value(activity?.chipTemperature);
   const celsius = value(activity?.batteryTemperature);
   const stateText = thermal ? `macOS thermal state: ${thermalText[thermal].label}` : "Thermal state not reported";
-  const thermalGauge: GaugeView =
-    celsius !== null
+  const thermalGauge: GaugeView = chip
+    ? {
+        label: "Temperature",
+        tone: "teal",
+        // 30 °C to 105 °C across the ring.
+        fraction: Math.min(1, Math.max(0, (chip.cpu - 30) / 75)),
+        center: `${Math.round(chip.cpu)}°`,
+        value: `${chip.cpu.toFixed(1)} °C`,
+        sub: [
+          `Processor sensors, hottest ${Math.round(chip.cpuMax)} °C`,
+          chip.gpu !== null ? `graphics ${Math.round(chip.gpu)} °C` : null,
+          celsius !== null ? `battery ${Math.round(celsius)} °C` : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        pill: chipPill(chip.cpu, chip.cpuMax, thermal),
+        status: chipStatus(chip.cpu, chip.cpuMax, thermal),
+        aria: `Processor temperature ${chip.cpu.toFixed(1)} degrees Celsius, hottest sensor ${Math.round(chip.cpuMax)}. ${stateText}`,
+      }
+    : celsius !== null
       ? {
           label: "Temperature",
           tone: "teal",
@@ -334,7 +373,7 @@ export function buildMac(details: Loadable<SystemDetails>, nowMs: number): Pick<
   };
 }
 
-export function buildHealth(details: Loadable<SystemDetails>): { health: HealthCheck[]; summary: string } {
+export function buildHealth(details: Loadable<SystemDetails>, activity: Loadable<SystemActivity> = { status: "loading" }): { health: HealthCheck[]; summary: string } {
   const info = latest(details);
   const checks: HealthCheck[] = [];
   const health = info ? info.batteryHealth : null;
@@ -356,6 +395,30 @@ export function buildHealth(details: Loadable<SystemDetails>): { health: HealthC
     });
   } else if (health?.status === "unavailable" && health.reason !== "notPresent") {
     checks.push({ label: "Battery", sub: "macOS did not report battery health", tone: "muted", status: "Not reported", tile: "orange", icon: "battery" });
+  }
+  // Cooling: the fans and the processor's sensors (ADR-023), read-only.
+  const live = latest(activity);
+  const fans = value(live?.fans);
+  const chip = value(live?.chipTemperature);
+  if (fans !== null || chip !== null) {
+    const rpm = (value: number) => `${Math.round(value).toLocaleString("en-US")} rpm`;
+    const fanText =
+      fans === null
+        ? null
+        : fans.length === 0
+          ? "No fans"
+          : fans
+              .map((fan, index) => `${fans.length > 1 ? `Fan ${index + 1} ` : "Fan "}${rpm(fan.rpm)}${fan.minRpm !== null && fan.maxRpm !== null ? ` (${rpm(fan.minRpm).replace(" rpm", "")}–${rpm(fan.maxRpm)})` : ""}`)
+              .join(" · ");
+    const hot = chip !== null && (chip.cpuMax >= CHIP_HOT_CELSIUS || chip.cpu >= CHIP_WARM_CELSIUS);
+    checks.push({
+      label: "Cooling",
+      sub: [fanText, chip ? `processor ${Math.round(chip.cpu)} °C, hottest ${Math.round(chip.cpuMax)} °C` : null].filter(Boolean).join(" · "),
+      status: hot ? "Running warm" : "Normal",
+      tone: hot ? "warn" : "ok",
+      tile: "teal",
+      icon: "fan",
+    });
   }
   const os = info ? value(info.os) : null;
   checks.push({
@@ -464,7 +527,7 @@ export function buildSystemView(input: {
   paused: boolean;
   nowMs: number;
 }): SystemView {
-  const health = buildHealth(input.details);
+  const health = buildHealth(input.details, input.activity);
   return {
     live: liveState(input.activity, input.paused),
     note: liveNote(input.activity),
