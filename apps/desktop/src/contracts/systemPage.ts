@@ -100,6 +100,8 @@ export interface SystemDetails {
   display: Reading<DisplayInfo>;
   startupVolume: Reading<VolumeInfo>;
   bootTimeMs: Reading<number>;
+  /** When the Mac last woke from sleep; unavailable when it hasn't slept since it started. */
+  lastWakeMs: Reading<number>;
   batteryHealth: Reading<BatteryHealth>;
 }
 
@@ -226,6 +228,7 @@ export function parseSystemDetails(payload: unknown): SystemDetails {
       totalBytes: nonNegativeInteger(volume.totalBytes, "startupVolume.totalBytes"),
     })),
     bootTimeMs: readingOf(fields.bootTimeMs, "bootTimeMs", (value) => nonNegativeInteger(value, "bootTimeMs.value")),
+    lastWakeMs: readingOf(fields.lastWakeMs, "lastWakeMs", (value) => nonNegativeInteger(value, "lastWakeMs.value")),
     batteryHealth: reading(fields.batteryHealth, "batteryHealth", (health) => ({
       cycleCount: optionalCount(health.cycleCount, "batteryHealth.cycleCount"),
       designCycleCount: optionalCount(health.designCycleCount, "batteryHealth.designCycleCount"),

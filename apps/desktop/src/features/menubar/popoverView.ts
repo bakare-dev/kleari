@@ -7,7 +7,7 @@ import { formatGb, plural, sum } from "../../v2/ui/format";
 import { findingView, when } from "../cleanup/cleanupView";
 import { metrics, value } from "../dashboard/dashboardView";
 import { issueLook, issueText, sortedIssues } from "../issues/issueView";
-import { formatRate, type Loadable } from "../system/systemView";
+import { formatRate, formatUptime, type Loadable } from "../system/systemView";
 
 const GB = 1_000_000_000;
 
@@ -15,6 +15,8 @@ export interface PopoverData {
   gauges: PopoverGauge[];
   network: PopoverNetwork;
   alerts: PopoverAlert[];
+  /** When the Mac last started, how long it has been up and when it last woke. */
+  startup: string | null;
   summary: PopoverSummary;
   links: PopoverLink[];
 }
@@ -55,6 +57,21 @@ function quarantineLink(state: Loadable<QuarantineList>): PopoverLink {
   return items.length === 0
     ? { ...base, sub: "Empty", value: "" }
     : { ...base, sub: `${plural(items.length, "item")} held`, value: formatGb(sum(items, (item) => item.bytes) / GB) };
+}
+
+/**
+ * When the Mac last started (macOS records a restart and a start-up after a shut down the
+ * same way, so it says "start-up"), how long it has been up, and when it last woke.
+ */
+function startupText(state: Loadable<SystemDetails>, nowMs: number): string | null {
+  const info = value(state);
+  if (info === null || info.bootTimeMs.status !== "available") {
+    return null;
+  }
+  const boot = info.bootTimeMs.value;
+  const lower = (text: string) => text.replace(/^[A-Z]/, (letter) => letter.toLowerCase());
+  const woke = info.lastWakeMs.status === "available" ? ` · woke ${lower(when(info.lastWakeMs.value, nowMs))}` : "";
+  return `Last start-up ${lower(when(boot, nowMs))} · up ${formatUptime(boot, nowMs)}${woke}`;
 }
 
 /** Download and upload now, from the live readings (sampled every second while open). */
@@ -109,5 +126,6 @@ export function buildPopover(input: {
     alerts: alerts(input.issues),
     summary: marked(input.review, summary(input.review, input.nowMs)),
     links: [marked(input.quarantine, quarantineLink(input.quarantine))],
+    startup: startupText(input.details, input.nowMs),
   };
 }

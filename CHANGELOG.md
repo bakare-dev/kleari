@@ -18,7 +18,8 @@ All notable user-facing changes to Kleari are documented here. This file follows
   reminder when no scan ran for 7 days.
 - **Settings › Notifications › Alerts:** one switch per group (Storage, Performance, Battery,
   Login items, Reminders). If you had alerts on, every group stays on.
-- **Menu bar:** the alerts that need attention, and network download and upload rates.
+- **Menu bar:** the alerts that need attention, network download and upload rates, and when
+  your Mac last started up, how long it has been on and when it last woke.
 
 ### Changed
 

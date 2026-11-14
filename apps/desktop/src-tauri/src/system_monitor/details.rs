@@ -20,6 +20,9 @@ pub struct SystemDetails {
     pub startup_volume: Reading<VolumeInfo>,
     /// Milliseconds since the Unix epoch when the Mac last started.
     pub boot_time_ms: Reading<u64>,
+    /// When the Mac last woke from sleep (`kern.waketime`); unavailable when it hasn't slept
+    /// since it started.
+    pub last_wake_ms: Reading<u64>,
     pub battery_health: Reading<BatteryHealth>,
 }
 
@@ -94,6 +97,7 @@ pub struct RawDetails {
     pub display: Option<RawDisplay>,
     pub startup_volume: Option<(String, u64)>,
     pub boot_time_s: Option<u64>,
+    pub wake_time_s: Option<u64>,
     pub battery: RawBatteryHealth,
 }
 
@@ -171,6 +175,12 @@ pub fn to_details(raw: RawDetails) -> SystemDetails {
         boot_time_ms: available(
             raw.boot_time_s
                 .filter(|&seconds| seconds > 0)
+                .and_then(|seconds| seconds.checked_mul(1000)),
+        ),
+        last_wake_ms: available(
+            raw.wake_time_s
+                // A wake before this startup belongs to an earlier session.
+                .filter(|&wake| raw.boot_time_s.is_some_and(|boot| wake > boot))
                 .and_then(|seconds| seconds.checked_mul(1000)),
         ),
         battery_health: map_battery_health(&raw.battery),
@@ -259,6 +269,7 @@ pub fn read_raw() -> RawDetails {
         display: None,
         startup_volume,
         boot_time_s,
+        wake_time_s: sysctl::seconds("kern.waketime"),
         battery: read_battery_health(),
     }
 }

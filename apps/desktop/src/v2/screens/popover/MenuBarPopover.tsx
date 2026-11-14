@@ -59,6 +59,8 @@ interface MenuBarPopoverProps {
   gauges: readonly PopoverGauge[];
   network: PopoverNetwork;
   alerts: readonly PopoverAlert[];
+  /** When the Mac last started and woke, as one line; `null` before it is read. */
+  startup?: string | null;
   summary: PopoverSummary;
   links: readonly PopoverLink[];
   /** The last action couldn't reach Kleari. */
@@ -72,7 +74,7 @@ interface MenuBarPopoverProps {
  * The menu-bar popover from the v2 design, shown below Kleari's menu-bar icon. It only
  * reads: links open the matching screen in the main window, and nothing here starts a scan.
  */
-export function MenuBarPopover({ gauges, network, alerts, summary, links, failed = false, onGo, onQuit }: MenuBarPopoverProps) {
+export function MenuBarPopover({ gauges, network, alerts, startup = null, summary, links, failed = false, onGo, onQuit }: MenuBarPopoverProps) {
   const shownAlerts = alerts.slice(0, MAX_ALERTS);
   const moreAlerts = alerts.length - shownAlerts.length;
   const link = (route: MenuBarDestination) => ({
@@ -168,6 +170,12 @@ export function MenuBarPopover({ gauges, network, alerts, summary, links, failed
       {failed && (
         <p role="alert" className="v2-row-sub pop-failed">
           Kleari didn’t respond. Try again, or open it from Applications.
+        </p>
+      )}
+      {startup && (
+        <p className="v2-row-sub pop-startup" title={startup}>
+          <Glyph name="power" size={11} strokeWidth={2.2} />
+          <span className="v2-ellipsis">{startup}</span>
         </p>
       )}
       <div className="pop-foot">
