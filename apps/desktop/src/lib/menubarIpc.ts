@@ -2,7 +2,11 @@ import type { V2Route } from "../v2/shell/routes";
 import { call } from "./storageIpc";
 
 /** The screens the popover opens; Preview needs a selection made in the main window. */
-export type MenuBarDestination = Exclude<V2Route, "preview">;
+/** The pages the popover can open; mirrors `Destination` in src-tauri/src/menubar.rs. */
+export type MenuBarDestination = Extract<
+  V2Route,
+  "dashboard" | "cleanup" | "review" | "quarantine" | "storage" | "system" | "developer" | "apps" | "maintenance" | "processes" | "mouse" | "activity" | "settings"
+>;
 
 /** Closes the popover and brings the main window forward at `destination`. */
 export async function openMain(destination: MenuBarDestination): Promise<void> {

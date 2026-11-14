@@ -17,8 +17,14 @@ export interface Preferences {
   notifyScan: boolean;
   notifyQuarantine: boolean;
   notifySound: boolean;
-  /** Notify issue alerts (low disk, a device's low battery, …) while Kleari runs. */
+  /** The single alerts switch before alerts had groups; groups never saved follow it. */
   notifyIssues: boolean;
+  /** Alert notifications by group (Settings › Notifications). */
+  notifyStorage: boolean;
+  notifyPerformance: boolean;
+  notifyBattery: boolean;
+  notifyLoginItems: boolean;
+  notifyReminders: boolean;
   /** The first-launch setup was seen. */
   setupDone: boolean;
   retentionDays: number;
@@ -146,6 +152,11 @@ function preferences(value: unknown, field: string): Preferences {
     notifyQuarantine: boolean(fields.notifyQuarantine, `${field}.notifyQuarantine`),
     notifySound: boolean(fields.notifySound, `${field}.notifySound`),
     notifyIssues: boolean(fields.notifyIssues, `${field}.notifyIssues`),
+    notifyStorage: boolean(fields.notifyStorage, `${field}.notifyStorage`),
+    notifyPerformance: boolean(fields.notifyPerformance, `${field}.notifyPerformance`),
+    notifyBattery: boolean(fields.notifyBattery, `${field}.notifyBattery`),
+    notifyLoginItems: boolean(fields.notifyLoginItems, `${field}.notifyLoginItems`),
+    notifyReminders: boolean(fields.notifyReminders, `${field}.notifyReminders`),
     setupDone: boolean(fields.setupDone, `${field}.setupDone`),
     retentionDays: nonNegativeInteger(fields.retentionDays, `${field}.retentionDays`),
     menuBar: boolean(fields.menuBar, `${field}.menuBar`),

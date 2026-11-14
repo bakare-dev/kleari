@@ -75,30 +75,30 @@
   border-top: 0;
 }
 
+.pv-text {
+  gap: 2px;
+}
+
 .pv-name {
+  font-weight: 600;
+}
+
+/* The category, then where it is; the path gives way first. */
+.pv-where {
   display: flex;
   min-width: 0;
   align-items: center;
   gap: 6px;
-  font-weight: 600;
 }
 
-.pv-name .v2-pill {
+.pv-where .v2-pill {
   flex-shrink: 0;
   padding: 1px 7px;
-}
-
-/* Size above what happens to it, so neither squeezes the name. */
-.pv-end {
-  display: flex;
-  max-width: 46%;
-  flex-shrink: 0;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
+  font-size: 10.5px;
 }
 
 .pv-path {
+  min-width: 0;
   overflow: hidden;
   color: var(--mp-text-2);
   font-size: 11px;
@@ -107,21 +107,22 @@
 }
 
 .pv-size {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding-top: 1px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .pv-effect {
-  display: inline-flex;
-  max-width: 100%;
+  display: flex;
+  min-width: 0;
   align-items: center;
-  justify-content: flex-end;
   gap: 4px;
   font-size: 11.5px;
   font-weight: 600;
   line-height: 1.25;
-  text-align: right;
 }
 
 .pv-effect > span {

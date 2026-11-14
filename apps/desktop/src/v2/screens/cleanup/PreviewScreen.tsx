@@ -274,40 +274,43 @@ export function PreviewScreen(props: PreviewScreenProps) {
                   return (
                     <li key={item.id}>
                       <IconTile tone={meta.tone} icon={meta.icon} size={34} />
-                      <span className="v2-row-text">
-                        <span className="pv-name">
-                          <span className="v2-ellipsis" title={item.name}>{item.name}</span>
+                      {/* Name, then category and place, then what happens: each on its own line,
+                          so none squeezes another in a narrow window. */}
+                      <span className="v2-row-text pv-text">
+                        <span className="pv-name v2-ellipsis" title={item.name}>{item.name}</span>
+                        <span className="pv-where">
                           <span className={`v2-pill v2-pill-tone tone-${meta.tone}`}>{meta.label}</span>
+                          <span className="v2-mono pv-path" title={item.path}>{item.path}</span>
                         </span>
-                        <span className="v2-mono pv-path" title={item.path}>{item.path}</span>
-                      </span>
-                      <span className="pv-end">
-                        <span className="pv-size">{formatGb(item.gb)}</span>
                         <span className={`pv-effect ${effect.className}`}>
                           {effect.icon === "spin" ? <Spinner size={12} /> : <Glyph name={effect.icon} size={12} strokeWidth={2.4} />}
-                          <span>{effect.text}</span>
+                          <span className="v2-ellipsis">{effect.text}</span>
                         </span>
                       </span>
+                      <span className="pv-size">{formatGb(item.gb)}</span>
                     </li>
                   );
                 })}
               </ul>
             </section>
 
-            <section aria-labelledby="pv-how" className="v2-card v2-card-pad pv-how">
-              <h2 id="pv-how" className="v2-card-title">What happens when you approve</h2>
-              <ol>
-                {steps.map((step, index) => (
-                  <li key={step.title}>
-                    <span className={`pv-step-num tone-${step.tone}`} aria-hidden="true">{index + 1}</span>
-                    <span className="v2-row-text">
-                      <span className="pv-step-title">{step.title}</span>
-                      <span className="pv-step-sub">{step.sub}</span>
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </section>
+            {/* Only before approving; afterwards the result list gets the room. */}
+            {!result && (
+              <section aria-labelledby="pv-how" className="v2-card v2-card-pad pv-how">
+                <h2 id="pv-how" className="v2-card-title">What happens when you approve</h2>
+                <ol>
+                  {steps.map((step, index) => (
+                    <li key={step.title}>
+                      <span className={`pv-step-num tone-${step.tone}`} aria-hidden="true">{index + 1}</span>
+                      <span className="v2-row-text">
+                        <span className="pv-step-title">{step.title}</span>
+                        <span className="pv-step-sub">{step.sub}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
           </div>
 
           <section aria-labelledby="pv-summary" className="v2-card pv-summary">

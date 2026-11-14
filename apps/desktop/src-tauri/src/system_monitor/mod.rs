@@ -11,6 +11,7 @@ mod details;
 mod display;
 mod names;
 pub mod open_paths;
+mod power_profile;
 mod process_list;
 mod process_sampler;
 mod processes;
@@ -37,7 +38,7 @@ pub use process_sampler::ProcessListSampler;
 pub use processes::ProcessSummary;
 /// Also used by the Storage analysis to keep app indexing off network volumes.
 pub(crate) use startup::non_local_mounts;
-pub use startup::StartupItems;
+pub use startup::{StartupItems, StartupScope};
 
 use serde::Serialize;
 
@@ -47,6 +48,21 @@ pub fn read_details<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> SystemDetai
     let mut raw = details::read_raw();
     raw.display = display::read(app);
     details::to_details(raw)
+}
+
+/// The internal battery now (charge, and charging or not), for the issue checks.
+pub fn read_battery_now() -> Reading<BatteryReading> {
+    map_battery(&battery::read_battery())
+}
+
+/// The battery's health as macOS states it (runs `system_profiler`; about 80 ms).
+pub fn read_battery_health() -> Reading<details::BatteryHealth> {
+    details::map_battery_health(&details::read_battery_health())
+}
+
+/// The battery sensor's temperature in °C.
+pub fn read_battery_temperature() -> Reading<f64> {
+    activity::read_battery_temperature()
 }
 
 /// Lists launch agents and daemons from the standard folders.

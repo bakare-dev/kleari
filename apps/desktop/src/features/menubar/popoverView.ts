@@ -1,18 +1,20 @@
-import type { ActivityList } from "../../contracts/activity";
 import type { QuarantineList, ReviewList } from "../../contracts/cleanup";
+import type { Issue } from "../../contracts/issues";
 import type { StorageOverview } from "../../contracts/storageAnalysis";
 import type { SystemActivity, SystemDetails } from "../../contracts/systemPage";
-import type { PopoverGauge, PopoverLink, PopoverSummary } from "../../v2/screens/popover/MenuBarPopover";
+import type { PopoverAlert, PopoverGauge, PopoverLink, PopoverNetwork, PopoverSummary } from "../../v2/screens/popover/MenuBarPopover";
 import { formatGb, plural, sum } from "../../v2/ui/format";
-import { activityEvent } from "../activity/activityView";
 import { findingView, when } from "../cleanup/cleanupView";
 import { metrics, value } from "../dashboard/dashboardView";
-import type { Loadable } from "../system/systemView";
+import { issueLook, issueText, sortedIssues } from "../issues/issueView";
+import { formatRate, type Loadable } from "../system/systemView";
 
 const GB = 1_000_000_000;
 
 export interface PopoverData {
   gauges: PopoverGauge[];
+  network: PopoverNetwork;
+  alerts: PopoverAlert[];
   summary: PopoverSummary;
   links: PopoverLink[];
 }
@@ -55,22 +57,27 @@ function quarantineLink(state: Loadable<QuarantineList>): PopoverLink {
     : { ...base, sub: `${plural(items.length, "item")} held`, value: formatGb(sum(items, (item) => item.bytes) / GB) };
 }
 
-function activityLink(state: Loadable<ActivityList>, nowMs: number): PopoverLink {
-  const base = { label: "Activity", route: "activity", tone: "indigo", icon: "clock" } as const;
-  const list = value(state);
-  if (list === null) {
-    return { ...base, sub: pending(state), value: "" };
+/** Download and upload now, from the live readings (sampled every second while open). */
+function networkRates(state: Loadable<SystemActivity>): PopoverNetwork {
+  const reading = value(state)?.network;
+  if (reading?.status !== "available") {
+    return { down: "—", up: "—", note: reading?.status === "unavailable" && reading.reason !== "warmingUp" ? "Not reported" : "Measuring…" };
   }
-  if (list.status === "unavailable") {
-    return { ...base, sub: "History unavailable", value: "" };
-  }
-  const latest = list.events[0];
-  return latest === undefined ? { ...base, sub: "Nothing recorded yet", value: "" } : { ...base, sub: activityEvent(latest).title, value: when(latest.atMs, nowMs) };
+  return { down: formatRate(reading.value.receivedBytesPerSecond), up: formatRate(reading.value.transmittedBytesPerSecond), note: null };
+}
+
+function alerts(state: Loadable<Issue[]>): PopoverAlert[] {
+  return sortedIssues(value(state) ?? []).map((issue) => {
+    const look = issueLook[issue.kind];
+    const { title, sub } = issueText(issue);
+    return { key: `${issue.kind}-${issue.subject ?? ""}`, title, sub, warning: issue.severity === "warning", route: look.route, tone: look.tone, icon: look.icon };
+  });
 }
 
 /**
  * The popover from what Kleari reads when it opens: the same live readings as the
- * Dashboard, the last Cleanup scan, what quarantine holds and the latest activity.
+ * Dashboard with network rates, what needs attention, the last Cleanup scan and what
+ * quarantine holds.
  */
 export function buildPopover(input: {
   activity: Loadable<SystemActivity>;
@@ -78,7 +85,7 @@ export function buildPopover(input: {
   overview: Loadable<StorageOverview>;
   review: Loadable<ReviewList>;
   quarantine: Loadable<QuarantineList>;
-  events: Loadable<ActivityList>;
+  issues: Loadable<Issue[]>;
   nowMs: number;
 }): PopoverData {
   const activity = value(input.activity);
@@ -98,7 +105,9 @@ export function buildPopover(input: {
   });
   return {
     gauges,
+    network: networkRates(input.activity),
+    alerts: alerts(input.issues),
     summary: marked(input.review, summary(input.review, input.nowMs)),
-    links: [marked(input.quarantine, quarantineLink(input.quarantine)), marked(input.events, activityLink(input.events, input.nowMs))],
+    links: [marked(input.quarantine, quarantineLink(input.quarantine))],
   };
 }

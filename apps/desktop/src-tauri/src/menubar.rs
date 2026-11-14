@@ -19,7 +19,7 @@ pub const POPOVER: &str = "popover";
 const MAIN: &str = "main";
 /// The popover's size in points; its page fits itself to this.
 const POPOVER_WIDTH: f64 = 340.0;
-const POPOVER_HEIGHT: f64 = 580.0;
+const POPOVER_HEIGHT: f64 = 700.0;
 /// Matches the panel's corner radius in popover.css.
 const POPOVER_RADIUS: f64 = 14.0;
 /// Space kept between the popover and the screen edges, in points.
@@ -246,6 +246,8 @@ pub enum Destination {
     Storage,
     System,
     Developer,
+    Apps,
+    Maintenance,
     Processes,
     Mouse,
     Activity,
@@ -262,6 +264,8 @@ impl Destination {
             Self::Storage => "storage",
             Self::System => "system",
             Self::Developer => "developer",
+            Self::Apps => "apps",
+            Self::Maintenance => "maintenance",
             Self::Processes => "processes",
             Self::Mouse => "mouse",
             Self::Activity => "activity",

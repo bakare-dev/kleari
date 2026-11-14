@@ -1092,6 +1092,20 @@ input[type="checkbox"]:disabled {
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
+  container-type: inline-size;
+}
+
+/* A card too narrow for its icon and text side by side (four across in a small window)
+   drops the icon, so the label and the figure aren't cut off. */
+@container (max-width: 185px) {
+  .v2-stat > .v2-tile {
+    display: none;
+  }
+
+  .v2-stat .v2-stat-label,
+  .v2-stat .v2-stat-sub {
+    white-space: normal;
+  }
 }
 
 .v2-stat-lg {

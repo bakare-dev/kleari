@@ -46,6 +46,8 @@ export interface SystemActivity {
   swap: Reading<SwapReading>;
   memoryPressure: Reading<MemoryPressure>;
   thermalState: Reading<ThermalState>;
+  /** The battery sensor's temperature in °C (the one macOS publishes); not the chip's. */
+  batteryTemperature: Reading<number>;
   battery: Reading<BatteryReading>;
   network: Reading<NetworkRates>;
   disk: Reading<DiskRates>;
@@ -80,7 +82,12 @@ export interface VolumeInfo {
 
 export interface BatteryHealth {
   cycleCount: number | null;
+  /** The cycles the battery is designed for, when reported. */
+  designCycleCount: number | null;
+  /** macOS's own "Maximum Capacity", as System Information shows it. */
   maximumCapacityPercent: number | null;
+  /** macOS says the battery should be serviced. */
+  serviceRecommended: boolean;
 }
 
 export interface SystemDetails {
@@ -127,6 +134,14 @@ function text(value: unknown, field: string): string {
   return value;
 }
 
+/** A plausible sensor temperature in °C. */
+function celsius(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < -20 || value > 90) {
+    throw new ContractError(field);
+  }
+  return value;
+}
+
 function finiteNonNegative(value: unknown, field: string): number {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
     throw new ContractError(field);
@@ -165,6 +180,7 @@ export function parseSystemActivity(payload: unknown): SystemActivity {
     }),
     memoryPressure: readingOf(fields.memoryPressure, "memoryPressure", (value) => oneOf(pressures, value, "memoryPressure.value")),
     thermalState: readingOf(fields.thermalState, "thermalState", (value) => oneOf(thermalStates, value, "thermalState.value")),
+    batteryTemperature: readingOf(fields.batteryTemperature, "batteryTemperature", (value) => celsius(value, "batteryTemperature.value")),
     battery: reading(fields.battery, "battery", battery),
     network: reading(fields.network, "network", (network) => ({
       receivedBytesPerSecond: finiteNonNegative(network.receivedBytesPerSecond, "network.receivedBytesPerSecond"),
@@ -212,7 +228,9 @@ export function parseSystemDetails(payload: unknown): SystemDetails {
     bootTimeMs: readingOf(fields.bootTimeMs, "bootTimeMs", (value) => nonNegativeInteger(value, "bootTimeMs.value")),
     batteryHealth: reading(fields.batteryHealth, "batteryHealth", (health) => ({
       cycleCount: optionalCount(health.cycleCount, "batteryHealth.cycleCount"),
+      designCycleCount: optionalCount(health.designCycleCount, "batteryHealth.designCycleCount"),
       maximumCapacityPercent: nullable(health.maximumCapacityPercent, (value) => percent(value, "batteryHealth.maximumCapacityPercent")),
+      serviceRecommended: boolean(health.serviceRecommended, "batteryHealth.serviceRecommended"),
     })),
   };
 }

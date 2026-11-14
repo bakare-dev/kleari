@@ -12,6 +12,13 @@ All notable user-facing changes to Kleari are documented here. This file follows
   confirmation, the items are checked and moved into quarantine as usual, then deleted from
   there straight away; anything that can't be deleted stays in Quarantine.
 - **README:** Buy me a malt, as another way to support Kleari.
+- **Alerts:** critical disk space (under 5%), critical memory pressure, a processor busy for
+  15 minutes, battery low (20%) and critical (10%), fully charged, hot, near its cycle limit
+  and "service recommended", many login items, a new login item, and a weekly cleanup
+  reminder when no scan ran for 7 days.
+- **Settings › Notifications › Alerts:** one switch per group (Storage, Performance, Battery,
+  Login items, Reminders). If you had alerts on, every group stays on.
+- **Menu bar:** the alerts that need attention, and network download and upload rates.
 
 ### Changed
 
@@ -27,6 +34,12 @@ All notable user-facing changes to Kleari are documented here. This file follows
 - **Storage › Browse:** the colour map of the folder is larger and no longer shrinks to a
   sliver beside a long folder.
 - **Dashboard:** the four readings wrap two by two in a narrow window.
+- **System › Temperature** (was Thermals): the battery sensor's temperature in °C, with
+  macOS's thermal state, each named for what it is.
+- **Menu bar:** Activity is no longer listed; the menu is a little taller to fit the alerts.
+- **Low disk space** is now flagged below 15% free (was 10%).
+- **Small windows:** summary cards drop their icon and wrap their label instead of cutting it
+  off; Activity's search moves under its filters; System's section headings wrap.
 
 ### Fixed
 
@@ -36,6 +49,10 @@ All notable user-facing changes to Kleari are documented here. This file follows
   out while Kleari's window wasn't active.
 - **Sizes** under 1 MB showed as "0 MB"; they show in KB, and Cleanup's last scan no longer
   rounds small categories to 0 GB.
+- **Battery health** showed a higher maximum capacity than System Information (for example
+  99% where macOS said 96%); it now shows macOS's own figure.
+- **Preview and approve:** a long item name no longer disappears behind its category, and
+  after a cleanup the result list gets the room the approval steps took.
 - **Developer:** a project at your home folder (a stray `npm install` in `~`) was always
   "Active project" because something in your home folder is always open; for it, only its
   build folders being open counts.

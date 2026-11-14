@@ -46,9 +46,22 @@ pub struct Preferences {
     /// When Kleari scans on its own (ADR-015); off until chosen.
     #[serde(default)]
     pub scan_schedule: ScanSchedule,
-    /// Notify issue alerts (low disk, a device's low battery, …) while Kleari runs (ADR-021).
+    /// The single switch for issue alerts before they had groups (ADR-021). Kept so a group
+    /// never saved yet follows it: whoever had alerts on keeps every group on.
     #[serde(default)]
     pub notify_issues: bool,
+    /// Alert notifications by group; `None` (never saved) follows `notify_issues`. Loaded
+    /// preferences always have them set (`settled`).
+    #[serde(default)]
+    pub notify_storage: Option<bool>,
+    #[serde(default)]
+    pub notify_performance: Option<bool>,
+    #[serde(default)]
+    pub notify_battery: Option<bool>,
+    #[serde(default)]
+    pub notify_login_items: Option<bool>,
+    #[serde(default)]
+    pub notify_reminders: Option<bool>,
     /// The first-launch setup (Full Disk Access, Open at login, menu bar) was seen.
     #[serde(default)]
     pub setup_done: bool,
@@ -127,12 +140,55 @@ impl Default for Preferences {
             beta_updates: None,
             scan_schedule: ScanSchedule::default(),
             notify_issues: false,
+            notify_storage: Some(false),
+            notify_performance: Some(false),
+            notify_battery: Some(false),
+            notify_login_items: Some(false),
+            notify_reminders: Some(false),
             setup_done: false,
         }
     }
 }
 
+/// The groups issue alerts are notified in, each with its own switch in Settings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AlertGroup {
+    Storage,
+    Performance,
+    Battery,
+    LoginItems,
+    Reminders,
+}
+
 impl Preferences {
+    /// Each alert group's switch set: one never saved follows the old single switch.
+    #[must_use]
+    pub fn settled(mut self) -> Self {
+        let old = Some(self.notify_issues);
+        for group in [
+            &mut self.notify_storage,
+            &mut self.notify_performance,
+            &mut self.notify_battery,
+            &mut self.notify_login_items,
+            &mut self.notify_reminders,
+        ] {
+            *group = group.or(old);
+        }
+        self
+    }
+
+    /// Whether alerts in `group` are notified.
+    pub fn notifies(&self, group: AlertGroup) -> bool {
+        match group {
+            AlertGroup::Storage => self.notify_storage,
+            AlertGroup::Performance => self.notify_performance,
+            AlertGroup::Battery => self.notify_battery,
+            AlertGroup::LoginItems => self.notify_login_items,
+            AlertGroup::Reminders => self.notify_reminders,
+        }
+        .unwrap_or(self.notify_issues)
+    }
+
     /// Only the values the Settings page offers: sizes in steps of 10 MB up to 500, up to 90
     /// days, up to 100 GB, and activity kept for 30 to 360 days in steps of 30, or a year.
     pub fn valid(&self) -> bool {
@@ -220,7 +276,7 @@ pub fn load(db: &Database) -> Loaded {
     };
     match serde_json::from_str::<Preferences>(&text) {
         Ok(preferences) if preferences.valid() => Loaded {
-            preferences,
+            preferences: preferences.settled(),
             source: "saved",
         },
         _ => Loaded {
@@ -243,4 +299,39 @@ pub fn save(db: &Database, preferences: &Preferences) -> Result<(), SaveError> {
     }
     let text = serde_json::to_string(preferences).map_err(|_| SaveError::Invalid)?;
     db.set_setting(KEY, &text).map_err(SaveError::Unavailable)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn alert_groups_never_saved_follow_the_old_single_switch() {
+        // Saved by an older Kleari, with issue alerts on and no groups.
+        let mut stored = serde_json::to_value(Preferences::default()).expect("json");
+        let fields = stored.as_object_mut().expect("object");
+        for key in [
+            "notifyStorage",
+            "notifyPerformance",
+            "notifyBattery",
+            "notifyLoginItems",
+            "notifyReminders",
+        ] {
+            fields.remove(key);
+        }
+        fields.insert("notifyIssues".to_owned(), serde_json::Value::Bool(true));
+        let old: Preferences = serde_json::from_value(stored).expect("old shape still loads");
+        let settled = old.settled();
+        assert_eq!(settled.notify_battery, Some(true));
+        assert!(settled.notifies(AlertGroup::LoginItems));
+        // A group saved off stays off.
+        let chosen = Preferences {
+            notify_issues: true,
+            notify_battery: Some(false),
+            ..Preferences::default()
+        }
+        .settled();
+        assert!(!chosen.notifies(AlertGroup::Battery));
+        assert!(!Preferences::default().notifies(AlertGroup::Storage));
+    }
 }
