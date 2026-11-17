@@ -45,6 +45,9 @@ export function ShortcutRecorder({ current, onRecord, onCancel }: { current: str
     }
     let closed = false;
     let unlisten: (() => void) | undefined;
+    // The backend's number for this recording, once started: stopping names it, so a late stop
+    // from here can never end a recording started after it.
+    let session: number | null = null;
     setMode("starting");
     const inWindow = () => {
       setMode("window");
@@ -82,10 +85,18 @@ export function ShortcutRecorder({ current, onRecord, onCancel }: { current: str
         return startShortcutRecording();
       })
       .then((started) => {
-        if (closed || started === undefined) {
+        if (started === undefined) {
           return;
         }
-        if (started === "recording") {
+        if (closed) {
+          // Closed while it was starting: end the recording that just began.
+          if (started.kind === "recording") {
+            stopShortcutRecording(started.session).catch(() => undefined);
+          }
+          return;
+        }
+        if (started.kind === "recording") {
+          session = started.session;
           setMode("system");
         } else {
           inWindow();
@@ -104,7 +115,9 @@ export function ShortcutRecorder({ current, onRecord, onCancel }: { current: str
       window.removeEventListener("blur", leave);
       unlisten?.();
       // If this fails, recording still ends by itself after 30 seconds.
-      stopShortcutRecording().catch(() => undefined);
+      if (session !== null) {
+        stopShortcutRecording(session).catch(() => undefined);
+      }
     };
     // Only `recording` starts and ends it: `end` sets state and reads the latest props from a
     // ref, so re-running on its identity would restart the recording on every render.
@@ -166,7 +179,7 @@ export function ShortcutRecorder({ current, onRecord, onCancel }: { current: str
       <Button variant="soft" size="sm" onClick={() => end(true)}>
         Cancel
       </Button>
-      {mode === "system" && <span className="mouse-recorder-note">Mouse settings are paused while you record.</span>}
+      {mode === "system" && <span className="mouse-recorder-note">Mouse settings and macOS’s own shortcuts are paused while you record.</span>}
       {note && <span className="mouse-recorder-note">{note}</span>}
     </span>
   );

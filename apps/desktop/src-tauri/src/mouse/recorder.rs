@@ -1,14 +1,23 @@
 //! Recording a keyboard shortcut for a mouse button, system shortcuts included (⌘⇥, ⌘Space,
-//! ⌃↑…), which macOS would otherwise act on before Kleari's window sees them.
+//! ⌃↑…), which macOS would otherwise act on before any app sees them.
 //!
-//! While recording, a keyboard event tap at the HID level (ahead of macOS's own shortcut
-//! handling) swallows every key press and release, and the mouse settings pause (`active`).
-//! Each press is reported to the page as the shortcut it makes, or as one Kleari can't send.
-//! Nothing is stored here; the page saves the shortcut once the user confirms it.
+//! While recording:
+//! - macOS's own system shortcuts (`SYSTEM_SHORTCUTS`: the app switcher, Spotlight, Mission
+//!   Control, Spaces, screenshots…) are turned off, so their keys arrive as ordinary key
+//!   presses. Only those that were on are turned off, and exactly those are turned back on
+//!   when recording ends, however it ends. The list is saved first, so if Kleari quits or
+//!   crashes mid-recording they are turned back on at its next launch (`restore_after_crash`).
+//!   This uses a private macOS call (`CGSSetSymbolicHotKeyEnabled`, as other app switchers
+//!   do): it needs no permission, but a future macOS could change it.
+//! - a keyboard event tap at the session level swallows every key press and release, and
+//!   the mouse settings pause (`active`). Each press is reported to the page as the shortcut
+//!   it makes, or as one Kleari can't send. Nothing is stored here but the list above; the
+//!   page saves the shortcut once the user confirms it.
 //!
 //! Recording ends when the page stops it (confirm, cancel, leaving the window or the page),
 //! on Escape alone, or after `MAX_RECORDING` at most, so the keyboard can never stay captured.
-//! It needs Accessibility, as the mouse settings do; without it `start` says so and the page
+//! Each recording has its own number: a stop for an older one never ends a newer one. It
+//! needs Accessibility, as the mouse settings do; without it `start` says so and the page
 //! records inside its own window instead (where system shortcuts can't be caught).
 
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -17,6 +26,7 @@ use std::time::Duration;
 use serde::Serialize;
 
 use super::config::{Modifiers, Shortcut, KEYS};
+use crate::persistence::Database;
 
 /// Sent to the page for each key press while recording, and when recording ends by itself.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
@@ -26,16 +36,35 @@ pub const RECORD_EVENT: &str = "mouse-shortcut-record";
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 const MAX_RECORDING: Duration = Duration::from_secs(30);
 
-/// The recording running now; each start and stop moves it on, so an older recording's thread
-/// sees it has been replaced and lets the keyboard go.
+/// Where the system shortcuts turned off for a recording are listed until they are back on.
+const SUSPENDED_KEY: &str = "mouse.recorder.suspendedShortcuts";
+
+/// macOS's system shortcuts turned off while recording, by their number in macOS's
+/// `com.apple.symbolichotkeys` list: ⌘⇥ and ⌘⇧⇥ (1, 2), ⌘` (6), the screenshot shortcuts
+/// (28–31, 184), Mission Control and App windows (32, 33), Show desktop (36), the previous and
+/// next Space (79, 81), Spotlight and its Finder search (64, 65), and the input-source switch
+/// (60, 61).
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+const SYSTEM_SHORTCUTS: [i32; 17] = [
+    1, 2, 6, 28, 29, 30, 31, 32, 33, 36, 60, 61, 64, 65, 79, 81, 184,
+];
+
+/// The recording running now; each start and each end moves it on, so an older recording's
+/// thread sees it has been replaced and lets the keyboard go.
 static CURRENT: AtomicU64 = AtomicU64::new(0);
-/// Whether a recording is running (its number is `CURRENT`).
+/// The recording whose keyboard tap is installed, or 0.
 static RUNNING: AtomicU64 = AtomicU64::new(0);
 
 /// A shortcut is being recorded: the mouse settings pass every event untouched meanwhile.
 pub fn active() -> bool {
     let running = RUNNING.load(Ordering::Relaxed);
     running != 0 && running == CURRENT.load(Ordering::Relaxed)
+}
+
+/// Ends recording `number` if it is the current one; an older (or unknown) number changes
+/// nothing, so a late stop from the page can't end a recording started after it.
+pub fn stop(number: u64) {
+    let _ = CURRENT.compare_exchange(number, number + 1, Ordering::Relaxed, Ordering::Relaxed);
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -53,7 +82,7 @@ pub enum Recorded {
     Ended,
 }
 
-/// The shortcut a key press makes: the key's name from `KEYS`, or `None` for another key.
+/// The shortcut a key press makes: the key's name from `KEYS`, or `Unsupported`.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn recorded(code: u16, modifiers: Modifiers) -> Recorded {
     KEYS.iter()
@@ -76,28 +105,77 @@ pub enum StartError {
     Unsupported,
 }
 
-/// Starts recording (ending any recording before it). Waits until the keyboard is captured.
+/// The suspended shortcuts as saved: only known numbers, each once; anything else is ignored
+/// (a shortcut Kleari never turned off is never turned on by it).
+fn parse_suspended(text: &str) -> Vec<i32> {
+    let mut numbers: Vec<i32> = serde_json::from_str::<Vec<i32>>(text)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|number| SYSTEM_SHORTCUTS.contains(number))
+        .collect();
+    numbers.sort_unstable();
+    numbers.dedup();
+    numbers
+}
+
+/// What `SUSPENDED_KEY` holds now.
+fn saved_suspended(db: &Database) -> Vec<i32> {
+    db.settings()
+        .ok()
+        .and_then(|rows| rows.into_iter().find(|(key, _)| key == SUSPENDED_KEY))
+        .map(|(_, text)| parse_suspended(&text))
+        .unwrap_or_default()
+}
+
+/// Records which shortcuts are off; `false` if that couldn't be saved.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn save_suspended(db: &Database, numbers: &[i32]) -> bool {
+    serde_json::to_string(numbers)
+        .ok()
+        .is_some_and(|text| db.set_setting(SUSPENDED_KEY, &text).is_ok())
+}
+
+/// At launch: turns back on any system shortcut a recording turned off and never got to turn
+/// back on (Kleari quit or crashed mid-recording).
+pub fn restore_after_crash(db: &Database) {
+    #[cfg(target_os = "macos")]
+    restore_with(db, |numbers| macos::set_enabled(numbers, true));
+    #[cfg(not(target_os = "macos"))]
+    restore_with(db, |_| {});
+}
+
+/// `restore_after_crash`, turning them on with `turn_on` (so tests never touch macOS).
+fn restore_with(db: &Database, turn_on: impl FnOnce(&[i32])) {
+    let left_off = saved_suspended(db);
+    if left_off.is_empty() {
+        return;
+    }
+    turn_on(&left_off);
+    // If this can't be saved, the next launch turns them on again, which changes nothing.
+    let _ = db.set_setting(SUSPENDED_KEY, "[]");
+}
+
+/// Starts recording (ending any recording before it) and waits until the keyboard is
+/// captured; returns the recording's number, for `stop`.
 #[cfg(target_os = "macos")]
-pub fn start(app: tauri::AppHandle) -> Result<(), StartError> {
+pub fn start(app: tauri::AppHandle) -> Result<u64, StartError> {
     if !super::tap::allowed() {
         return Err(StartError::NotAllowed);
     }
     let number = CURRENT.fetch_add(1, Ordering::Relaxed) + 1;
     if macos::run(app, number) {
-        Ok(())
+        Ok(number)
     } else {
+        // Not captured in time: this recording is over, so a tap that comes up late lets go
+        // straight away instead of swallowing keys the page isn't listening for.
+        stop(number);
         Err(StartError::NotAllowed)
     }
 }
 
 #[cfg(not(target_os = "macos"))]
-pub fn start(_app: tauri::AppHandle) -> Result<(), StartError> {
+pub fn start(_app: tauri::AppHandle) -> Result<u64, StartError> {
     Err(StartError::Unsupported)
-}
-
-/// Ends the recording, if one runs; the keyboard is let go within a tenth of a second.
-pub fn stop() {
-    CURRENT.fetch_add(1, Ordering::Relaxed);
 }
 
 #[cfg(target_os = "macos")]
@@ -106,7 +184,7 @@ mod macos {
     use std::panic::{catch_unwind, AssertUnwindSafe};
     use std::ptr::NonNull;
     use std::sync::atomic::Ordering;
-    use std::sync::mpsc;
+    use std::sync::{mpsc, Mutex, PoisonError};
     use std::time::{Duration, Instant};
 
     use objc2_core_foundation::{kCFRunLoopDefaultMode, CFMachPort, CFRetained, CFRunLoop};
@@ -114,9 +192,13 @@ mod macos {
         CGEvent, CGEventField, CGEventFlags, CGEventTapLocation, CGEventTapOptions,
         CGEventTapPlacement, CGEventTapProxy, CGEventType,
     };
-    use tauri::{AppHandle, Emitter};
+    use tauri::{AppHandle, Emitter, Manager};
 
-    use super::{recorded, Recorded, CURRENT, MAX_RECORDING, RECORD_EVENT, RUNNING};
+    use super::{
+        recorded, save_suspended, stop, Recorded, CURRENT, MAX_RECORDING, RECORD_EVENT, RUNNING,
+        SUSPENDED_KEY, SYSTEM_SHORTCUTS,
+    };
+    use crate::history::History;
     use crate::mouse::config::Modifiers;
 
     /// How often the recording's thread checks whether it should end.
@@ -125,6 +207,63 @@ mod macos {
     const READY: Duration = Duration::from_secs(1);
     /// `kVK_Escape`.
     const ESCAPE: u16 = 53;
+
+    /// Held for a whole recording, so a new one starts only once the one before has turned the
+    /// system shortcuts back on (otherwise it would find them off, and they'd be turned on
+    /// under it).
+    static SESSION: Mutex<()> = Mutex::new(());
+
+    // Private CoreGraphics calls (stable since macOS 10.x, used by app switchers such as
+    // AltTab) that turn one of macOS's system shortcuts off or on for this login session.
+    extern "C" {
+        fn CGSIsSymbolicHotKeyEnabled(hot_key: i32) -> bool;
+        fn CGSSetSymbolicHotKeyEnabled(hot_key: i32, enabled: bool) -> i32;
+    }
+
+    pub fn set_enabled(numbers: &[i32], enabled: bool) {
+        for &number in numbers {
+            // SAFETY: plain values; an unknown number is ignored by macOS. The error code says
+            // only that it wasn't changed, which the next launch's restore covers.
+            let _ = unsafe { CGSSetSymbolicHotKeyEnabled(number, enabled) };
+        }
+    }
+
+    /// Turns off the system shortcuts that are on, saving the list first; returns it.
+    fn suspend(app: &AppHandle) -> Vec<i32> {
+        let on: Vec<i32> = SYSTEM_SHORTCUTS
+            .iter()
+            .copied()
+            // SAFETY: a plain value.
+            .filter(|&number| unsafe { CGSIsSymbolicHotKeyEnabled(number) })
+            .collect();
+        let db = &app.state::<History>().db;
+        // Unsaved, a crash could leave them off: then they stay on, and only shortcuts macOS
+        // doesn't act on first can be recorded.
+        if on.is_empty() || !save_suspended(db, &on) {
+            return Vec::new();
+        }
+        set_enabled(&on, false);
+        on
+    }
+
+    /// Turns back on exactly what `suspend` turned off, and forgets the list. Runs when its
+    /// guard is dropped, so a panic on the recording's thread still restores them.
+    struct Suspended {
+        app: AppHandle,
+        numbers: Vec<i32>,
+    }
+
+    impl Drop for Suspended {
+        fn drop(&mut self) {
+            if self.numbers.is_empty() {
+                return;
+            }
+            set_enabled(&self.numbers, true);
+            let db = &self.app.state::<History>().db;
+            // If this can't be saved, the next launch turns them on again: no change.
+            let _ = db.set_setting(SUSPENDED_KEY, "[]");
+        }
+    }
 
     struct Context {
         app: AppHandle,
@@ -152,6 +291,8 @@ mod macos {
     }
 
     fn record(app: AppHandle, number: u64, ready: &mpsc::Sender<bool>) {
+        // Only `()` inside: a panic in another recording leaves nothing half-done here.
+        let _session = SESSION.lock().unwrap_or_else(PoisonError::into_inner);
         let context = Box::into_raw(Box::new(Context {
             app: app.clone(),
             number,
@@ -162,7 +303,7 @@ mod macos {
         // until after the tap is invalidated below.
         let port = unsafe {
             CGEvent::tap_create(
-                CGEventTapLocation::HIDEventTap,
+                CGEventTapLocation::SessionEventTap,
                 CGEventTapPlacement::HeadInsertEventTap,
                 CGEventTapOptions::Default,
                 mask,
@@ -182,20 +323,30 @@ mod macos {
                 run_loop.add_source(Some(&source), mode);
                 // SAFETY: the callback reads `port` only on this thread, inside the run loop.
                 unsafe { &*context }.port.replace(Some(port.clone()));
-                CGEvent::tap_enable(&port, true);
-                captured = true;
-                RUNNING.store(number, Ordering::Relaxed);
-                // `run` may have stopped waiting.
-                let _ = ready.send(true);
-                let began = Instant::now();
-                while CURRENT.load(Ordering::Relaxed) == number {
-                    if began.elapsed() >= MAX_RECORDING {
-                        timed_out = true;
-                        break;
+                // `start` gave up waiting, or the page already stopped this recording: never
+                // capture the keyboard or touch the system shortcuts.
+                if CURRENT.load(Ordering::Relaxed) == number {
+                    let _suspended = Suspended {
+                        numbers: suspend(&app),
+                        app: app.clone(),
+                    };
+                    CGEvent::tap_enable(&port, true);
+                    captured = true;
+                    RUNNING.store(number, Ordering::Relaxed);
+                    // `run` may have stopped waiting.
+                    let _ = ready.send(true);
+                    let began = Instant::now();
+                    while CURRENT.load(Ordering::Relaxed) == number {
+                        if began.elapsed() >= MAX_RECORDING {
+                            timed_out = true;
+                            stop(number);
+                            break;
+                        }
+                        CFRunLoop::run_in_mode(mode, CHECK_SECONDS, false);
                     }
-                    CFRunLoop::run_in_mode(mode, CHECK_SECONDS, false);
+                    CGEvent::tap_enable(&port, false);
+                    // `_suspended` drops here: the system shortcuts are back on.
                 }
-                CGEvent::tap_enable(&port, false);
             }
             port.invalidate();
         }
@@ -272,7 +423,7 @@ mod macos {
         let modifiers = modifiers(CGEvent::flags(Some(event)));
         if code == ESCAPE && !modifiers.any() {
             // Escape alone cancels; the keyboard is let go right after.
-            CURRENT.fetch_add(1, Ordering::Relaxed);
+            stop(context.number);
             let _ = context.app.emit(RECORD_EVENT, Recorded::Ended);
             return true;
         }
@@ -308,16 +459,46 @@ mod tests {
         assert_eq!(recorded(87, COMMAND), Recorded::Unsupported);
     }
 
+    // The two tests below share `CURRENT`/`RUNNING`; they use numbers far apart and set both
+    // before each check, so running in parallel can't change what they see.
     #[test]
-    fn stopping_ends_the_recording_and_a_new_one_replaces_it() {
-        // Recording 7 is running.
-        CURRENT.store(7, Ordering::Relaxed);
-        RUNNING.store(7, Ordering::Relaxed);
+    fn a_stop_ends_only_its_own_recording() {
+        CURRENT.store(1_007, Ordering::Relaxed);
+        RUNNING.store(1_007, Ordering::Relaxed);
         assert!(active());
-        stop();
+        // A late stop for an earlier recording (the page's cleanup arriving after a new start)
+        // changes nothing.
+        stop(1_006);
+        assert!(active(), "a stale stop must not end the newer recording");
+        stop(1_007);
         assert!(!active(), "stopped: the mouse settings work again");
-        RUNNING.store(0, Ordering::Relaxed);
-        assert!(!active());
+        // Stopping it again, or a recording that never existed, changes nothing more.
+        let after = CURRENT.load(Ordering::Relaxed);
+        stop(1_007);
+        stop(999_999);
+        assert_eq!(CURRENT.load(Ordering::Relaxed), after);
+    }
+
+    #[test]
+    fn suspended_shortcuts_are_read_back_only_if_kleari_could_have_turned_them_off() {
+        assert_eq!(parse_suspended("[64,1,1,2]"), vec![1, 2, 64]);
+        // Numbers outside the list are never turned on by Kleari.
+        assert_eq!(parse_suspended("[1,9999,-3]"), vec![1]);
+        assert!(parse_suspended("not json").is_empty());
+        assert!(parse_suspended("[]").is_empty());
+    }
+
+    #[test]
+    fn a_saved_list_is_cleared_on_the_next_launch() {
+        let db = Database::in_memory();
+        assert!(save_suspended(&db, &[1, 2]));
+        assert_eq!(saved_suspended(&db), vec![1, 2]);
+        let mut turned_on = Vec::new();
+        restore_with(&db, |numbers| turned_on.extend_from_slice(numbers));
+        assert_eq!(turned_on, vec![1, 2]);
+        assert!(saved_suspended(&db).is_empty());
+        // Nothing saved: nothing is turned on.
+        restore_with(&db, |_| panic!("nothing to turn on"));
     }
 
     #[test]

@@ -284,6 +284,8 @@ fn refresh(app: &AppHandle) -> MouseStatus {
 
 /// At launch: the saved settings take effect if they are on and macOS allows it.
 pub fn start(app: &AppHandle) {
+    // System shortcuts a recording turned off before Kleari quit or crashed come back on.
+    recorder::restore_after_crash(&app.state::<History>().db);
     window::init(app.clone());
     let _ = refresh(app);
     // The button finder's in-app monitor; silent until the Mouse page listens.
@@ -292,10 +294,17 @@ pub fn start(app: &AppHandle) {
 
 /// How starting a shortcut recording went.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum RecordingStart {
-    /// Every key press goes to the page (`recorder::RECORD_EVENT`) until it stops recording.
-    Recording,
+    /// Every key press goes to the page (`recorder::RECORD_EVENT`) until it stops recording
+    /// `session`.
+    Recording {
+        session: u64,
+    },
     /// Accessibility isn't allowed: the page records in its own window instead.
     NotAllowed,
     Unsupported,
@@ -307,7 +316,7 @@ pub enum RecordingStart {
 #[tauri::command]
 pub async fn start_shortcut_recording(app: AppHandle) -> Result<RecordingStart, CommandError> {
     tauri::async_runtime::spawn_blocking(move || match recorder::start(app) {
-        Ok(()) => RecordingStart::Recording,
+        Ok(session) => RecordingStart::Recording { session },
         Err(recorder::StartError::NotAllowed) => RecordingStart::NotAllowed,
         Err(recorder::StartError::Unsupported) => RecordingStart::Unsupported,
     })
@@ -315,10 +324,11 @@ pub async fn start_shortcut_recording(app: AppHandle) -> Result<RecordingStart, 
     .map_err(blocking_failed)
 }
 
-/// Ends a shortcut recording; the keyboard and the mouse settings work as usual again.
+/// Ends shortcut recording `session` (a later one is left alone); the keyboard, the system
+/// shortcuts and the mouse settings work as usual again.
 #[tauri::command]
-pub fn stop_shortcut_recording() {
-    recorder::stop();
+pub fn stop_shortcut_recording(session: u64) {
+    recorder::stop(session);
 }
 
 /// The Mouse page starts (`true`) and stops (`false`) listening for which button is pressed.

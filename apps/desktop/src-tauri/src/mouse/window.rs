@@ -92,7 +92,9 @@ mod macos {
     use std::time::Duration;
 
     use objc2_app_kit::{NSScreen, NSWorkspace};
-    use objc2_core_foundation::{CFBoolean, CFRetained, CFString, CFType, CGPoint, CGSize};
+    use objc2_core_foundation::{
+        CFBoolean, CFGetTypeID, CFRetained, CFString, CFType, CGPoint, CGSize,
+    };
     use objc2_foundation::MainThreadMarker;
     use tauri::AppHandle;
 
@@ -111,6 +113,8 @@ mod macos {
     #[link(name = "ApplicationServices", kind = "framework")]
     extern "C" {
         fn AXUIElementCreateApplication(pid: i32) -> Option<NonNull<CFType>>;
+        fn AXUIElementCreateSystemWide() -> Option<NonNull<CFType>>;
+        fn AXUIElementGetTypeID() -> usize;
         fn AXUIElementCopyAttributeValue(
             element: &CFType,
             attribute: &CFString,
@@ -155,6 +159,7 @@ mod macos {
         let spawned = std::thread::Builder::new()
             .name("kleari-mouse-window".to_owned())
             .spawn(move || {
+                limit_all();
                 for job in jobs {
                     perform(job);
                 }
@@ -190,6 +195,23 @@ mod macos {
         value.map(|value| unsafe { CFRetained::from_raw(value) })
     }
 
+    /// Limits each call to `element` to `AX_TIMEOUT`. macOS applies a timeout only to the
+    /// element it is set on (the system-wide element's sets the default for all), so it is set
+    /// on each element Kleari talks to.
+    fn limit(element: &CFType) {
+        // SAFETY: `element` is a live AXUIElement. A failure leaves macOS's default (6 s), on
+        // this worker thread only.
+        unsafe { AXUIElementSetMessagingTimeout(element, AX_TIMEOUT) };
+    }
+
+    /// Sets the default for every element, once per worker.
+    fn limit_all() {
+        // SAFETY: takes no arguments; the result follows the Create rule.
+        if let Some(system) = owned(unsafe { AXUIElementCreateSystemWide() }) {
+            limit(&system);
+        }
+    }
+
     fn attribute(element: &CFType, name: &str) -> Option<CFRetained<CFType>> {
         let mut value: *const CFType = std::ptr::null();
         // SAFETY: `element` is a live AXUIElement; on success `value` is an owned object.
@@ -199,7 +221,14 @@ mod macos {
         if error != AX_OK {
             return None;
         }
-        owned(NonNull::new(value.cast_mut()))
+        let value = owned(NonNull::new(value.cast_mut()))?;
+        // An element read here (a window, a button) gets its own limit too; other values (a
+        // point, a flag) aren't elements and are left alone.
+        // SAFETY: takes no arguments.
+        if CFGetTypeID(Some(&value)) == unsafe { AXUIElementGetTypeID() } {
+            limit(&value);
+        }
+        Some(value)
     }
 
     fn set(element: &CFType, name: &str, value: &CFType) -> bool {
@@ -211,9 +240,7 @@ mod macos {
     fn focused_window(pid: i32) -> Option<CFRetained<CFType>> {
         // SAFETY: any pid is accepted; a gone process just answers nothing.
         let app = owned(unsafe { AXUIElementCreateApplication(pid) })?;
-        // SAFETY: `app` is a live AXUIElement. The timeout is applied to it and the elements
-        // read through it.
-        unsafe { AXUIElementSetMessagingTimeout(&app, AX_TIMEOUT) };
+        limit(&app);
         attribute(&app, "AXFocusedWindow")
     }
 

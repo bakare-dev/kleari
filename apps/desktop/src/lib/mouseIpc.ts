@@ -32,7 +32,8 @@ export function startShortcutRecording(): Promise<RecordingStart> {
   return call("start_shortcut_recording", {}, parseRecordingStart);
 }
 
-/** Ends a shortcut recording; the keyboard and the mouse settings work as usual again. */
-export async function stopShortcutRecording(): Promise<void> {
-  await call("stop_shortcut_recording", {}, () => undefined);
+/** Ends recording `session` (never a later one); the keyboard, macOS's system shortcuts and
+ * the mouse settings work as usual again. */
+export async function stopShortcutRecording(session: number): Promise<void> {
+  await call("stop_shortcut_recording", { session }, () => undefined);
 }

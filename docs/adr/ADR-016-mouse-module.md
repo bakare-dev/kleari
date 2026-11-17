@@ -79,11 +79,20 @@
     menu opens on release instead of press, and ⌘-right-click stays one). A button 3–8 held first
     and then left or right clicked doesn't complete a press combination. Neither can be set up
     as a button of its own, and neither is flagged as unseen.
-  - **Recording a shortcut** (`mouse/recorder.rs`): while the page records, a keyboard event
-    tap at the HID level, ahead of macOS's own shortcut handling, swallows every key press and
-    release so system shortcuts (⌘⇥, ⌘Space) are captured instead of acted on, and the mouse tap
-    passes everything (pairing held presses). It ends on Use or Cancel, Escape, the window
-    losing focus, or after 30 s. Without Accessibility the page records inside its window only.
+  - **Recording a shortcut** (`mouse/recorder.rs`): while the page records, macOS's own
+    system shortcuts (app switcher, ⌘`, Spotlight, Mission Control, App windows, Show desktop,
+    Spaces, screenshots, input source) are turned off with the private
+    `CGSSetSymbolicHotKeyEnabled` (as app switchers such as AltTab do; no permission needed,
+    but a future macOS could change it), so their keys reach a session-level keyboard event
+    tap, which swallows every key press and release. Only those that were on are turned off;
+    their numbers are saved first and they are turned back on by a drop guard when recording
+    ends, or at the next launch if Kleari quit mid-recording. (A HID-level tap was tried
+    first; Apple documents that location as root-only.) Each recording has a number: the
+    page's stop names it, so a late stop never ends a newer recording; recordings run one at a
+    time; a tap installed after `start` gave up waiting never captures anything. The mouse tap
+    passes everything meanwhile (pairing held presses). It ends on Use or Cancel, Escape, the
+    window losing focus, or after 30 s. Without Accessibility the page records inside its
+    window only.
   - **Connected mice** (`mouse/devices.rs`): IOKit's registry of pointing devices, read when
     the page reads the settings (never polled, no device opened); built-in devices (SPI/FIFO)
     and trackpads are left out.

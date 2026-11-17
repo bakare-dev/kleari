@@ -260,12 +260,19 @@ export function parseMouseStatus(payload: unknown): MouseStatus {
   };
 }
 
-/** How starting a shortcut recording went (src-tauri/src/mouse/mod.rs `RecordingStart`). */
-const recordingStarts = ["recording", "notAllowed", "unsupported"] as const;
-export type RecordingStart = (typeof recordingStarts)[number];
+/** How starting a shortcut recording went (src-tauri/src/mouse/mod.rs `RecordingStart`):
+ * recording `session` (pass it to stop), or why not. */
+export type RecordingStart = { kind: "recording"; session: number } | { kind: "notAllowed" } | { kind: "unsupported" };
 
 export function parseRecordingStart(payload: unknown): RecordingStart {
-  return oneOf(recordingStarts, payload, "$");
+  const fields = record(payload, "$");
+  if (fields.kind === "recording") {
+    return { kind: "recording", session: nonNegativeInteger(fields.session, "session") };
+  }
+  if (fields.kind === "notAllowed" || fields.kind === "unsupported") {
+    return { kind: fields.kind };
+  }
+  throw new ContractError("kind");
 }
 
 /** A key press while recording, or the recording ending by itself (src-tauri/src/mouse/recorder.rs). */
