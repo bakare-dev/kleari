@@ -123,3 +123,17 @@
     padding: 4px 16px 22px;
   }
 }
+
+/* App caches: the scan prompt and the clear buttons. */
+.mt-caches-empty,
+.mt-caches-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.mt-caches-empty {
+  justify-content: space-between;
+}

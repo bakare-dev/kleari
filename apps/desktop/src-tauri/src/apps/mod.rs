@@ -372,6 +372,36 @@ pub fn leftovers_for_removed(
         .collect()
 }
 
+/// The caches of the installed app `bundle`: its folders directly in `~/Library/Caches`
+/// (matched by bundle ID or name, as leftovers are), read again now, as Cleanup's app caches,
+/// so Cleanup's rules for caches apply (never Apple's, never while the app is open). Only
+/// caches: its settings and data are never included.
+pub fn caches_of(
+    bundle: &Bundle,
+    home: &Path,
+    now_ms: u64,
+    cancel: &AtomicBool,
+) -> Vec<ReviewItem> {
+    let library = read_library(home, &["Library/Caches"]);
+    let mut links = Links::default();
+    leftovers_of(bundle, &library)
+        .into_iter()
+        .filter(|(_, stat, _)| stat.is_dir())
+        .map(|(path, stat, _)| {
+            let measured = measure(&path, &stat, &mut links, cancel);
+            ReviewItem {
+                id: new_id(now_ms),
+                name: display_name(&path),
+                kind: Kind::AppCache,
+                path,
+                stat,
+                measured,
+                owner_removed: false,
+            }
+        })
+        .collect()
+}
+
 fn display_name(path: &Path) -> String {
     path.file_name()
         .map(|name| name.to_string_lossy().into_owned())

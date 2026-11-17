@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AppsScan, RemoveOutcome } from "../../contracts/apps";
+import type { AppEntry, AppsScan, RemoveOutcome } from "../../contracts/apps";
 import type { CleanupPreview } from "../../contracts/cleanup";
-import { cancelAppsScan, prepareAppItemsRemoval, removeApp, startAppsScan } from "../../lib/appsIpc";
+import { cancelAppsScan, prepareAppCachesRemoval, prepareAppItemsRemoval, removeApp, startAppsScan } from "../../lib/appsIpc";
 import { StorageError, type StorageErrorKind } from "../../lib/storageIpc";
 import { formatGb, plural } from "../../v2/ui/format";
 import { storageErrorText } from "../storage/format";
@@ -10,10 +10,22 @@ export interface AppsLoaders {
   start: () => Promise<AppsScan>;
   cancel: () => Promise<void>;
   prepare: (ids: readonly string[]) => Promise<CleanupPreview>;
+  prepareCaches: (appIds: readonly string[]) => Promise<CleanupPreview>;
   remove: (id: string) => Promise<RemoveOutcome>;
 }
 
-const defaultLoaders: AppsLoaders = { start: startAppsScan, cancel: cancelAppsScan, prepare: prepareAppItemsRemoval, remove: removeApp };
+const defaultLoaders: AppsLoaders = {
+  start: startAppsScan,
+  cancel: cancelAppsScan,
+  prepare: prepareAppItemsRemoval,
+  prepareCaches: prepareAppCachesRemoval,
+  remove: removeApp,
+};
+
+/** What an app keeps in `~/Library/Caches`, from the scan: what Clear caches would free. */
+export function cacheBytes(app: AppEntry): number {
+  return app.leftovers.filter((left) => left.location === "~/Library/Caches").reduce((total, left) => total + left.bytes, 0);
+}
 
 export interface AppsState {
   running: boolean;
@@ -112,6 +124,9 @@ export function useApps(onReviewChanged: () => void, loaders: AppsLoaders = defa
   /** Prepares leftovers or installers for removal on this page (the confirm sheet shows it). */
   const prepare = useCallback((ids: readonly string[]) => loaders.prepare(ids), [loaders]);
 
+  /** Prepares installed apps' caches for removal (the confirm sheet shows them). */
+  const prepareCaches = useCallback((appIds: readonly string[]) => loaders.prepareCaches(appIds), [loaders]);
+
   /** After items moved: scans again, and lets Cleanup's review know. */
   const refresh = useCallback(() => {
     onReviewChanged();
@@ -136,7 +151,7 @@ export function useApps(onReviewChanged: () => void, loaders: AppsLoaders = defa
     [loaders, refresh],
   );
 
-  return { state, scan, cancel, prepare, refresh, remove };
+  return { state, scan, cancel, prepare, prepareCaches, refresh, remove };
 }
 
 export type Apps = ReturnType<typeof useApps>;

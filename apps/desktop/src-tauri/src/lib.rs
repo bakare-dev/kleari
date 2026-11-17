@@ -119,6 +119,7 @@ pub fn run() {
             apps_commands::start_apps_scan,
             apps_commands::cancel_apps_scan,
             apps_commands::prepare_app_items_removal,
+            apps_commands::prepare_app_caches_removal,
             apps_commands::remove_app,
             explorer_commands::list_storage_folder,
             explorer_commands::cancel_storage_listing,

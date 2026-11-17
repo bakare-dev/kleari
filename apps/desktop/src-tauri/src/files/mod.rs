@@ -694,6 +694,62 @@ const AI_PLACES: &[AiPlace] = &[
         relative: "Library/Caches/com.microsoft.copilot-mac",
         per_entry: false,
     },
+    // Claude Code keeps its settings, CLAUDE.md files, memory, agents, skills and plugins in
+    // ~/.claude too: only these parts, which it recreates or which are old history, are listed.
+    AiPlace {
+        label: "Claude Code",
+        detail: "Saved chat sessions, one folder per project. Removing one forgets that project’s old chats; your settings and memory are elsewhere",
+        relative: ".claude/projects",
+        per_entry: true,
+    },
+    AiPlace {
+        label: "Claude Code",
+        detail: "Shell snapshots, recreated as needed",
+        relative: ".claude/shell-snapshots",
+        per_entry: false,
+    },
+    AiPlace {
+        label: "Claude Code",
+        detail: "Old task lists",
+        relative: ".claude/todos",
+        per_entry: false,
+    },
+    AiPlace {
+        label: "Claude Code",
+        detail: "Feature-flag cache, recreated as needed",
+        relative: ".claude/statsig",
+        per_entry: false,
+    },
+    AiPlace {
+        label: "Claude Code",
+        detail: "Debug logs",
+        relative: ".claude/debug",
+        per_entry: false,
+    },
+    AiPlace {
+        label: "Codex",
+        detail: "Saved sessions",
+        relative: ".codex/sessions",
+        per_entry: true,
+    },
+    AiPlace {
+        label: "Codex",
+        detail: "Logs",
+        relative: ".codex/log",
+        per_entry: false,
+    },
+    AiPlace {
+        label: "Gemini CLI",
+        detail: "Temporary files",
+        relative: ".gemini/tmp",
+        per_entry: false,
+    },
+    AiPlace {
+        label: "AI tools in /tmp",
+        detail: "Temporary folders AI coding tools made in /tmp. One a tool is using right now comes back when it next needs it",
+        relative: policy::SHARED_TMP,
+        per_entry: true,
+    },
 ];
 
 /// AI models, caches and logs in known places. A model not used for 60 days is noted.
@@ -703,7 +759,14 @@ fn ai(ctx: &mut Ctx<'_>, excluded: &[PathBuf], cancel: &AtomicBool, result: &mut
         if cancel.load(Ordering::Relaxed) {
             return;
         }
-        let path = ctx.home.join(place.relative);
+        // A place is in the home folder, except the shared temporary folder (absolute).
+        let path = if place.relative.starts_with('/') {
+            PathBuf::from(place.relative)
+        } else {
+            ctx.home.join(place.relative)
+        };
+        // In the shared temporary folder only what AI tools named as theirs is listed.
+        let in_tmp = path == Path::new(policy::SHARED_TMP);
         if crate::preferences::touches_excluded(&path, excluded) {
             continue;
         }
@@ -732,6 +795,13 @@ fn ai(ctx: &mut Ctx<'_>, excluded: &[PathBuf], cancel: &AtomicBool, result: &mut
             };
             while let Some(Ok(entry)) = dir.next_name() {
                 if entry.to_bytes().starts_with(b".") {
+                    continue;
+                }
+                if in_tmp
+                    && !policy::AI_TMP_PREFIXES
+                        .iter()
+                        .any(|prefix| entry.to_bytes().starts_with(prefix.as_bytes()))
+                {
                     continue;
                 }
                 let Ok(child_stat) = dir.stat_child(&entry) else {

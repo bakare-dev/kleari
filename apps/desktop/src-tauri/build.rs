@@ -66,6 +66,7 @@ fn main() {
             "start_apps_scan",
             "cancel_apps_scan",
             "prepare_app_items_removal",
+            "prepare_app_caches_removal",
             "remove_app",
             "list_storage_folder",
             "cancel_storage_listing",

@@ -66,6 +66,7 @@
     "allow-start-apps-scan",
     "allow-cancel-apps-scan",
     "allow-prepare-app-items-removal",
+    "allow-prepare-app-caches-removal",
     "allow-remove-app",
     "allow-list-storage-folder",
     "allow-cancel-storage-listing",

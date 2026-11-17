@@ -540,6 +540,30 @@ fn items_are_in_bounds_only_at_the_fixed_places_their_kind_allows() {
 }
 
 #[test]
+fn only_what_ai_tools_made_directly_in_tmp_can_be_chosen_there() {
+    let home = Path::new("/Users/someone");
+    let chosen = |path: &str| {
+        policy::within_bounds(&Kind::UserChosen, Path::new(path), home, None, |_| {
+            Vec::new()
+        })
+    };
+    assert!(chosen("/private/tmp/claude-501"));
+    assert!(chosen("/private/tmp/codex-cache"));
+    // Anything else in /tmp, anything deeper inside, /tmp itself, or through the /tmp link.
+    assert!(!chosen("/private/tmp/com.apple.launchd.abc"));
+    assert!(!chosen("/private/tmp/someone-elses"));
+    assert!(!chosen("/private/tmp/claude-501/scratch/file"));
+    assert!(!chosen("/private/tmp"));
+    assert!(!chosen("/tmp/claude-501"));
+    // Claude Code's own folder in the home folder is chosen like any of your files; its
+    // Application Support stays never-touched.
+    assert!(chosen("/Users/someone/.claude/shell-snapshots"));
+    assert!(!chosen(
+        "/Users/someone/Library/Application Support/Cursor/CachedData"
+    ));
+}
+
+#[test]
 fn a_stored_original_is_restorable_only_at_a_place_its_category_comes_from() {
     let home = Path::new("/Users/someone");
     let temp = Some(Path::new("/private/var/folders/x/T"));
@@ -1049,6 +1073,73 @@ fn a_moved_item_names_its_quarantine_item_so_it_can_be_deleted_straight_away() {
     assert_eq!(summary.deleted, [held[0].id.clone()]);
     assert!(!cache.exists());
     assert!(history.db.held_items().expect("held").is_empty());
+}
+
+#[test]
+fn clearing_an_apps_caches_takes_only_its_caches_and_never_while_it_is_open() {
+    let home = Home::new("app-caches");
+    let cache = home.write("Library/Caches/com.example.Notes/cache.db", 3_000_000);
+    let data = home.write(
+        "Library/Application Support/com.example.Notes/notes.db",
+        2_000_000,
+    );
+    let prefs = home.write("Library/Preferences/com.example.Notes.plist", 1_000);
+    let history = home.history();
+    let home_path = home.home();
+    let bundle = crate::apps::Bundle {
+        id: "n1".to_owned(),
+        path: home_path.join("Applications/Notes.app"),
+        stat: stat_path(&data).expect("stat"),
+        name: "Notes".to_owned(),
+        bundle_id: Some("com.example.Notes".to_owned()),
+        apple: false,
+    };
+    let cancel = AtomicBool::new(false);
+    let items = crate::apps::caches_of(&bundle, &home_path, now_ms(), &cancel);
+    // Only the cache folder: the app's data and settings are never offered.
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0].path, cache.parent().expect("folder"));
+    let intake = super::intake::Intake {
+        home: &home_path,
+        running: &[],
+        open: Some(&NOTHING_OPEN),
+        store_dev: history.store.volume(),
+        now_ms: now_ms(),
+        excluded: &[],
+    };
+    let candidates = intake.app_items(items);
+    assert_eq!(candidates[0].category(), policy::Category::Cache);
+    assert_eq!(candidates[0].assessment.eligibility, Eligibility::Eligible);
+    let state = CleanupState::default();
+    let ids = state.add_direct(candidates);
+
+    // While the app is open, its cache isn't planned.
+    let running = [RunningBundle {
+        id: "com.example.Notes".to_owned(),
+        name: "Notes".to_owned(),
+    }];
+    let open = checks(&home_path, &history, &cancel, &running);
+    let preview = execute::create_preview(&state, &ids, &open, now_ms());
+    assert_eq!(preview.items[0].state, PlannedState::NotEligible);
+
+    let checks = checks(&home_path, &history, &cancel, &[]);
+    let preview = execute::create_preview(&state, &ids, &checks, now_ms());
+    assert_eq!(preview.items[0].state, PlannedState::Planned);
+    let outcome = execute::delete_now(
+        &state,
+        &preview.id,
+        &checks,
+        &history,
+        "page",
+        now_ms,
+        |_| {},
+    );
+    assert!(matches!(
+        outcome,
+        execute::DeleteNowOutcome::Finished { .. }
+    ));
+    assert!(!cache.exists());
+    assert!(data.exists() && prefs.exists());
 }
 
 #[test]

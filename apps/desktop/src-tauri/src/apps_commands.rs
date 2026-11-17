@@ -88,6 +88,40 @@ pub async fn prepare_app_items_removal(
     .map_err(blocking_failed)?
 }
 
+/// Prepares the caches of the installed apps `ids` (from the last scan) for removal on the
+/// page that shows them: only their folders in `~/Library/Caches`, as Cleanup's app caches.
+#[tauri::command]
+pub async fn prepare_app_caches_removal(
+    app: AppHandle,
+    ids: Vec<String>,
+) -> Result<PreviewView, CommandError> {
+    check_ids(&ids)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let home = home()?;
+        let running = running_apps::running_bundles(&app).unwrap_or_default();
+        let history = app.state::<History>();
+        let excluded = history.exclusions()?;
+        let state = app.state::<AppsState>();
+        let cancel = AtomicBool::new(false);
+        let items: Vec<_> = ids
+            .iter()
+            .filter_map(|id| state.bundle(id))
+            .flat_map(|bundle| apps::caches_of(&bundle, &home, unix_time_ms(), &cancel))
+            .collect();
+        let intake = Intake {
+            home: &home,
+            running: &running,
+            open: Some(&OpenPaths::NOTHING),
+            store_dev: history.store.volume(),
+            now_ms: unix_time_ms(),
+            excluded: &excluded,
+        };
+        crate::cleanup_commands::prepare_removal(&app, intake.app_items(items))
+    })
+    .await
+    .map_err(blocking_failed)?
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase", tag = "status")]
 pub enum RemoveOutcome {

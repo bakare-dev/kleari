@@ -16,6 +16,12 @@ export function prepareAppItemsRemoval(ids: readonly string[]): Promise<CleanupP
   return call("prepare_app_items_removal", { ids }, parsePreview);
 }
 
+/** Prepares the installed apps' caches (only their folders in ~/Library/Caches) for removal
+ * here: their preview. */
+export function prepareAppCachesRemoval(ids: readonly string[]): Promise<CleanupPreview> {
+  return call("prepare_app_caches_removal", { ids }, parsePreview);
+}
+
 /** Moves the app to the Trash through macOS and prepares its leftovers for removal. */
 export function removeApp(id: string): Promise<RemoveOutcome> {
   return call("remove_app", { id }, parseRemoveOutcome);

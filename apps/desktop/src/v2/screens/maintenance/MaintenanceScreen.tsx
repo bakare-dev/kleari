@@ -4,7 +4,8 @@ import type { StartupItem } from "../../../contracts/systemPage";
 import type { Maintenance } from "../../../features/maintenance/useMaintenance";
 import type { IconName } from "../../ui/icons";
 import { Button, IconTile, Modal, PageHeader, Pill, Segmented, Spinner, Toast, useToast, type Tone } from "../../ui/components";
-import { formatGb, plural } from "../../ui/format";
+import { formatGb, plural, sum } from "../../ui/format";
+import { cacheBytes, type Apps } from "../../../features/apps/useApps";
 import { headingIdFor } from "../../shell/routes";
 import "./maintenance.css";
 import { AccessSteps } from "../../ui/AccessSteps";
@@ -110,9 +111,15 @@ const outcomeText: Record<TaskOutcome, string> = {
   failed: "macOS didn’t finish it. Nothing more was changed.",
 };
 
-export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenance: Maintenance; onOpenLoginItems: () => void }) {
+export function MaintenanceScreen({ maintenance, apps, onOpenLoginItems }: { maintenance: Maintenance; apps: Apps; onOpenLoginItems: () => void }) {
   const { info, startup, running } = maintenance;
-  const [tab, setTab] = useState<"tasks" | "login" | "notOffered">("tasks");
+  const [tab, setTab] = useState<"tasks" | "caches" | "login" | "notOffered">("tasks");
+  const [cachePick, setCachePick] = useState<ReadonlySet<string>>(new Set());
+  // Installed apps with caches, from the last Apps scan, largest first.
+  const cached = (apps.state.result?.apps ?? [])
+    .filter((app) => !app.apple && cacheBytes(app) > 0)
+    .sort((a, b) => cacheBytes(b) - cacheBytes(a));
+  const cachePicked = cached.filter((app) => cachePick.has(app.id));
   const [confirm, setConfirm] = useState<Task | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const toast = useToast(6000);
@@ -152,10 +159,75 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
           onChange={setTab}
           options={[
             { value: "tasks", label: "Tasks" },
+            { value: "caches", label: "App caches" },
             { value: "login", label: "Login items" },
             { value: "notOffered", label: "Not offered" },
           ]}
         />
+        {tab === "caches" && (
+          <section aria-label="App caches" className="v2-card v2-card-pad mt-login">
+            <span className="v2-card-note">
+              What apps keep in ~/Library/Caches. Apps rebuild their caches by themselves, so clearing them frees space without touching your settings or data. An app that’s open keeps its cache.
+            </span>
+            {!apps.state.result ? (
+              <span className="mt-caches-empty">
+                <span className="v2-card-note">{apps.state.running ? "Scanning your apps…" : "Scan your apps to see their caches."}</span>
+                {!apps.state.running && <Button variant="soft" size="sm" onClick={apps.scan}>Scan apps</Button>}
+              </span>
+            ) : cached.length === 0 ? (
+              <span className="v2-card-note">No app caches were found.</span>
+            ) : (
+              <>
+                <ul className="mt-rows" tabIndex={0} aria-label="Apps with caches">
+                  {cached.map((app) => (
+                    <li key={app.id}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Choose ${app.name}`}
+                        checked={cachePick.has(app.id)}
+                        onChange={() => {
+                          const next = new Set(cachePick);
+                          if (next.has(app.id)) {
+                            next.delete(app.id);
+                          } else {
+                            next.add(app.id);
+                          }
+                          setCachePick(next);
+                        }}
+                      />
+                      <IconTile tone="blue" icon="apps" size={28} />
+                      <span className="v2-row-text">
+                        <span className="v2-row-title v2-ellipsis">{app.name}</span>
+                        <span className="v2-row-sub v2-ellipsis">{app.running ? "Open now: its cache stays" : (app.bundleId ?? app.location)}</span>
+                      </span>
+                      <span className="mt-row-pill v2-num">{formatGb(cacheBytes(app) / 1e9)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <span className="mt-caches-actions">
+                  <Button variant="secondary" size="sm" onClick={() => setCachePick(new Set(cached.map((app) => app.id)))}>Choose all</Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={cachePicked.length === 0}
+                    onClick={() =>
+                      removal({
+                        what: `the caches of ${plural(cachePicked.length, "app")}`,
+                        prepare: () => apps.prepareCaches(cachePicked.map((app) => app.id)),
+                        onDone: () => {
+                          setCachePick(new Set());
+                          apps.refresh();
+                        },
+                      })
+                    }
+                  >
+                    Clear {cachePicked.length > 0 ? `${formatGb(sum(cachePicked, (app) => cacheBytes(app)) / 1e9)}` : "caches"}…
+                  </Button>
+                </span>
+              </>
+            )}
+          </section>
+        )}
         {tab === "tasks" && (
         <section aria-label="Tasks" className="mt-grid" tabIndex={0}>
           {(Object.keys(taskMeta) as Task[]).map((task) => {

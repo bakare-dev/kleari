@@ -5,6 +5,7 @@ import { Button, FloatingBar, IconTile, Modal, PageHeader, Pill, Segmented, Spin
 import { formatGb, plural, sum } from "../../ui/format";
 import { headingIdFor } from "../../shell/routes";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
+import { cacheBytes } from "../../../features/apps/useApps";
 import "../developer/developer.css";
 import "./apps.css";
 import { AccessSteps } from "../../ui/AccessSteps";
@@ -20,6 +21,8 @@ interface AppsScreenProps {
   onCancel: () => void;
   /** Prepares leftovers or installers for removal here (the confirm sheet shows it). */
   onPrepare: (ids: readonly string[]) => Promise<CleanupPreview>;
+  /** Prepares installed apps' caches for removal here (only their folders in ~/Library/Caches). */
+  onPrepareCaches: (appIds: readonly string[]) => Promise<CleanupPreview>;
   /** After something moved: scans again. */
   onRemoved: () => void;
   /** Moves the app to the Trash. Resolves to a message, and what it left behind, if anything. */
@@ -237,6 +240,16 @@ export function AppsScreen(props: AppsScreenProps) {
                   )}
                   {focused.bundleId && <span className="v2-mono v2-ellipsis dev-path">{focused.bundleId}</span>}
                   <div className="apps-actions">
+                    {cacheBytes(focused) > 0 && (
+                      <Button
+                        variant="soft"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => removal({ what: `${focused.name}’s caches`, prepare: () => props.onPrepareCaches([focused.id]), onDone: props.onRemoved })}
+                      >
+                        Clear caches ({formatGb(gb(cacheBytes(focused)))})
+                      </Button>
+                    )}
                     <Button variant="danger" size="sm" disabled={focused.apple || focused.running || busy} onClick={() => setConfirm(focused)}>
                       Remove {focused.name}…
                     </Button>

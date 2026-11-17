@@ -331,6 +331,12 @@ const HOME_FOLDERS: &[&str] = &[
 /// The only parts of the Library where you may choose something yourself.
 const CHOSEN_IN_LIBRARY: &[&str] = &["Library/Caches", "Library/Logs", "Library/Developer"];
 
+/// The shared temporary folder (`/tmp` resolves to it).
+pub const SHARED_TMP: &str = "/private/tmp";
+
+/// What AI coding tools name what they make directly in the shared temporary folder.
+pub const AI_TMP_PREFIXES: &[&str] = &["claude-", "codex-", "gemini-", "cursor-", "windsurf-"];
+
 /// Packages whose insides belong to their app: the package may be chosen, never part of it.
 const PACKAGE_SUFFIXES: &[&str] = &[
     ".app",
@@ -918,6 +924,16 @@ pub fn within_bounds(
     if let Kind::Temp = kind {
         return temp
             .is_some_and(|temp| plain(temp) && parent == temp && !name.starts_with("com.apple."));
+    }
+    // The one way into the shared temporary folder: what an AI tool made directly in it, by
+    // the tool's own name prefix (Files › AI clutter). Others' items there can't be removed by
+    // your account anyway (the folder's sticky bit).
+    if let Kind::UserChosen = kind {
+        if parent == Path::new(SHARED_TMP) {
+            return AI_TMP_PREFIXES
+                .iter()
+                .any(|prefix| name.starts_with(prefix));
+        }
     }
     let Ok(relative) = path.strip_prefix(home) else {
         return false;

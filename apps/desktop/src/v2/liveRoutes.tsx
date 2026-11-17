@@ -90,6 +90,7 @@ export function AppsRoute({ apps }: { apps: Apps }) {
       onScan={apps.scan}
       onCancel={apps.cancel}
       onPrepare={apps.prepare}
+      onPrepareCaches={apps.prepareCaches}
       onRemoved={apps.refresh}
       onRemove={(app) => apps.remove(app.id, app.name)}
       onOpenAppManagement={() => {

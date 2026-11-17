@@ -155,7 +155,7 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
     apps: () => <AppsRoute apps={apps} />,
     files: () => <FilesScreen files={files} />,
     browser: () => <BrowserScreen monitor={processes} />,
-    maintenance: () => <MaintenanceScreen maintenance={maintenance} onOpenLoginItems={() => void openSystemSettings("loginItems")} />,
+    maintenance: () => <MaintenanceScreen maintenance={maintenance} apps={apps} onOpenLoginItems={() => void openSystemSettings("loginItems")} />,
     processes: () => <ProcessesRoute monitor={processes} />,
     mouse: () => <MouseRoute settings={settings} mouse={mouse} combos={mouseCombos} />,
     activity: () => <ActivityRoute activity={activity} />,
