@@ -10,8 +10,8 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager, State};
 
 use crate::apps::{self, AppsScan, AppsState, ScanBusy, ScanStatus};
+use crate::cleanup::execute::PreviewView;
 use crate::cleanup::intake::Intake;
-use crate::cleanup::CleanupState;
 use crate::cleanup_commands::{blocking_failed, check_ids, home};
 use crate::commands::{CommandError, CommandErrorCode};
 use crate::history::History;
@@ -62,10 +62,10 @@ pub fn cancel_apps_scan(state: State<'_, AppsState>) {
 
 /// Sends leftovers and installers from the last scan to Cleanup's review. Returns the IDs sent.
 #[tauri::command]
-pub async fn send_app_items_to_review(
+pub async fn prepare_app_items_removal(
     app: AppHandle,
     ids: Vec<String>,
-) -> Result<Vec<String>, CommandError> {
+) -> Result<PreviewView, CommandError> {
     check_ids(&ids)?;
     tauri::async_runtime::spawn_blocking(move || {
         let home = home()?;
@@ -73,7 +73,6 @@ pub async fn send_app_items_to_review(
         let history = app.state::<History>();
         let excluded = history.exclusions()?;
         let items = app.state::<AppsState>().review_items(&ids);
-        let sent: Vec<String> = items.iter().map(|item| item.id.clone()).collect();
         let intake = Intake {
             home: &home,
             running: &running,
@@ -83,34 +82,23 @@ pub async fn send_app_items_to_review(
             now_ms: unix_time_ms(),
             excluded: &excluded,
         };
-        let candidates = intake.app_items(items);
-        note_sent(&history, &candidates);
-        app.state::<CleanupState>().add_sent(candidates);
-        Ok(sent)
+        crate::cleanup_commands::prepare_removal(&app, intake.app_items(items))
     })
     .await
     .map_err(blocking_failed)?
 }
 
-fn note_sent(history: &History, candidates: &[crate::cleanup::Candidate]) {
-    if candidates.is_empty() {
-        return;
-    }
-    let bytes = candidates
-        .iter()
-        .fold(0_u64, |total, item| total.saturating_add(item.bytes));
-    let count = u64::try_from(candidates.len()).unwrap_or(u64::MAX);
-    let mut event = Event::new(EventKind::Review, unix_time_ms(), "completed", count, bytes);
-    event.subject = Some("apps".to_owned());
-    history.note(&event);
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase", tag = "status")]
 pub enum RemoveOutcome {
-    /// In the Trash; its leftovers (if any) are in Cleanup's review.
+    /// In the Trash. What it left in your Library is prepared for removal on the Apps page:
+    /// its preview, for "Also remove what it left?" (empty if it left nothing).
     #[serde(rename_all = "camelCase")]
-    Removed { leftovers: u64, leftover_bytes: u64 },
+    Removed {
+        leftovers: u64,
+        leftover_bytes: u64,
+        preview: PreviewView,
+    },
     /// It's open: quit it first.
     Running,
     /// Part of macOS, or not where apps are installed: never removed.
@@ -121,7 +109,7 @@ pub enum RemoveOutcome {
     Failed,
 }
 
-/// Moves an app from the last scan to the Trash, then sends its leftovers to the review.
+/// Moves an app from the last scan to the Trash, then prepares its leftovers for removal.
 #[tauri::command]
 pub async fn remove_app(app: AppHandle, id: String) -> Result<RemoveOutcome, CommandError> {
     check_ids(std::slice::from_ref(&id))?;
@@ -175,11 +163,11 @@ pub async fn remove_app(app: AppHandle, id: String) -> Result<RemoveOutcome, Com
             .iter()
             .fold(0_u64, |total, item| total.saturating_add(item.bytes));
         let leftovers = u64::try_from(candidates.len()).unwrap_or(u64::MAX);
-        note_sent(&history, &candidates);
-        app.state::<CleanupState>().add_sent(candidates);
+        let preview = crate::cleanup_commands::prepare_removal(&app, candidates)?;
         Ok(RemoveOutcome::Removed {
             leftovers,
             leftover_bytes,
+            preview,
         })
     })
     .await

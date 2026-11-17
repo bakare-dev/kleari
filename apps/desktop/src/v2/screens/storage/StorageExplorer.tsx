@@ -3,9 +3,9 @@ import type { ExplorerEntry } from "../../../contracts/storageExplorer";
 import type { FileCategory } from "../../../contracts/storage";
 import type { StorageExplorer as Explorer } from "../../../features/storage/useStorageExplorer";
 import type { IconName } from "../../ui/icons";
-import { Button, IconTile, Pill, Spinner, useToast, Toast, type Tone } from "../../ui/components";
+import { Button, IconTile, Pill, Spinner, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
-import { hrefFor } from "../../shell/routes";
+import { useRemoval } from "../../../features/removal/RemovalProvider";
 
 const fileLook: Record<FileCategory, { icon: IconName; tone: Tone }> = {
   video: { icon: "film", tone: "pink" },
@@ -39,17 +39,16 @@ function size(entry: { bytes: number; lowerBound: boolean }): string {
 
 /**
  * Browse the home folder one folder at a time, down to single files: a map of what takes the
- * most space, every entry measured, and a selection to send to Cleanup's review.
+ * most space, every entry measured, and a selection to remove.
  */
 export function StorageExplorer({ explorer }: { explorer: Explorer }) {
-  const { state, sent } = explorer;
+  const { state } = explorer;
   const { listing } = state;
+  const removal = useRemoval();
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
-  const [sending, setSending] = useState(false);
-  const toast = useToast(5000);
 
   const entries = listing?.entries ?? [];
-  const can = (entry: ExplorerEntry) => entry.selectable && !sent.has(entry.id);
+  const can = (entry: ExplorerEntry) => entry.selectable;
   const picked = entries.filter((entry) => can(entry) && selection.has(entry.id));
   const total = Math.max(listing?.bytes ?? 0, 1);
   const mapped = entries.filter((entry) => entry.bytes / total >= 0.01).slice(0, 12);
@@ -73,12 +72,15 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
     setSelection(next);
   };
 
-  const send = () => {
-    setSending(true);
-    void explorer.send(picked.map((entry) => entry.id)).then((message) => {
-      setSending(false);
-      setSelection(new Set());
-      toast.show(message);
+  const removePicked = () => {
+    const ids = picked.map((entry) => entry.id);
+    removal({
+      what: plural(ids.length, "item"),
+      prepare: () => explorer.prepare(ids),
+      onDone: () => {
+        setSelection(new Set());
+        explorer.removed();
+      },
     });
   };
 
@@ -86,7 +88,7 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
     <div className="st-browse">
       <div className="st-browse-head">
         <span className="v2-card-note">
-          Open any folder in your home folder, down to single files. What you send to review moves only when you approve it there, into quarantine, where you can restore it.
+          Open any folder in your home folder, down to single files. Choose what to remove and you'll see it all again first, then delete it or keep it in quarantine.
         </span>
         <div className="st-browse-actions">
           {state.loading ? (
@@ -178,7 +180,7 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
                 <span className="st-browse-bar" aria-hidden="true"><span style={{ width: `${Math.min(100, (entry.bytes / total) * 100).toFixed(1)}%` }} /></span>
                 <span className="v2-num st-browse-size">{entry.kind === "excluded" || entry.kind === "link" ? "—" : size(entry)}</span>
                 <span className="st-browse-pill">
-                  {sent.has(entry.id) ? <Pill status="link">In review</Pill> : !entry.selectable && (entry.kind === "folder" || entry.kind === "file") ? <Pill status="muted">Kept as is</Pill> : null}
+                  {!entry.selectable && (entry.kind === "folder" || entry.kind === "file") ? <Pill status="muted">Kept as is</Pill> : null}
                 </span>
               </li>
             );
@@ -202,15 +204,11 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
           <span role="status" className="v2-card-note">
             {picked.length > 0 ? `${picked.length} chosen · ${formatGb(gb(sum(picked, (entry) => entry.bytes)))}` : "“Kept as is” items are places Kleari never moves: top-level folders, most of the Library and the inside of app packages."}
           </span>
-          <Button variant="primary" size="sm" disabled={picked.length === 0 || sending} onClick={send}>
-            {picked.length > 0 ? `Send ${picked.length} to review` : "Send to review"}
+          <Button variant="primary" size="sm" disabled={picked.length === 0} onClick={removePicked}>
+            {picked.length > 0 ? `Remove ${picked.length}…` : "Remove…"}
           </Button>
         </div>
       )}
-
-      <Toast message={toast.message}>
-        <a className="v2-link" href={hrefFor("review")}>Open review</a>
-      </Toast>
     </div>
   );
 }

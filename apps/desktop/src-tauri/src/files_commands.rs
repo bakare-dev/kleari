@@ -5,13 +5,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use tauri::{AppHandle, Manager, State};
 
+use crate::cleanup::execute::PreviewView;
 use crate::cleanup::intake::Intake;
-use crate::cleanup::CleanupState;
 use crate::cleanup_commands::{blocking_failed, check_ids, home};
 use crate::commands::{CommandError, CommandErrorCode};
 use crate::files::{self, FilesScan, FilesState, Options, ScanBusy, Tool};
 use crate::history::History;
-use crate::persistence::{Event, EventKind};
 use crate::system_monitor::open_paths;
 use crate::system_monitor::running_apps;
 
@@ -71,12 +70,13 @@ pub fn cancel_files_scan(state: State<'_, FilesState>) {
     state.cancel();
 }
 
-/// Sends what you chose to Cleanup's review; in a group of copies one is always held back.
+/// Prepares what you chose for removal on the Files page (in a group of copies one is always
+/// held back): its preview.
 #[tauri::command]
-pub async fn send_files_to_review(
+pub async fn prepare_files_removal(
     app: AppHandle,
     ids: Vec<String>,
-) -> Result<Vec<String>, CommandError> {
+) -> Result<PreviewView, CommandError> {
     check_ids(&ids)?;
     tauri::async_runtime::spawn_blocking(move || {
         let home = home()?;
@@ -94,18 +94,7 @@ pub async fn send_files_to_review(
             now_ms: unix_time_ms(),
             excluded: &excluded,
         };
-        let candidates = intake.chosen_items(chosen);
-        if !candidates.is_empty() {
-            let bytes = candidates
-                .iter()
-                .fold(0_u64, |total, item| total.saturating_add(item.bytes));
-            let count = u64::try_from(candidates.len()).unwrap_or(u64::MAX);
-            let mut event =
-                Event::new(EventKind::Review, unix_time_ms(), "completed", count, bytes);
-            event.subject = Some("files".to_owned());
-            history.note(&event);
-        }
-        Ok(app.state::<CleanupState>().add_sent(candidates))
+        crate::cleanup_commands::prepare_removal(&app, intake.chosen_items(chosen))
     })
     .await
     .map_err(blocking_failed)?

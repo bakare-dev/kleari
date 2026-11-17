@@ -2,6 +2,7 @@
 // response is validated before the UI sees it. Paths never arrive here: only opaque IDs,
 // names and `~/…` locations.
 
+import { parsePreview, type CleanupPreview } from "./cleanup";
 import { ContractError, nonNegativeInteger, nullable, oneOf, record } from "./systemMetrics";
 
 export interface LeftoverEntry {
@@ -48,7 +49,7 @@ export interface AppsScan {
 }
 
 export type RemoveOutcome =
-  | { status: "removed"; leftovers: number; leftoverBytes: number }
+  | { status: "removed"; leftovers: number; leftoverBytes: number; preview: CleanupPreview }
   | { status: "running" }
   | { status: "refused" }
   | { status: "changed" }
@@ -145,6 +146,7 @@ export function parseRemoveOutcome(payload: unknown): RemoveOutcome {
       status,
       leftovers: nonNegativeInteger(fields.leftovers, "leftovers"),
       leftoverBytes: nonNegativeInteger(fields.leftoverBytes, "leftoverBytes"),
+      preview: parsePreview(fields.preview),
     };
   }
   return { status };

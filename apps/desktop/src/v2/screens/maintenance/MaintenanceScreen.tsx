@@ -5,10 +5,11 @@ import type { Maintenance } from "../../../features/maintenance/useMaintenance";
 import type { IconName } from "../../ui/icons";
 import { Button, IconTile, Modal, PageHeader, Pill, Segmented, Spinner, Toast, useToast, type Tone } from "../../ui/components";
 import { formatGb, plural } from "../../ui/format";
-import { headingIdFor, hrefFor } from "../../shell/routes";
+import { headingIdFor } from "../../shell/routes";
 import "./maintenance.css";
 import { AccessSteps } from "../../ui/AccessSteps";
 import { openSystemSettings } from "../../../lib/systemPageIpc";
+import { useRemoval } from "../../../features/removal/RemovalProvider";
 
 const taskMeta: Record<Task, { title: string; tone: Tone; icon: IconName; what: string; after: string }> = {
   freeRam: {
@@ -115,6 +116,7 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
   const [confirm, setConfirm] = useState<Task | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const toast = useToast(6000);
+  const removal = useRemoval();
   const { refresh } = maintenance;
 
   useEffect(() => {
@@ -193,7 +195,7 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
             <Button variant="soft" size="sm" onClick={onOpenLoginItems}>Open Login Items settings</Button>
           </div>
           <span className="v2-card-note">
-            Programs that start by themselves. You can stop one of your own here: it goes to Cleanup’s review and, once approved, into quarantine. Items for every user and system items are managed in System Settings.
+            Programs that start by themselves. You can stop one of your own here: you'll see it first, then delete its login item or keep it in quarantine, and it stops starting from your next login. Items for every user and system items are managed in System Settings.
           </span>
           {!startup ? (
             <span className="v2-card-note">{maintenance.loading ? "Reading…" : "Not read yet."}</span>
@@ -202,7 +204,6 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
           ) : (
             <ul className="mt-rows" tabIndex={0} aria-label="Login and background items">
               {startup.items.map((item) => {
-                const sent = maintenance.sentAgents.has(item.label);
                 return (
                   <li key={`${item.scope}:${item.label}`}>
                     <IconTile tone={item.program === "missing" ? "red" : "indigo"} icon="power" size={28} />
@@ -214,17 +215,15 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
                       {item.program === "missing" ? <Pill status="danger">Program gone</Pill> : item.disabledInPlist ? <Pill status="muted">Off</Pill> : null}
                     </span>
                     <span className="mt-row-action">
-                      {item.scope !== "userAgent" ? null : sent ? (
-                        <Pill status="link">In review</Pill>
-                      ) : (
+                      {item.scope !== "userAgent" ? null : (
                         <Button
                           variant="soft"
                           size="sm"
-                          onClick={() => {
-                            void maintenance.sendAgent(item.label).then((message) => toast.show(message));
-                          }}
+                          onClick={() =>
+                            removal({ what: item.name, prepare: () => maintenance.prepareAgent(item.label), onDone: maintenance.removed })
+                          }
                         >
-                          Stop at login
+                          Stop at login…
                         </Button>
                       )}
                     </span>
@@ -280,9 +279,7 @@ export function MaintenanceScreen({ maintenance, onOpenLoginItems }: { maintenan
         )}
       </Modal>
 
-      <Toast message={toast.message}>
-        <a className="v2-link" href={hrefFor("review")}>Open review</a>
-      </Toast>
+      <Toast message={toast.message} />
     </>
   );
 }

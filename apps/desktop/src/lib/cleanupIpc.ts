@@ -3,12 +3,12 @@ import {
   parseAccess,
   parseAddedCleanupFolder,
   parseApproveOutcome,
-  parseBoolean,
   parseCleanupProgress,
   parseCleanupScan,
+  parseDeleteNowOutcome,
+  parseDeleteNowProgress,
   parseDeleteProgress,
   parseDeleteSummary,
-  parseIdList,
   parseMoveProgress,
   parsePreview,
   parseQuarantine,
@@ -20,6 +20,8 @@ import {
   type CleanupPreview,
   type CleanupProgress,
   type CleanupScanResult,
+  type DeleteNowOutcome,
+  type DeleteNowProgress,
   type DeleteProgress,
   type DeleteSummary,
   type FolderAccess,
@@ -77,13 +79,14 @@ export function getCleanupReview(): Promise<ReviewList> {
   return call("get_cleanup_review", {}, parseReview);
 }
 
-/** Returns the Developer review IDs the backend added to the review. */
-export function sendDeveloperItemsToReview(ids: readonly string[]): Promise<string[]> {
-  return call("send_developer_items_to_review", { ids }, parseIdList);
+/** Prepares Developer caches and build folders for removal there: their preview. */
+export function prepareDeveloperItemsRemoval(ids: readonly string[]): Promise<CleanupPreview> {
+  return call("prepare_developer_items_removal", { ids }, parsePreview);
 }
 
-export function addStorageFileToReview(reviewId: string): Promise<boolean> {
-  return call("add_storage_file_to_review", { reviewId }, parseBoolean);
+/** Prepares a large file from Storage for removal there: its preview. */
+export function prepareStorageFileRemoval(reviewId: string): Promise<CleanupPreview> {
+  return call("prepare_storage_file_removal", { reviewId }, parsePreview);
 }
 
 export async function revealReviewItem(id: string): Promise<void> {
@@ -96,6 +99,12 @@ export function createCleanupPreview(ids: readonly string[]): Promise<CleanupPre
 
 export function approveCleanupPreview(previewId: string, onProgress: (progress: MoveProgress) => void): Promise<ApproveOutcome> {
   return call("approve_cleanup_preview", { previewId, onProgress: channel(parseMoveProgress, onProgress) }, parseApproveOutcome);
+}
+
+/** Deletes the preview's items for good, where they are (no quarantine), after Rust checks
+ * each again; streams each item's progress. */
+export function deleteCleanupPreview(previewId: string, onProgress: (progress: DeleteNowProgress) => void): Promise<DeleteNowOutcome> {
+  return call("delete_cleanup_preview", { previewId, onProgress: channel(parseDeleteNowProgress, onProgress) }, parseDeleteNowOutcome);
 }
 
 export function listQuarantine(): Promise<QuarantineList> {

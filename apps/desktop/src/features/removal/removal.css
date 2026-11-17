@@ -1,0 +1,97 @@
+/* The confirm sheet for removing a page's items where it shows them. */
+.removal-sheet {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.removal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.removal-list {
+  display: flex;
+  flex-direction: column;
+  max-height: min(320px, 45vh);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid var(--mp-border);
+  border-radius: 10px;
+  list-style: none;
+}
+
+.removal-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--mp-border);
+}
+
+.removal-item:last-child {
+  border-bottom: 0;
+}
+
+.removal-item.held {
+  opacity: 0.65;
+}
+
+.removal-item .v2-row-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.removal-item-name,
+.removal-item-sub {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.removal-item-name {
+  color: var(--mp-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.removal-item-sub {
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+}
+
+.removal-item-size {
+  flex-shrink: 0;
+  color: var(--mp-text-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.removal-reveal {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 4px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--mp-text-2);
+  cursor: pointer;
+}
+
+.removal-reveal:hover,
+.removal-reveal:focus-visible {
+  color: var(--mp-link);
+}
+
+.removal-problems {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--mp-text-2);
+  font-size: 12px;
+}
+
+/* On a narrow window the buttons wrap instead of running off the edge. */
+.removal-sheet .v2-dialog-actions {
+  flex-wrap: wrap;
+}

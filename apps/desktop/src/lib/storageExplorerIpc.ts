@@ -1,5 +1,6 @@
 import { Channel } from "@tauri-apps/api/core";
-import { parseIds, parseListing, parseListingProgress, type Listing, type ListingProgress } from "../contracts/storageExplorer";
+import { parsePreview, type CleanupPreview } from "../contracts/cleanup";
+import { parseListing, parseListingProgress, type Listing, type ListingProgress } from "../contracts/storageExplorer";
 import { ContractError } from "../contracts/systemMetrics";
 import { call } from "./storageIpc";
 
@@ -23,7 +24,7 @@ export async function cancelStorageListing(): Promise<void> {
   await call("cancel_storage_listing", {}, () => undefined);
 }
 
-/** Sends chosen files and folders to Cleanup's review; nothing moves. Resolves to the IDs sent. */
-export function sendStorageItemsToReview(ids: readonly string[]): Promise<string[]> {
-  return call("send_storage_items_to_review", { ids }, parseIds);
+/** Prepares chosen files and folders for removal here: their preview (nothing moves yet). */
+export function prepareStorageItemsRemoval(ids: readonly string[]): Promise<CleanupPreview> {
+  return call("prepare_storage_items_removal", { ids }, parsePreview);
 }

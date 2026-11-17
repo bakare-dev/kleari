@@ -5,6 +5,8 @@ import { Glyph, StatusMark } from "../../ui/icons";
 import { Button, IconTile, Modal, PageHeader, Pill, ProgressBar, Segmented, Spinner, Toast, useToast, type Status } from "../../ui/components";
 import { formatGb } from "../../ui/format";
 import { headingIdFor } from "../../shell/routes";
+import type { CleanupPreview } from "../../../contracts/cleanup";
+import { useRemoval } from "../../../features/removal/RemovalProvider";
 import type { AnalysisStep, FolderNode, FolderTag, LargeFile, ManagedSpace, StorageAnalysis, StorageCapacity, StorageCategoryDetail } from "./types";
 import "./storage.css";
 import { AccessSteps } from "../../ui/AccessSteps";
@@ -28,10 +30,8 @@ interface StorageScreenProps {
   onCancelAnalysis: () => void;
   /** Resolves to whether System Settings opened. */
   onOpenPrivacySettings: () => Promise<boolean>;
-  /** Review IDs of large files already added to Cleanup's review. */
-  inReview: ReadonlySet<string>;
-  /** Adds a large file to Cleanup's review (to inspect); resolves to a message. Nothing moves. */
-  onAddToReview: (file: LargeFile) => Promise<string>;
+  /** Prepares a large file for removal here (the confirm sheet shows it). */
+  onPrepareFile: (file: LargeFile) => Promise<CleanupPreview>;
   /** Opens Cleanup with this scan chosen; it doesn't start the scan. */
   onScanInCleanup: (mode: "standard" | "deep" | "dev") => void;
   /** The Browse view: any folder of the home folder, measured on demand. */
@@ -69,6 +69,9 @@ export function StorageScreen(props: StorageScreenProps) {
   const [accessAsked, setAccessAsked] = useState(false);
   const [accessOpen, setAccessOpen] = useState(false);
   const toast = useToast();
+  const removal = useRemoval();
+  // Large files removed since this analysis, hidden until the next one.
+  const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
 
   const category = categories.find((entry) => entry.id === categoryId) ?? categories[0];
   const barTotal = capacity?.totalGb ?? Math.max(categories.reduce((total, entry) => total + entry.gb, 0), 1);
@@ -204,14 +207,13 @@ export function StorageScreen(props: StorageScreenProps) {
             ) : (
               <>
                 <span className="v2-card-note st-files-note">
-                  {props.largeFilesNote} Adding one to review lists it in Cleanup step 2. A file in your home folder can then be moved to quarantine when you approve it; elsewhere it’s there to inspect.
+                  {props.largeFilesNote} A file in your home folder can be removed here; you'll see it again before it goes. Elsewhere it's there to inspect.
                 </span>
                 {props.largeFiles.length === 0 ? (
                   <span className="v2-card-note st-files-note">No files of 1 GB or more were found.</span>
                 ) : (
                   <ScrollList label="Large files" className="st-files">
-                    {props.largeFiles.map((file) => {
-                      const added = props.inReview.has(file.reviewId);
+                    {props.largeFiles.filter((file) => !gone.has(file.reviewId)).map((file) => {
                       return (
                         <li key={file.id}>
                           <IconTile tone={file.tone} icon={file.icon} size={30} />
@@ -223,18 +225,20 @@ export function StorageScreen(props: StorageScreenProps) {
                           <span className="st-file-action">
                             {file.locked ? (
                               <Pill status="muted"><span title={file.locked.tip}>{file.locked.label}</span></Pill>
-                            ) : added ? (
-                              <Pill status="ok">In review</Pill>
                             ) : (
                               <Button
                                 variant="soft"
                                 size="sm"
-                                aria-label={`Add ${file.name} to review`}
-                                onClick={() => {
-                                  void props.onAddToReview(file).then((message) => toast.show(message));
-                                }}
+                                aria-label={`Remove ${file.name}`}
+                                onClick={() =>
+                                  removal({
+                                    what: file.name,
+                                    prepare: () => props.onPrepareFile(file),
+                                    onDone: (count) => count > 0 && setGone((current) => new Set([...current, file.reviewId])),
+                                  })
+                                }
                               >
-                                Add to review
+                                Remove…
                               </Button>
                             )}
                           </span>

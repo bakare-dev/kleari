@@ -3,9 +3,10 @@ import type { FileGroup, FileItem, FilesOptions, Tool } from "../../../contracts
 import type { FileCategory } from "../../../contracts/storage";
 import type { Files } from "../../../features/files/useFiles";
 import type { IconName } from "../../ui/icons";
-import { Button, FloatingBar, IconTile, LinkButton, PageHeader, Pill, Segmented, Select, Spinner, Toast, useToast, type Tone } from "../../ui/components";
+import { Button, FloatingBar, IconTile, PageHeader, Pill, Segmented, Select, Spinner, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
-import { headingIdFor, hrefFor } from "../../shell/routes";
+import { headingIdFor } from "../../shell/routes";
+import { useRemoval } from "../../../features/removal/RemovalProvider";
 import "./files.css";
 
 const toolMeta: Record<Tool, { label: string; tone: Tone; icon: IconName; what: string; group: (group: FileGroup) => string }> = {
@@ -84,18 +85,17 @@ function keeps(group: FileGroup): boolean {
 }
 
 export function FilesScreen({ files }: { files: Files }) {
-  const { state, sent } = files;
+  const { state } = files;
+  const remove = useRemoval();
   const [tool, setTool] = useState<Tool>("largeOld");
   const [options, setOptions] = useState<FilesOptions>({ largeMinMb: 500, oldDays: 180 });
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
-  const [sending, setSending] = useState(false);
-  const toast = useToast(6000);
   const nowMs = Date.now();
 
   const result = state.results[tool] ?? null;
   const meta = toolMeta[tool];
   const groups = result?.groups ?? [];
-  const choosable = (group: FileGroup, item: FileItem, index: number) => item.selectable && !sent.has(item.id) && !(keeps(group) && index === 0);
+  const choosable = (group: FileGroup, item: FileItem, index: number) => item.selectable && !(keeps(group) && index === 0);
   const picked = groups.flatMap((group) => group.items.filter((item, index) => choosable(group, item, index) && selection.has(item.id)));
   const running = state.running === tool;
 
@@ -114,12 +114,15 @@ export function FilesScreen({ files }: { files: Files }) {
     setSelection(new Set(ids));
   };
 
-  const send = () => {
-    setSending(true);
-    void files.send(picked.map((item) => item.id)).then((message) => {
-      setSending(false);
-      setSelection(new Set());
-      toast.show(message);
+  const removePicked = () => {
+    const ids = picked.map((item) => item.id);
+    remove({
+      what: plural(ids.length, "file"),
+      prepare: () => files.prepare(ids),
+      onDone: () => {
+        setSelection(new Set());
+        files.rerun();
+      },
     });
   };
 
@@ -128,8 +131,7 @@ export function FilesScreen({ files }: { files: Files }) {
       <PageHeader
         title="Files"
         headingId={headingIdFor("files")}
-        subtitle="Find your own files worth a look. Nothing moves until you approve it in Cleanup, and then only into quarantine."
-        actions={<LinkButton href={hrefFor("review")} size="sm">Open review</LinkButton>}
+        subtitle="Find your own files worth a look. Nothing moves until you approve it, and then only into quarantine."
       />
       <div className="files-body">
         <Segmented
@@ -227,7 +229,7 @@ export function FilesScreen({ files }: { files: Files }) {
                       </span>
                       <span className="v2-num files-size">{size(item)}</span>
                       <span className="files-pill">
-                        {sent.has(item.id) ? <Pill status="link">In review</Pill> : kept ? <Pill status="ok">Keep</Pill> : !item.selectable ? <Pill status="muted">Kept as is</Pill> : null}
+                        {kept ? <Pill status="ok">Keep</Pill> : !item.selectable ? <Pill status="muted">Kept as is</Pill> : null}
                       </span>
                     </li>
                   );
@@ -243,20 +245,16 @@ export function FilesScreen({ files }: { files: Files }) {
         <FloatingBar>
           <div className="v2-float-text">
             <span role="status" className="v2-float-title">{picked.length > 0 ? `${picked.length} chosen · ${formatGb(gb(sum(picked, (item) => item.bytes)))}` : "Nothing chosen"}</span>
-            <span className="v2-float-sub">Sending to review adds these to Cleanup step 2. Nothing moves until you approve it there, and then only into quarantine.</span>
+            <span className="v2-float-sub">You'll see exactly what will go before anything moves, and it goes to quarantine, so you can put it back.</span>
           </div>
           <div className="v2-float-actions">
             {keeps(groups[0]) && <Button variant="secondary" onClick={chooseAllButKept}>Choose all but one of each</Button>}
-            <Button variant="primary" disabled={picked.length === 0 || sending} onClick={send}>
-              {picked.length > 0 ? `Send ${picked.length} to review` : "Send to review"}
+            <Button variant="primary" disabled={picked.length === 0} onClick={removePicked}>
+              {picked.length > 0 ? `Remove ${picked.length}…` : "Remove…"}
             </Button>
           </div>
         </FloatingBar>
       )}
-
-      <Toast message={toast.message} bottom={92}>
-        <a className="v2-link" href={hrefFor("review")}>Open review</a>
-      </Toast>
     </>
   );
 }

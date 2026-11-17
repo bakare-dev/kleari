@@ -7,12 +7,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager, State};
 
+use crate::cleanup::execute::PreviewView;
 use crate::cleanup::intake::Intake;
-use crate::cleanup::CleanupState;
 use crate::cleanup_commands::{blocking_failed, check_ids, home};
 use crate::commands::{CommandError, CommandErrorCode};
 use crate::history::History;
-use crate::persistence::{Event, EventKind};
 use crate::storage::explorer::{ExplorerState, Listing, ListingProgress};
 use crate::system_monitor::open_paths;
 use crate::system_monitor::running_apps;
@@ -65,12 +64,12 @@ pub fn cancel_storage_listing(state: State<'_, ExplorerState>) {
     state.cancel();
 }
 
-/// Sends chosen files and folders to Cleanup's review. Returns how many were sent.
+/// Prepares chosen files and folders for removal on the Storage page: their preview.
 #[tauri::command]
-pub async fn send_storage_items_to_review(
+pub async fn prepare_storage_items_removal(
     app: AppHandle,
     ids: Vec<String>,
-) -> Result<Vec<String>, CommandError> {
+) -> Result<PreviewView, CommandError> {
     check_ids(&ids)?;
     tauri::async_runtime::spawn_blocking(move || {
         let home = home()?;
@@ -88,18 +87,7 @@ pub async fn send_storage_items_to_review(
             now_ms: unix_time_ms(),
             excluded: &excluded,
         };
-        let candidates = intake.chosen_items(chosen);
-        if !candidates.is_empty() {
-            let bytes = candidates
-                .iter()
-                .fold(0_u64, |total, item| total.saturating_add(item.bytes));
-            let count = u64::try_from(candidates.len()).unwrap_or(u64::MAX);
-            let mut event =
-                Event::new(EventKind::Review, unix_time_ms(), "completed", count, bytes);
-            event.subject = Some("storage".to_owned());
-            history.note(&event);
-        }
-        Ok(app.state::<CleanupState>().add_sent(candidates))
+        crate::cleanup_commands::prepare_removal(&app, intake.chosen_items(chosen))
     })
     .await
     .map_err(blocking_failed)?

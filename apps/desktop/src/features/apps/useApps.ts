@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AppsScan, RemoveOutcome } from "../../contracts/apps";
-import { cancelAppsScan, removeApp, sendAppItemsToReview, startAppsScan } from "../../lib/appsIpc";
+import type { CleanupPreview } from "../../contracts/cleanup";
+import { cancelAppsScan, prepareAppItemsRemoval, removeApp, startAppsScan } from "../../lib/appsIpc";
 import { StorageError, type StorageErrorKind } from "../../lib/storageIpc";
 import { formatGb, plural } from "../../v2/ui/format";
 import { storageErrorText } from "../storage/format";
@@ -8,11 +9,11 @@ import { storageErrorText } from "../storage/format";
 export interface AppsLoaders {
   start: () => Promise<AppsScan>;
   cancel: () => Promise<void>;
-  send: (ids: readonly string[]) => Promise<string[]>;
+  prepare: (ids: readonly string[]) => Promise<CleanupPreview>;
   remove: (id: string) => Promise<RemoveOutcome>;
 }
 
-const defaultLoaders: AppsLoaders = { start: startAppsScan, cancel: cancelAppsScan, send: sendAppItemsToReview, remove: removeApp };
+const defaultLoaders: AppsLoaders = { start: startAppsScan, cancel: cancelAppsScan, prepare: prepareAppItemsRemoval, remove: removeApp };
 
 export interface AppsState {
   running: boolean;
@@ -27,7 +28,7 @@ function errorText(error: unknown): string {
   return storageErrorText[kind];
 }
 
-/** What a removal outcome means, in words; `removed` says what went to the review. */
+/** What a removal outcome means, in words; `removed` says how much the app left behind. */
 export function removeMessage(name: string, outcome: RemoveOutcome): { text: string; ok: boolean } {
   switch (outcome.status) {
     case "removed":
@@ -35,7 +36,7 @@ export function removeMessage(name: string, outcome: RemoveOutcome): { text: str
         ok: true,
         text:
           outcome.leftovers > 0
-            ? `Moved ${name} to the Trash. ${plural(outcome.leftovers, "item")} it left behind (${formatGb(outcome.leftoverBytes / 1e9)}) are in Cleanup’s review. Nothing else has moved.`
+            ? `Moved ${name} to the Trash. It left ${plural(outcome.leftovers, "item")} behind (${formatGb(outcome.leftoverBytes / 1e9)}).`
             : `Moved ${name} to the Trash. It left nothing behind in your Library.`,
       };
     case "running":
@@ -53,12 +54,11 @@ export function removeMessage(name: string, outcome: RemoveOutcome): { text: str
 }
 
 /**
- * The Apps page's read-only scan, what was sent to the review and app removal. Held at the
+ * The Apps page's read-only scan, removing leftovers and installers, and app removal. Held at the
  * app level so a running scan and its result survive leaving the page; nothing is stored.
  */
 export function useApps(onReviewChanged: () => void, loaders: AppsLoaders = defaultLoaders) {
   const [state, setState] = useState<AppsState>({ running: false, result: null, stopped: false, error: null });
-  const [sent, setSent] = useState<ReadonlySet<string>>(new Set());
   const running = useRef(false);
   const mounted = useRef(true);
 
@@ -90,9 +90,6 @@ export function useApps(onReviewChanged: () => void, loaders: AppsLoaders = defa
               : // A stopped scan covers only part of the Mac; keep the last full one.
                 { ...current, running: false, stopped: true },
           );
-          if (result.status === "completed") {
-            setSent(new Set());
-          }
         }
       },
       (error: unknown) => {
@@ -112,41 +109,34 @@ export function useApps(onReviewChanged: () => void, loaders: AppsLoaders = defa
     });
   }, [loaders]);
 
-  /** Sends leftovers or installers to Cleanup's review. Resolves to a message. */
-  const send = useCallback(
-    async (ids: readonly string[]): Promise<string> => {
-      try {
-        const done = await loaders.send(ids);
-        setSent((current) => new Set([...current, ...done]));
-        onReviewChanged();
-        return done.length === ids.length
-          ? `Sent ${plural(done.length, "item")} to review. Nothing has moved.`
-          : `Sent ${done.length} of ${ids.length} to review. Scan again to send the rest. Nothing has moved.`;
-      } catch (error) {
-        return errorText(error);
-      }
-    },
-    [loaders, onReviewChanged],
-  );
+  /** Prepares leftovers or installers for removal on this page (the confirm sheet shows it). */
+  const prepare = useCallback((ids: readonly string[]) => loaders.prepare(ids), [loaders]);
 
-  /** Removes an app, then scans again so the list shows what is installed now. */
+  /** After items moved: scans again, and lets Cleanup's review know. */
+  const refresh = useCallback(() => {
+    onReviewChanged();
+    scan();
+  }, [onReviewChanged, scan]);
+
+  /** Removes an app, then scans again so the list shows what is installed now. `leftovers` is
+   * the preview of what it left behind, for "Also remove what it left?". */
   const remove = useCallback(
-    async (id: string, name: string): Promise<{ text: string; ok: boolean }> => {
+    async (id: string, name: string): Promise<{ text: string; ok: boolean; leftovers: CleanupPreview | null }> => {
       try {
         const outcome = await loaders.remove(id);
         if (outcome.status === "removed") {
-          onReviewChanged();
-          scan();
+          refresh();
         }
-        return removeMessage(name, outcome);
+        const leftovers = outcome.status === "removed" && outcome.preview.items.some((item) => item.state === "planned") ? outcome.preview : null;
+        return { ...removeMessage(name, outcome), leftovers };
       } catch (error) {
-        return { ok: false, text: errorText(error) };
+        return { ok: false, text: errorText(error), leftovers: null };
       }
     },
-    [loaders, onReviewChanged, scan],
+    [loaders, refresh],
   );
 
-  return { state, sent, scan, cancel, send, remove };
+  return { state, scan, cancel, prepare, refresh, remove };
 }
 
 export type Apps = ReturnType<typeof useApps>;

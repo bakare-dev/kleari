@@ -323,7 +323,9 @@ pub struct Bound {
 #[derive(Default)]
 struct Inner {
     scan: Option<(ScanInfo, Vec<Candidate>)>,
-    sent: Vec<Candidate>,
+    /// Items another page is removing where it shows them (its confirm sheet): previewed and
+    /// moved like the review's, but never listed in it. Replaced by the next page's items.
+    direct: Vec<Candidate>,
     preview: Option<Preview>,
     /// Folders added through the picker this session.
     added: Vec<PathBuf>,
@@ -372,39 +374,27 @@ impl CleanupState {
     /// Replaces the scan findings. The preview is dropped: it may refer to them.
     pub fn set_scan(&self, info: ScanInfo, items: Vec<Candidate>) {
         let mut inner = lock(&self.inner);
-        // An item sent from another page stays; the scan's own copy of it is dropped.
-        let sent: Vec<&Path> = inner.sent.iter().map(|item| item.path.as_path()).collect();
-        let items: Vec<Candidate> = items
-            .into_iter()
-            .filter(|item| !sent.contains(&item.path.as_path()))
-            .collect();
         inner.scan = Some((info, items));
         inner.preview = None;
     }
 
-    /// Adds items sent from Storage or Developer. One already in the review (by path) is
-    /// replaced by the new one. Returns the IDs now in the review for them.
-    pub fn add_sent(&self, items: Vec<Candidate>) -> Vec<String> {
+    /// The items another page is about to remove where it shows them, replacing the last
+    /// page's; the review is left as it is. Returns their IDs, for the preview.
+    pub fn add_direct(&self, items: Vec<Candidate>) -> Vec<String> {
         let mut inner = lock(&self.inner);
-        let mut ids = Vec::with_capacity(items.len());
-        for item in items {
-            inner.sent.retain(|existing| existing.path != item.path);
-            if let Some((_, scanned)) = inner.scan.as_mut() {
-                scanned.retain(|existing| existing.path != item.path);
-            }
-            ids.push(item.id.clone());
-            inner.sent.push(item);
-        }
+        let ids = items.iter().map(|item| item.id.clone()).collect();
+        inner.direct = items;
         inner.preview = None;
         ids
     }
 
+    /// The scan's findings: what Cleanup suggests (never another page's items).
     pub fn review(&self) -> Review {
         let inner = lock(&self.inner);
         let mut findings: Vec<Finding> = inner
-            .sent
+            .scan
             .iter()
-            .chain(inner.scan.iter().flat_map(|(_, items)| items.iter()))
+            .flat_map(|(_, items)| items.iter())
             .map(Candidate::finding)
             .collect();
         findings.sort_by(|a, b| b.bytes.cmp(&a.bytes).then_with(|| a.name.cmp(&b.name)));
@@ -420,7 +410,7 @@ impl CleanupState {
         ids.iter()
             .filter_map(|id| {
                 inner
-                    .sent
+                    .direct
                     .iter()
                     .chain(inner.scan.iter().flat_map(|(_, items)| items.iter()))
                     .find(|item| &item.id == id)
@@ -436,6 +426,18 @@ impl CleanupState {
             .next()
     }
 
+    /// Whether the current preview is of a page's items (removed where that page shows them)
+    /// rather than the review's.
+    pub fn preview_is_direct(&self) -> bool {
+        let inner = lock(&self.inner);
+        inner.preview.as_ref().is_some_and(|preview| {
+            preview
+                .items
+                .iter()
+                .any(|bound| inner.direct.iter().any(|item| item.id == bound.id))
+        })
+    }
+
     pub fn set_preview(&self, preview: Option<Preview>) {
         lock(&self.inner).preview = preview;
     }
@@ -444,12 +446,21 @@ impl CleanupState {
         lock(&self.inner).preview.clone()
     }
 
-    /// Removes moved items from the review and drops the preview.
+    /// Removes moved items, and every other entry for the same path (a page's item may also
+    /// be one of the scan's findings), and drops the preview.
     pub fn remove(&self, ids: &[String]) {
         let mut inner = lock(&self.inner);
-        inner.sent.retain(|item| !ids.contains(&item.id));
+        let paths: Vec<PathBuf> = inner
+            .direct
+            .iter()
+            .chain(inner.scan.iter().flat_map(|(_, items)| items.iter()))
+            .filter(|item| ids.contains(&item.id))
+            .map(|item| item.path.clone())
+            .collect();
+        let gone = |item: &Candidate| ids.contains(&item.id) || paths.contains(&item.path);
+        inner.direct.retain(|item| !gone(item));
         if let Some((_, items)) = inner.scan.as_mut() {
-            items.retain(|item| !ids.contains(&item.id));
+            items.retain(|item| !gone(item));
         }
         inner.preview = None;
     }
@@ -457,8 +468,8 @@ impl CleanupState {
     /// Marks an item as changed since the scan: not selectable until the next scan.
     pub fn mark_changed(&self, id: &str) {
         let mut inner = lock(&self.inner);
-        let Inner { sent, scan, .. } = &mut *inner;
-        for item in sent
+        let Inner { direct, scan, .. } = &mut *inner;
+        for item in direct
             .iter_mut()
             .chain(scan.iter_mut().flat_map(|(_, items)| items.iter_mut()))
             .filter(|item| item.id == id && item.eligible())

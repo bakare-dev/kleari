@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Task, TaskInfo, TaskOutcome } from "../../contracts/maintenance";
 import type { StartupItems } from "../../contracts/systemPage";
-import { getMaintenanceInfo, runMaintenanceTask, sendLaunchAgentToReview } from "../../lib/maintenanceIpc";
+import type { CleanupPreview } from "../../contracts/cleanup";
+import { getMaintenanceInfo, prepareLaunchAgentRemoval, runMaintenanceTask } from "../../lib/maintenanceIpc";
 import { StorageError, type StorageErrorKind } from "../../lib/storageIpc";
 import { fetchStartupItems } from "../../lib/systemPageIpc";
 import { storageErrorText } from "../storage/format";
@@ -10,10 +11,10 @@ export interface MaintenanceLoaders {
   info: () => Promise<TaskInfo[]>;
   run: (task: Task) => Promise<TaskOutcome>;
   startup: () => Promise<StartupItems>;
-  sendAgent: (label: string) => Promise<boolean>;
+  prepareAgent: (label: string) => Promise<CleanupPreview>;
 }
 
-const defaultLoaders: MaintenanceLoaders = { info: getMaintenanceInfo, run: runMaintenanceTask, startup: fetchStartupItems, sendAgent: sendLaunchAgentToReview };
+const defaultLoaders: MaintenanceLoaders = { info: getMaintenanceInfo, run: runMaintenanceTask, startup: fetchStartupItems, prepareAgent: prepareLaunchAgentRemoval };
 
 function errorText(error: unknown): string {
   const kind: StorageErrorKind = error instanceof StorageError ? error.kind : "unknown";
@@ -31,7 +32,6 @@ export function useMaintenance(onReviewChanged: () => void, loaders: Maintenance
   const [running, setRunning] = useState<Task | null>(null);
   const [last, setLast] = useState<{ task: Task; outcome: TaskOutcome } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [sentAgents, setSentAgents] = useState<ReadonlySet<string>>(new Set());
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -83,24 +83,17 @@ export function useMaintenance(onReviewChanged: () => void, loaders: Maintenance
     [loaders, refresh],
   );
 
-  const sendAgent = useCallback(
-    async (label: string): Promise<string> => {
-      try {
-        const sent = await loaders.sendAgent(label);
-        if (!sent) {
-          return "That login item is no longer in your LaunchAgents folder. Nothing was sent.";
-        }
-        setSentAgents((current) => new Set([...current, label]));
-        onReviewChanged();
-        return "Sent to review. It moves into quarantine only when you approve it, and stops starting from your next login.";
-      } catch (failure) {
-        return errorText(failure);
-      }
-    },
-    [loaders, onReviewChanged],
-  );
+  /** Prepares your launch agent with this label for removal here (the confirm sheet shows it;
+   * empty if it is no longer in your LaunchAgents folder). */
+  const prepareAgent = useCallback((label: string) => loaders.prepareAgent(label), [loaders]);
 
-  return { info, startup, loading, running, last, error, sentAgents, refresh, run, sendAgent };
+  /** After something moved: measures again, and lets Cleanup's review know. */
+  const removed = useCallback(() => {
+    onReviewChanged();
+    refresh();
+  }, [onReviewChanged, refresh]);
+
+  return { info, startup, loading, running, last, error, refresh, run, prepareAgent, removed };
 }
 
 export type Maintenance = ReturnType<typeof useMaintenance>;

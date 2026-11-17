@@ -9,8 +9,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use tauri::{AppHandle, Manager};
 
+use crate::cleanup::execute::PreviewView;
 use crate::cleanup::intake::Intake;
-use crate::cleanup::CleanupState;
 use crate::cleanup_commands::{blocking_failed, home};
 use crate::commands::{CommandError, CommandErrorCode};
 use crate::history::History;
@@ -82,13 +82,14 @@ pub async fn run_maintenance_task(app: AppHandle, task: Task) -> Result<Outcome,
     result.map_err(|_| CommandError::from(CommandErrorCode::OperationInProgress))
 }
 
-/// Sends the launch agent with launchd label `label`, in your LaunchAgents folder, to
-/// Cleanup's review. `false` if none has that label (or it is Apple's).
+/// Prepares the launch agent with launchd label `label`, in your LaunchAgents folder, for
+/// removal on the Maintenance page: its preview, empty if none has that label (or it is
+/// Apple's).
 #[tauri::command]
-pub async fn send_launch_agent_to_review(
+pub async fn prepare_launch_agent_removal(
     app: AppHandle,
     label: String,
-) -> Result<bool, CommandError> {
+) -> Result<PreviewView, CommandError> {
     if label.is_empty() || label.len() > 200 || label.contains(['/', '\0']) {
         return Err(CommandErrorCode::InvalidRequest.into());
     }
@@ -96,7 +97,7 @@ pub async fn send_launch_agent_to_review(
         let home = home()?;
         let folder = home.join("Library/LaunchAgents");
         let Some((mut dir, _)) = crate::developer::open_absolute(&folder) else {
-            return Ok(false);
+            return crate::cleanup_commands::prepare_removal(&app, Vec::new());
         };
         let cancel = AtomicBool::new(false);
         let mut found = None;
@@ -139,7 +140,7 @@ pub async fn send_launch_agent_to_review(
             }
         }
         let Some((path, stat)) = found else {
-            return Ok(false);
+            return crate::cleanup_commands::prepare_removal(&app, Vec::new());
         };
         let running = running_apps::running_bundles(&app).unwrap_or_default();
         let history = app.state::<History>();
@@ -152,20 +153,8 @@ pub async fn send_launch_agent_to_review(
             now_ms: unix_time_ms(),
             excluded: &excluded,
         };
-        let Some(candidate) = intake.launch_agent(path, &stat) else {
-            return Ok(false);
-        };
-        let mut event = Event::new(
-            EventKind::Review,
-            unix_time_ms(),
-            "completed",
-            1,
-            candidate.bytes,
-        );
-        event.subject = Some("maintenance".to_owned());
-        history.note(&event);
-        app.state::<CleanupState>().add_sent(vec![candidate]);
-        Ok(true)
+        let candidate = intake.launch_agent(path, &stat);
+        crate::cleanup_commands::prepare_removal(&app, candidate.into_iter().collect())
     })
     .await
     .map_err(blocking_failed)?

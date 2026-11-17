@@ -196,6 +196,12 @@ export interface PlannedItem {
   id: string;
   state: PlannedState;
   bytes: number;
+  /** For a page's confirm sheet: the item's name, category, folder (`~/…`) and why it can't be
+   * removed, if it can't. */
+  name: string;
+  category: FindingCategory;
+  location: string;
+  whyNot: WhyNot | null;
 }
 
 export interface CleanupPreview {
@@ -442,6 +448,10 @@ export function parsePreview(payload: unknown): CleanupPreview {
         id: id(item.id, `items[${index}].id`),
         state: oneOf(["planned", "changed", "notEligible"] as const, item.state, `items[${index}].state`),
         bytes: nonNegativeInteger(item.bytes, `items[${index}].bytes`),
+        name: text(item.name, `items[${index}].name`),
+        category: oneOf(findingCategories, item.category, `items[${index}].category`),
+        location: text(item.location, `items[${index}].location`),
+        whyNot: nullable(item.whyNot, (reason) => oneOf(whyNots, reason, `items[${index}].whyNot`)),
       };
     }),
   };
@@ -476,6 +486,41 @@ export function parseApproveOutcome(payload: unknown): ApproveOutcome {
         batchId: id(fields.batchId, "batchId"),
         finishedAtMs: nonNegativeInteger(fields.finishedAtMs, "finishedAtMs"),
         items: list(fields.items, "items", MAX_FINDINGS).map((entry, index) => parseMoveProgress(record(entry, `items[${index}]`))),
+      };
+  }
+}
+
+/** One item of a permanent delete, where it is (src-tauri `DeleteNowProgress`). */
+export type DeleteNowProgress = { id: string; state: "deleting" | "deleted" } | { id: string; state: "failed"; reason: MoveFailure };
+
+export type DeleteNowOutcome =
+  | { status: "noPreview" }
+  | { status: "stale"; changed: string[] }
+  | { status: "finished"; finishedAtMs: number; items: DeleteNowProgress[] };
+
+export function parseDeleteNowProgress(payload: unknown): DeleteNowProgress {
+  const fields = record(payload, "$");
+  const itemId = id(fields.id, "id");
+  const state = oneOf(["deleting", "deleted", "failed"] as const, fields.state, "state");
+  if (state === "failed") {
+    return { id: itemId, state, reason: oneOf(moveFailures, fields.reason, "reason") };
+  }
+  return { id: itemId, state };
+}
+
+export function parseDeleteNowOutcome(payload: unknown): DeleteNowOutcome {
+  const fields = record(payload, "$");
+  const status = oneOf(["noPreview", "stale", "finished"] as const, fields.status, "status");
+  switch (status) {
+    case "noPreview":
+      return { status };
+    case "stale":
+      return { status, changed: ids(fields.changed, "changed") };
+    case "finished":
+      return {
+        status,
+        finishedAtMs: nonNegativeInteger(fields.finishedAtMs, "finishedAtMs"),
+        items: list(fields.items, "items", MAX_FINDINGS).map((entry, index) => parseDeleteNowProgress(record(entry, `items[${index}]`))),
       };
   }
 }

@@ -1,8 +1,10 @@
 import { useState } from "react";
 import type { AppEntry, AppsScan, InstallerEntry, LeftoverEntry } from "../../../contracts/apps";
-import { Button, FloatingBar, IconTile, LinkButton, Modal, PageHeader, Pill, Segmented, Spinner, StatCard, Toast, useToast } from "../../ui/components";
+import type { CleanupPreview } from "../../../contracts/cleanup";
+import { Button, FloatingBar, IconTile, Modal, PageHeader, Pill, Segmented, Spinner, StatCard, Toast, useToast } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
-import { headingIdFor, hrefFor } from "../../shell/routes";
+import { headingIdFor } from "../../shell/routes";
+import { useRemoval } from "../../../features/removal/RemovalProvider";
 import "../developer/developer.css";
 import "./apps.css";
 import { AccessSteps } from "../../ui/AccessSteps";
@@ -14,14 +16,14 @@ interface AppsScreenProps {
   running: boolean;
   /** A message about the scan: stopped, or why it failed. */
   note: string | null;
-  /** Review IDs already sent to Cleanup's review. */
-  sent: ReadonlySet<string>;
   onScan: () => void;
   onCancel: () => void;
-  /** Sends leftovers or installers to Cleanup step 2; resolves to a message. Nothing moves. */
-  onSend: (ids: readonly string[]) => Promise<string>;
-  /** Moves the app to the Trash; its leftovers go to the review. Resolves to a message. */
-  onRemove: (app: AppEntry) => Promise<{ text: string; ok: boolean }>;
+  /** Prepares leftovers or installers for removal here (the confirm sheet shows it). */
+  onPrepare: (ids: readonly string[]) => Promise<CleanupPreview>;
+  /** After something moved: scans again. */
+  onRemoved: () => void;
+  /** Moves the app to the Trash. Resolves to a message, and what it left behind, if anything. */
+  onRemove: (app: AppEntry) => Promise<{ text: string; ok: boolean; leftovers: CleanupPreview | null }>;
   onOpenAppManagement: () => void;
 }
 
@@ -32,7 +34,8 @@ function size(item: { bytes: number; lowerBound?: boolean }): string {
 }
 
 export function AppsScreen(props: AppsScreenProps) {
-  const { result, running, sent } = props;
+  const { result, running } = props;
+  const removal = useRemoval();
   const [view, setView] = useState<View>("apps");
   const [focus, setFocus] = useState<string | null>(null);
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
@@ -46,7 +49,7 @@ export function AppsScreen(props: AppsScreenProps) {
   const installers = result?.installers ?? [];
   const removable = apps.filter((app) => !app.apple);
   const focused = apps.find((app) => app.id === focus) ?? removable[0] ?? null;
-  const sendable = (id: string | null): id is string => id !== null && !sent.has(id);
+  const sendable = (id: string | null): id is string => id !== null;
   const items: readonly (LeftoverEntry | InstallerEntry)[] = view === "installers" ? installers : orphans;
   const picked = items.filter((item) => sendable(item.reviewId) && selection.has(item.reviewId ?? ""));
   const pickedBytes = sum(picked, (item) => item.bytes);
@@ -64,12 +67,15 @@ export function AppsScreen(props: AppsScreenProps) {
     setSelection(next);
   };
 
-  const send = () => {
-    setBusy(true);
-    void props.onSend(picked.map((item) => item.reviewId ?? "")).then((message) => {
-      setBusy(false);
-      setSelection(new Set());
-      toast.show(message);
+  const removePicked = () => {
+    const ids = picked.map((item) => item.reviewId ?? "");
+    removal({
+      what: view === "installers" ? plural(ids.length, "installer") : plural(ids.length, "leftover"),
+      prepare: () => props.onPrepare(ids),
+      onDone: () => {
+        setSelection(new Set());
+        props.onRemoved();
+      },
     });
   };
 
@@ -80,6 +86,11 @@ export function AppsScreen(props: AppsScreenProps) {
       setConfirm(null);
       setFailed(!outcome.ok);
       toast.show(outcome.text, outcome.ok ? undefined : "warn");
+      // What the app left in your Library: offered straight away, on this page.
+      const leftovers = outcome.leftovers;
+      if (leftovers !== null) {
+        removal({ what: `what ${app.name} left behind`, prepare: () => Promise.resolve(leftovers), onDone: props.onRemoved });
+      }
     });
   };
 
@@ -91,7 +102,6 @@ export function AppsScreen(props: AppsScreenProps) {
         subtitle="Installed apps with what they keep in your Library, data left by apps that are gone, and installers you’ve already used."
         actions={
           <>
-            <LinkButton href={hrefFor("review")} size="sm">Open review</LinkButton>
             {running ? (
               <Button variant="secondary" size="sm" onClick={props.onCancel}>
                 <Spinner size={10} /> Cancel
@@ -141,7 +151,7 @@ export function AppsScreen(props: AppsScreenProps) {
               </div>
               <span className="v2-card-note dev-list-note">
                 {view === "apps"
-                  ? "Removing an app moves it to the Trash and sends what it keeps in your Library to Cleanup’s review. Apps that are part of macOS are never removed."
+                  ? "Removing an app moves it to the Trash, then offers to remove what it keeps in your Library too. Apps that are part of macOS are never removed."
                   : view === "leftovers"
                     ? "Named for an app that isn’t installed and unchanged for a month or more. Check each one: a tool without an app may still use its settings."
                     : "Disk images and packages in Downloads and on the Desktop. Installed apps run from Applications, not from these files."}
@@ -186,9 +196,7 @@ export function AppsScreen(props: AppsScreenProps) {
                         </span>
                         <span className="dev-size">{size(item)}</span>
                         <span className="dev-pill">
-                          {reviewId !== null && sent.has(reviewId) ? (
-                            <Pill status="link">In review</Pill>
-                          ) : view === "leftovers" ? (
+                          {view === "leftovers" ? (
                             <Pill status="warn">Check first</Pill>
                           ) : installed ? (
                             <Pill status="ok">{installed} installed</Pill>
@@ -250,11 +258,11 @@ export function AppsScreen(props: AppsScreenProps) {
         <FloatingBar>
           <div className="v2-float-text">
             <span role="status" className="v2-float-title">{picked.length > 0 ? `${picked.length} selected · ${formatGb(gb(pickedBytes))}` : "Nothing selected"}</span>
-            <span className="v2-float-sub">Sending to review adds these to Cleanup step 2. Nothing moves until you approve it there, and then only into quarantine.</span>
+            <span className="v2-float-sub">You'll see exactly what will go before anything moves, and it goes to quarantine, so you can put it back.</span>
           </div>
           <div className="v2-float-actions">
-            <Button variant="primary" disabled={picked.length === 0 || busy} onClick={send}>
-              {picked.length > 0 ? `Send ${picked.length} to review` : "Send to review"}
+            <Button variant="primary" disabled={picked.length === 0 || busy} onClick={removePicked}>
+              {picked.length > 0 ? `Remove ${picked.length}…` : "Remove…"}
             </Button>
           </div>
         </FloatingBar>
@@ -272,7 +280,7 @@ export function AppsScreen(props: AppsScreenProps) {
             </div>
             <p className="v2-dialog-text">
               {confirm.leftovers.length > 0
-                ? `Then the ${plural(confirm.leftovers.length, "item")} it keeps in your Library (${formatGb(gb(confirm.leftoverBytes))}) go to Cleanup’s review. They move only when you approve them there, into quarantine, where you can restore them.`
+                ? `Then Kleari shows you the ${plural(confirm.leftovers.length, "item")} it keeps in your Library (${formatGb(gb(confirm.leftoverBytes))}), so you can remove those too if you like.`
                 : "It keeps nothing else in your Library that Kleari found."}
             </p>
             <div className="v2-dialog-actions">
@@ -285,9 +293,7 @@ export function AppsScreen(props: AppsScreenProps) {
         )}
       </Modal>
 
-      <Toast message={toast.message} bottom={92}>
-        <a className="v2-link dev-toast-link" href={hrefFor("review")}>Open review</a>
-      </Toast>
+      <Toast message={toast.message} bottom={92} />
     </>
   );
 }

@@ -68,8 +68,11 @@ export function DeveloperRoute({ developer, review }: { developer: ReturnType<ty
       onScan={developer.scan}
       onCancel={developer.cancel}
       onAddFolder={developer.addFolder}
-      sent={review.developerSent}
-      onSendToReview={(entries) => review.sendDeveloper(entries.flatMap((entry) => entry.reviewIds))}
+      onPrepare={(entries) => review.prepareDeveloper(entries.flatMap((entry) => entry.reviewIds))}
+      onRemoved={() => {
+        review.refresh();
+        developer.scan();
+      }}
     />
   );
 }
@@ -82,10 +85,10 @@ export function AppsRoute({ apps }: { apps: Apps }) {
       result={state.result}
       running={state.running}
       note={state.error ?? (state.stopped ? "The scan was stopped. Showing the last full scan." : null)}
-      sent={apps.sent}
       onScan={apps.scan}
       onCancel={apps.cancel}
-      onSend={apps.send}
+      onPrepare={apps.prepare}
+      onRemoved={apps.refresh}
       onRemove={(app) => apps.remove(app.id, app.name)}
       onOpenAppManagement={() => {
         void openSystemSettings("appManagement");
@@ -104,8 +107,7 @@ export function StorageRoute({ storage, review, cleanup, explorer }: { storage: 
       onAnalyze={storage.analyze}
       onCancelAnalysis={storage.cancel}
       onOpenPrivacySettings={openFullDiskAccessSettings}
-      inReview={review.storageSent}
-      onAddToReview={(file) => review.addStorageFile(file.reviewId, file.name)}
+      onPrepareFile={(file) => review.prepareStorageFile(file.reviewId)}
       explorer={explorer}
       onScanInCleanup={(mode: ScanMode) => {
         // Opens Cleanup with the mode chosen; the scan starts only when asked there.

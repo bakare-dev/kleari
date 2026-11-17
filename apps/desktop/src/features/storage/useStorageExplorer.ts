@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Listing, ListingProgress } from "../../contracts/storageExplorer";
-import { cancelStorageListing, listStorageFolder, sendStorageItemsToReview } from "../../lib/storageExplorerIpc";
+import type { CleanupPreview } from "../../contracts/cleanup";
+import { cancelStorageListing, listStorageFolder, prepareStorageItemsRemoval } from "../../lib/storageExplorerIpc";
 import { StorageError, type StorageErrorKind } from "../../lib/storageIpc";
-import { plural } from "../../v2/ui/format";
 import { storageErrorText } from "./format";
 
 export interface ExplorerLoaders {
   list: (id: string | null, onProgress: (progress: ListingProgress) => void) => Promise<Listing | null>;
   cancel: () => Promise<void>;
-  send: (ids: readonly string[]) => Promise<string[]>;
+  prepare: (ids: readonly string[]) => Promise<CleanupPreview>;
 }
 
-const defaultLoaders: ExplorerLoaders = { list: listStorageFolder, cancel: cancelStorageListing, send: sendStorageItemsToReview };
+const defaultLoaders: ExplorerLoaders = { list: listStorageFolder, cancel: cancelStorageListing, prepare: prepareStorageItemsRemoval };
 
 export interface ExplorerState {
   /** The folder shown; kept while the next one is measured. */
@@ -27,13 +27,12 @@ function errorText(error: unknown): string {
 }
 
 /**
- * The Storage page's Browse view: the folder shown, opening another, and sending what you
- * chose to Cleanup's review. Held at the app level so the folder you were in is still there
+ * The Storage page's Browse view: the folder shown, opening another, and removing what you
+ * chose (its confirm sheet). Held at the app level so the folder you were in is still there
  * when you come back; nothing is stored.
  */
 export function useStorageExplorer(onReviewChanged: () => void, loaders: ExplorerLoaders = defaultLoaders) {
   const [state, setState] = useState<ExplorerState>({ listing: null, loading: false, progress: null, error: null });
-  const [sent, setSent] = useState<ReadonlySet<string>>(new Set());
   const request = useRef(0);
   const mounted = useRef(true);
 
@@ -100,26 +99,16 @@ export function useStorageExplorer(onReviewChanged: () => void, loaders: Explore
     });
   }, [loaders]);
 
-  const send = useCallback(
-    async (ids: readonly string[]): Promise<string> => {
-      try {
-        const done = await loaders.send(ids);
-        // The review gives its own IDs back, so entries are marked only when all of them went.
-        if (done.length === ids.length) {
-          setSent((current) => new Set([...current, ...ids]));
-        }
-        onReviewChanged();
-        return done.length === ids.length
-          ? `Sent ${plural(done.length, "item")} to review. Nothing has moved.`
-          : `Sent ${done.length} of ${ids.length} to review; the rest changed or can’t be chosen. Nothing has moved.`;
-      } catch (error) {
-        return errorText(error);
-      }
-    },
-    [loaders, onReviewChanged],
-  );
+  /** Prepares what you chose for removal here (the confirm sheet shows it). */
+  const prepare = useCallback((ids: readonly string[]) => loaders.prepare(ids), [loaders]);
 
-  return { state, sent, open, reload, cancel, send };
+  /** After something moved: measures the folder shown again, and lets Cleanup's review know. */
+  const removed = useCallback(() => {
+    onReviewChanged();
+    reload();
+  }, [onReviewChanged, reload]);
+
+  return { state, open, reload, cancel, prepare, removed };
 }
 
 export type StorageExplorer = ReturnType<typeof useStorageExplorer>;
