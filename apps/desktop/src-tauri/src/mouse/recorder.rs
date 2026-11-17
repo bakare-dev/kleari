@@ -55,6 +55,49 @@ const SYSTEM_SHORTCUTS: [i32; 17] = [
     1, 2, 27, 28, 29, 30, 31, 32, 33, 36, 60, 61, 64, 65, 79, 81, 184,
 ];
 
+/// Each of `SYSTEM_SHORTCUTS` with the key and modifiers macOS gives it by default (as
+/// `CGSGetSymbolicHotKeyValue` reports them: a virtual key code, and ⌘ ⇧ ⌥ ⌃ as
+/// `MODIFIER_BITS`). A number is turned off only while macOS still binds it to exactly this,
+/// so on a macOS that numbers its shortcuts differently, a number now meaning something else
+/// is never touched. The cost: a shortcut the user moved to another key stays on, so that key
+/// can't be recorded.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+const EXPECTED_KEYS: [(i32, u16, u32); 17] = [
+    (1, 48, CMD),
+    (2, 48, CMD | SHIFT),
+    (27, 50, CMD),
+    (28, 20, CMD | SHIFT),
+    (29, 20, CMD | SHIFT | CTRL),
+    (30, 21, CMD | SHIFT),
+    (31, 21, CMD | SHIFT | CTRL),
+    (32, 126, CTRL),
+    (33, 125, CTRL),
+    (36, 103, 0),
+    (60, 49, CTRL),
+    (61, 49, OPT | CTRL),
+    (64, 49, CMD),
+    (65, 49, CMD | OPT),
+    (79, 123, CTRL),
+    (81, 124, CTRL),
+    (184, 23, CMD | SHIFT),
+];
+const CMD: u32 = 0x10_0000;
+const SHIFT: u32 = 0x2_0000;
+const OPT: u32 = 0x8_0000;
+const CTRL: u32 = 0x4_0000;
+/// The modifier bits compared; others (Fn, the keypad flag arrows carry) are ignored.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+const MODIFIER_BITS: u32 = CMD | SHIFT | OPT | CTRL;
+
+/// Whether macOS binding `number` to `key_code` with `modifiers` is the binding Kleari
+/// expects for it, so it is safe to turn off.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn bound_as_expected(number: i32, key_code: u16, modifiers: u32) -> bool {
+    EXPECTED_KEYS.iter().any(|&(expected, code, mods)| {
+        expected == number && code == key_code && mods == modifiers & MODIFIER_BITS
+    })
+}
+
 /// The recording running now; each start and each end moves it on, so an older recording's
 /// thread sees it has been replaced and lets the keyboard go.
 static CURRENT: AtomicU64 = AtomicU64::new(0);
@@ -213,8 +256,8 @@ mod macos {
     use tauri::{AppHandle, Emitter, Manager};
 
     use super::{
-        missed, recorded, restore_list, save_suspended, stop, Recorded, CURRENT, MAX_RECORDING,
-        RECORD_EVENT, RUNNING, SYSTEM_SHORTCUTS,
+        bound_as_expected, missed, recorded, restore_list, save_suspended, stop, Recorded, CURRENT,
+        MAX_RECORDING, RECORD_EVENT, RUNNING, SYSTEM_SHORTCUTS,
     };
     use crate::history::History;
     use crate::mouse::config::Modifiers;
@@ -236,6 +279,21 @@ mod macos {
     extern "C" {
         fn CGSIsSymbolicHotKeyEnabled(hot_key: i32) -> bool;
         fn CGSSetSymbolicHotKeyEnabled(hot_key: i32, enabled: bool) -> i32;
+        fn CGSGetSymbolicHotKeyValue(
+            hot_key: i32,
+            key_equivalent: *mut u16,
+            virtual_key_code: *mut u16,
+            modifiers: *mut u32,
+        ) -> i32;
+    }
+
+    /// Whether macOS binds `number` to the key Kleari expects (`bound_as_expected`).
+    fn expected_binding(number: i32) -> bool {
+        let (mut character, mut code, mut modifiers) = (0_u16, 0_u16, 0_u32);
+        // SAFETY: the out pointers are to locals of the types the call writes.
+        let error =
+            unsafe { CGSGetSymbolicHotKeyValue(number, &mut character, &mut code, &mut modifiers) };
+        error == 0 && bound_as_expected(number, code, modifiers)
     }
 
     /// Turns each of `numbers` on or off; returns those that didn't end up that way. The state
@@ -260,8 +318,11 @@ mod macos {
         let on: Vec<i32> = SYSTEM_SHORTCUTS
             .iter()
             .copied()
+            // On, and still bound to the key it has by default: a number that means something
+            // else on this macOS, or a shortcut the user moved, is left alone.
             // SAFETY: a plain value.
             .filter(|&number| unsafe { CGSIsSymbolicHotKeyEnabled(number) })
+            .filter(|&number| expected_binding(number))
             .collect();
         let db = &app.state::<History>().db;
         // Unsaved, a crash could leave them off: then they stay on, and only shortcuts macOS
@@ -564,6 +625,26 @@ mod tests {
         // Turning back on: on is done, off stays listed for the next launch.
         assert!(!missed(true, true));
         assert!(missed(false, true));
+    }
+
+    #[test]
+    fn only_a_shortcut_bound_as_expected_is_turned_off() {
+        // ⌘⇥ as macOS binds it by default (Fn and keypad bits are ignored).
+        assert!(bound_as_expected(1, 48, CMD));
+        assert!(bound_as_expected(32, 126, CTRL | 0x80_0000));
+        // The user moved Spotlight to ⌥Space: left on.
+        assert!(!bound_as_expected(64, 49, OPT));
+        // A number this list doesn't know, or one bound to another key on some macOS.
+        assert!(!bound_as_expected(6, 53, CMD | SHIFT | OPT));
+        assert!(!bound_as_expected(1, 50, CMD));
+        // Every listed number has exactly one expected binding.
+        for number in SYSTEM_SHORTCUTS {
+            let count = EXPECTED_KEYS
+                .iter()
+                .filter(|(n, _, _)| *n == number)
+                .count();
+            assert_eq!(count, 1, "number {number}");
+        }
     }
 
     #[test]
