@@ -41,6 +41,7 @@ pub async fn start_apps_scan(app: AppHandle) -> Result<AppsScan, CommandError> {
         let running = running_apps::running_bundles(&app).unwrap_or_default();
         let (result, bundles, review) = apps::scan(
             &apps::app_folders(home.as_deref()),
+            &apps::system_app_folders(),
             home.as_deref(),
             &running,
             unix_time_ms(),

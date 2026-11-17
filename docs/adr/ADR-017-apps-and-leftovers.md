@@ -9,19 +9,29 @@
   kept `~/Library/Application Support`, `Containers` and `Group Containers` out of reach
   entirely, because they hold apps' real data.
 - **Decision:**
-  - **A read-only Apps scan** (`apps/`). It reads the app bundles directly in
-    `/Applications`, `/Applications/Utilities` and `~/Applications` (each one's `Info.plist`
-    only, at most 256 KB, as untrusted input), and the names and sizes of entries directly in
-    the Library folders apps keep data in (`policy::LEFTOVER_FOLDERS`). Everything is opened
-    through handles without following symlinks; a symlinked app (Safari) isn't offered.
+  - **A read-only Apps scan** (`apps/`). It reads the app bundles in `/Applications`,
+    `/Applications/Utilities` and `~/Applications` and in plain folders up to two levels below
+    them (`/Applications/DaVinci Resolve/…app`, `~/Applications/Chrome Apps.localized/…app`;
+    never inside an app, a `.bundle` or other package, or a hidden folder; each bundle listed
+    once by device and inode), plus macOS's own apps in `/System/Applications` and Safari's
+    cryptex (`/System/Volumes/Preboot/Cryptexes/App/System/Applications`), listed as part of
+    macOS (each one's `Info.plist` only, at most 256 KB, as untrusted input), and the names and
+    sizes of entries directly in the Library folders apps keep data in
+    (`policy::LEFTOVER_FOLDERS`). Everything is opened through handles without following
+    symlinks; the `/Applications/Safari.app` symlink isn't followed.
+  - **Part of macOS** is an app in a system folder, or one with an Apple bundle ID
+    (`com.apple.…`) and no App Store receipt (`Contents/_MASReceipt`). Apple's App Store apps
+    (Xcode, Logic Pro) can be removed like any other, but what an Apple app keeps in the Library
+    is never listed or offered, as macOS may share it.
   - **Matching.** An entry belongs to an app when its name is the app's bundle ID or name
     (ignoring case and a `.plist`, `.savedState` or `.binarycookies` suffix), that name followed
     by a dot (`ByHost/<id>.<host>.plist`, `<id>.helper.plist`), or a group container
     `<team>.<id>` (`policy::leftover_matches`). Apple's (`com.apple.…`) never match.
   - **Removing an app** moves its bundle to the Trash through macOS (`NSFileManager
     trashItemAtURL`), so Finder's Put Back works and macOS asks for App Management permission
-    when it needs to. It is refused for an app that is part of macOS, not directly in an
-    Applications folder, open now (the running apps are read fresh; without them nothing is
+    when it needs to. It is refused for an app that is part of macOS, not in an Applications
+    folder (directly or in the plain folders the scan searches, `apps::bundle_in_bounds`), open
+    now (the running apps are read fresh; without them nothing is
     removed), or no longer the folder the scan saw (device and inode). The page asks first and
     says what happens. Activity records it (`appRemoved`).
   - **Its leftovers** are then read again and sent to Cleanup's review, marked as the removed

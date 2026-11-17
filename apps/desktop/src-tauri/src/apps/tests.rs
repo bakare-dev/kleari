@@ -30,7 +30,12 @@ impl Home {
     }
 
     fn app(&self, name: &str, bundle_id: &str) {
-        self.write(&format!("Applications/{name}.app/Contents/Info.plist"), 0);
+        self.app_in("Applications", name, bundle_id);
+    }
+
+    /// An app bundle in `folder` (relative to the home folder).
+    fn app_in(&self, folder: &str, name: &str, bundle_id: &str) {
+        self.write(&format!("{folder}/{name}.app/Contents/Info.plist"), 0);
         let plist = format!(
             r#"<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
@@ -41,15 +46,21 @@ impl Home {
         );
         fs::write(
             self.0
-                .join(format!("Applications/{name}.app/Contents/Info.plist")),
+                .join(format!("{folder}/{name}.app/Contents/Info.plist")),
             plist,
         )
         .expect("plist");
         self.write(
-            &format!("Applications/{name}.app/Contents/MacOS/{name}"),
+            &format!("{folder}/{name}.app/Contents/MacOS/{name}"),
             40_000,
         );
     }
+}
+
+fn names(result: &AppsScan) -> Vec<&str> {
+    let mut names: Vec<&str> = result.apps.iter().map(|app| app.name.as_str()).collect();
+    names.sort_unstable();
+    names
 }
 
 impl Drop for Home {
@@ -84,6 +95,7 @@ fn run(home: &Home, running: &[RunningBundle]) -> (AppsScan, Vec<Bundle>, Vec<Re
     let cancel = AtomicBool::new(false);
     scan(
         &[home.0.join("Applications")],
+        &[],
         Some(&home.0),
         running,
         now_ms(),
@@ -294,25 +306,118 @@ fn a_removed_apps_leftovers_are_read_again_and_marked_as_its_own() {
 }
 
 #[test]
-fn only_app_bundles_directly_in_an_applications_folder_are_in_bounds() {
+fn app_bundles_in_an_applications_folder_or_two_folders_below_are_in_bounds() {
     let folders = app_folders(Some(Path::new("/Users/someone")));
-    assert!(bundle_in_bounds(
-        Path::new("/Applications/Fake.app"),
-        &folders
+    let inside = |path: &str| bundle_in_bounds(Path::new(path), &folders);
+    assert!(inside("/Applications/Fake.app"));
+    assert!(inside("/Users/someone/Applications/Fake.app"));
+    assert!(inside("/Applications/Suite/Fake.app"));
+    assert!(inside("/Applications/Suite/Tools/Fake.app"));
+    assert!(inside(
+        "/Users/someone/Applications/Chrome Apps.localized/Web.app"
     ));
-    assert!(bundle_in_bounds(
-        Path::new("/Users/someone/Applications/Fake.app"),
-        &folders
-    ));
-    assert!(!bundle_in_bounds(Path::new("/Applications/Fake"), &folders));
-    assert!(!bundle_in_bounds(
-        Path::new("/Applications/Suite/Fake.app"),
-        &folders
-    ));
-    assert!(!bundle_in_bounds(
-        Path::new("/System/Applications/Notes.app"),
-        &folders
-    ));
+    assert!(!inside("/Applications/Fake"));
+    assert!(!inside("/Applications/A/B/C/Fake.app"), "too deep");
+    assert!(!inside("/Applications/Host.app/Contents/Helper.app"));
+    assert!(!inside("/Applications/Host.app/Helper.app"));
+    assert!(!inside("/Applications/Driver.bundle/Setup.app"));
+    assert!(!inside("/Applications/.hidden/Fake.app"));
+    assert!(inside("/Applications/Cisco Packet Tracer 9.0.1/Tracer.app"));
+    assert!(!inside("/Applications/../Users/Fake.app"));
+    assert!(!inside("/Applications/Suite/../Fake.app"));
+    assert!(!inside("/ApplicationsX/Fake.app"));
+    // macOS's own apps are listed but never in bounds for removal.
+    assert!(!inside("/System/Applications/Notes.app"));
+    assert!(!inside("/System/Applications/Utilities/Terminal.app"));
+}
+
+#[test]
+fn apps_in_subfolders_are_found_two_levels_deep_never_inside_bundles_or_symlinks() {
+    let home = Home::new("subfolders");
+    home.app("Top", "com.example.Top");
+    home.app_in("Applications/Suite", "Editor", "com.example.Editor");
+    home.app_in("Applications/Vendor/Tools", "Setup", "com.example.Setup");
+    home.app_in("Applications/Web Apps.localized", "Web", "com.example.Web");
+    home.app_in("Applications/A/B/C", "Deep", "com.example.Deep");
+    home.app_in("Applications/Driver.bundle", "Inner", "com.example.Inner");
+    home.app_in(
+        "Applications/Top.app/Contents",
+        "Helper",
+        "com.example.Helper",
+    );
+    home.app_in("Applications/.hidden", "Hidden", "com.example.Hidden");
+    home.app_in("Elsewhere", "Linked", "com.example.Linked");
+    std::os::unix::fs::symlink(
+        home.0.join("Elsewhere"),
+        home.0.join("Applications/Linked Folder"),
+    )
+    .expect("symlink");
+    // The folder is also given as an apps folder of its own: its apps are listed once.
+    let cancel = AtomicBool::new(false);
+    let (result, bundles, _) = scan(
+        &[
+            home.0.join("Applications"),
+            home.0.join("Applications/Suite"),
+        ],
+        &[],
+        Some(&home.0),
+        &[],
+        now_ms(),
+        &cancel,
+    );
+    assert_eq!(names(&result), ["Editor", "Setup", "Top", "Web"]);
+    let editor = result
+        .apps
+        .iter()
+        .find(|app| app.name == "Editor")
+        .expect("Editor");
+    assert!(editor.location.ends_with("Applications/Suite"));
+    assert!(!editor.apple);
+    let folders = [home.0.join("Applications")];
+    assert!(bundles
+        .iter()
+        .all(|bundle| bundle_in_bounds(&bundle.path, &folders)));
+}
+
+#[test]
+fn apples_store_apps_can_be_removed_but_macos_apps_never_and_neither_offers_leftovers() {
+    let home = Home::new("apple");
+    home.app("Xcode", "com.apple.dt.Xcode");
+    home.write("Applications/Xcode.app/Contents/_MASReceipt/receipt", 100);
+    home.app("Old Apple Tool", "com.apple.OldTool");
+    home.app_in("System Apps", "Notes", "com.apple.Notes");
+    home.app_in("System Apps/Utilities", "Terminal", "com.apple.Terminal");
+    home.app_in("System Apps", "Third", "com.example.Third");
+    home.write("Library/Application Support/Xcode/data", 1_000);
+    home.write("Library/Caches/Xcode/blob", 1_000);
+    let cancel = AtomicBool::new(false);
+    let (result, bundles, _) = scan(
+        &[home.0.join("Applications")],
+        &[home.0.join("System Apps")],
+        Some(&home.0),
+        &[],
+        now_ms(),
+        &cancel,
+    );
+    let apple = |name: &str| {
+        result
+            .apps
+            .iter()
+            .find(|app| app.name == name)
+            .unwrap_or_else(|| panic!("{name} listed"))
+            .apple
+    };
+    assert!(!apple("Xcode"), "from the App Store: removable");
+    assert!(apple("Old Apple Tool"));
+    assert!(apple("Notes") && apple("Terminal") && apple("Third"));
+    assert!(result.apps.iter().all(|app| app.leftovers.is_empty()));
+    let xcode = bundles
+        .iter()
+        .find(|bundle| bundle.name == "Xcode")
+        .expect("Xcode");
+    assert!(xcode.apple_made());
+    assert!(leftovers_for_removed(xcode, &home.0, now_ms(), &cancel).is_empty());
+    assert!(caches_of(xcode, &home.0, now_ms(), &cancel).is_empty());
 }
 
 #[test]
