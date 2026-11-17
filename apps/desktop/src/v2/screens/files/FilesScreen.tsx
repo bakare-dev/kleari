@@ -27,7 +27,7 @@ const toolMeta: Record<Tool, { label: string; tone: Tone; icon: IconName; what: 
     label: "Duplicates",
     tone: "violet",
     icon: "copy",
-    what: "Files of 1 MB or more with exactly the same contents. One copy of each is always kept: by default the oldest.",
+    what: "Files of 1 MB or more with exactly the same contents. One copy of each is always kept: by default the oldest. Space saved is “up to”: copies macOS made as clones share their space, so removing one may free less.",
     group: (group) => `${plural(group.items.length, "copy", "copies")}`,
   },
   similar: {
@@ -163,6 +163,8 @@ export function FilesScreen({ files, explorer }: { files: Files; explorer: Explo
     const ids = picked.map((item) => item.id);
     remove({
       what: plural(ids.length, "file"),
+      // A copy may be an APFS clone sharing its space with the one kept.
+      freesUpTo: tool === "duplicates",
       prepare: () => files.prepare(ids),
       onDone: () => {
         setSelection(new Set());
@@ -278,7 +280,9 @@ export function FilesScreen({ files, explorer }: { files: Files; explorer: Explo
                   <span className="v2-row-title">{meta.group(group)}</span>
                   {group.detail && <span className="v2-row-sub">{group.detail}</span>}
                 </span>
-                <span className="v2-num v2-muted">{keeps(group) ? `${formatGb(gb(group.reclaimable))} to gain` : formatGb(gb(group.bytes))}</span>
+                <span className="v2-num v2-muted">
+                  {group.kind === "copies" ? `up to ${formatGb(gb(group.reclaimable))} to gain` : keeps(group) ? `${formatGb(gb(group.reclaimable))} to gain` : formatGb(gb(group.bytes))}
+                </span>
               </div>
               <ul className="files-rows">
                 {items.map((item) => {
@@ -338,7 +342,7 @@ export function FilesScreen({ files, explorer }: { files: Files; explorer: Explo
       {!browsing && result && groups.length > 0 && (
         <FloatingBar>
           <div className="v2-float-text">
-            <span role="status" className="v2-float-title">{picked.length > 0 ? `${picked.length} chosen · ${formatGb(gb(sum(picked, (item) => item.bytes)))}` : "Nothing chosen"}</span>
+            <span role="status" className="v2-float-title">{picked.length > 0 ? `${picked.length} chosen · ${tool === "duplicates" ? "up to " : ""}${formatGb(gb(sum(picked, (item) => item.bytes)))}` : "Nothing chosen"}</span>
             <span className="v2-float-sub">You'll see exactly what will go before anything moves, and it goes to quarantine, so you can put it back.</span>
           </div>
           <div className="v2-float-actions">

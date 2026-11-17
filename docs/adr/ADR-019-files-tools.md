@@ -15,6 +15,8 @@
   - **Duplicates:** files of 1 MB or more with the same size, then the same SHA-256 of their
     first 64 KB, then of all of it. Hard links aren't copies. Contents are read only to hash,
     and hashes are never stored. Each file is opened only if it is still the file the walk saw.
+    Space to gain is shown as "up to": APFS clones (a Finder copy) share their blocks, which
+    macOS doesn't report per file, so removing a copy may free less than its size.
   - **Similar Images:** up to 20,000 images (JPEG, PNG, HEIC, TIFF, WebP, RAW) are decoded by
     macOS (ImageIO through `NSImage`, as Quick Look does) to a 9×8 grayscale thumbnail, whose
     difference hash groups images within 5 bits of each other. Pixels never leave the function.

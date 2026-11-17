@@ -15,6 +15,9 @@ import "./removal.css";
 export interface RemovalRequest {
   /** What is being removed, for the sheet's title, such as "3 files". */
   what: string;
+  /** The space freed may be less than their size (copies that are APFS clones), so it is
+   * said as "up to". */
+  freesUpTo?: boolean;
   /** Prepares the items (Rust checks each again now) and returns their preview. */
   prepare: () => Promise<CleanupPreview>;
   /** After anything was deleted, moved or put back, so the page shows what is left: how many
@@ -214,7 +217,7 @@ function Sheet({ phase, onConfirm, onClose, onUndo }: { phase: Exclude<Phase, { 
   }
   if (phase.kind === "finished") {
     const { result } = phase;
-    const size = formatGb(result.bytes / 1e9);
+    const size = `${phase.request.freesUpTo ? "Up to " : ""}${formatGb(result.bytes / 1e9)}`;
     const title = result.undone
       ? "Put back"
       : result.count === 0
