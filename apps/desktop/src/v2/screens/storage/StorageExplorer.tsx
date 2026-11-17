@@ -43,7 +43,7 @@ function size(entry: { bytes: number; lowerBound: boolean }): string {
  * Browse the home folder one folder at a time, down to single files: a map of what takes the
  * most space, every entry measured, and a selection to remove.
  */
-export function StorageExplorer({ explorer }: { explorer: Explorer }) {
+export function StorageExplorer({ explorer, intro }: { explorer: Explorer; intro?: string }) {
   const { state } = explorer;
   const { listing } = state;
   const removal = useRemoval();
@@ -92,7 +92,7 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
     <div className="st-browse">
       <div className="st-browse-head">
         <span className="v2-card-note">
-          Open any folder in your home folder, down to single files. Choose what to remove and you'll see it all again first, then delete it or keep it in quarantine.
+          {intro ?? "Open any folder in your home folder, down to single files. Choose what to remove and you'll see it all again first, then delete it or keep it in quarantine."}
         </span>
         <div className="st-browse-actions">
           {state.loading ? (

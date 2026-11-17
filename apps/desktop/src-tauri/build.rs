@@ -75,6 +75,7 @@ fn main() {
             "start_files_scan",
             "cancel_files_scan",
             "prepare_files_removal",
+            "open_found_folder",
             "get_maintenance_info",
             "run_maintenance_task",
             "prepare_launch_agent_removal",

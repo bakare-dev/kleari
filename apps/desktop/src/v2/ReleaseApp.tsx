@@ -68,6 +68,8 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
   const explorer = useStorageExplorer(review.refresh);
   // App-level so a running search and each tool's result survive leaving the page.
   const files = useFiles(review.refresh);
+  // Its own Browse view, for folders opened in Files › Downloads; Storage's stays where it was.
+  const filesExplorer = useStorageExplorer(review.refresh);
   // App-level so a running task's result still shows after leaving the page.
   const maintenance = useMaintenance(review.refresh);
   // App-level so a Mouse save, and the combination changes waiting their turn, finish after
@@ -102,6 +104,7 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
   const { analyze } = storage;
   const { rerun: rerunFiles } = files;
   const { reload: reloadExplorer } = explorer;
+  const { reload: reloadFilesExplorer } = filesExplorer;
   useEffect(() => {
     if (finishedAt === null || rescanned.current === finishedAt) {
       return;
@@ -118,12 +121,13 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
     if (sources.has("storage")) {
       rerunFiles();
       reloadExplorer();
+      reloadFilesExplorer();
       if (analysisResult) {
         analyze();
       }
     }
     refreshActivity();
-  }, [finishedAt, previewItems, previewStates, developerResult, scanDeveloper, appsResult, scanApps, analysisResult, analyze, rerunFiles, reloadExplorer, refreshActivity]);
+  }, [finishedAt, previewItems, previewStates, developerResult, scanDeveloper, appsResult, scanApps, analysisResult, analyze, rerunFiles, reloadExplorer, reloadFilesExplorer, refreshActivity]);
 
   const settings = useSettings(onPreferences);
   // Checks at launch once the saved choice is known; only an update found is shown.
@@ -153,7 +157,7 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
     system: () => <SystemRoute monitor={system} />,
     developer: () => <DeveloperRoute developer={developer} review={review} />,
     apps: () => <AppsRoute apps={apps} />,
-    files: () => <FilesScreen files={files} />,
+    files: () => <FilesScreen files={files} explorer={filesExplorer} />,
     browser: () => <BrowserScreen monitor={processes} />,
     maintenance: () => <MaintenanceScreen maintenance={maintenance} apps={apps} onOpenLoginItems={() => void openSystemSettings("loginItems")} />,
     processes: () => <ProcessesRoute monitor={processes} />,

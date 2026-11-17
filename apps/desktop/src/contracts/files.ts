@@ -119,6 +119,11 @@ export function parseFilesScan(payload: unknown): FilesScan {
   };
 }
 
+/** A found folder's ID in the Browse view, or `null` when it isn't known or changed. */
+export function parseFoundFolder(payload: unknown): string | null {
+  return nullable(payload, (value) => id(value, "$"));
+}
+
 export function parseSent(payload: unknown): string[] {
   return list(payload, "$", 100_000).map((entry, index) => id(entry, `[${index}]`));
 }

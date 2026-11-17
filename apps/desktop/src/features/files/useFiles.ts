@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FilesOptions, FilesScan, Tool } from "../../contracts/files";
-import { cancelFilesScan, prepareFilesRemoval, startFilesScan } from "../../lib/filesIpc";
+import { cancelFilesScan, openFoundFolder, prepareFilesRemoval, startFilesScan } from "../../lib/filesIpc";
 import type { CleanupPreview } from "../../contracts/cleanup";
 import { StorageError, type StorageErrorKind } from "../../lib/storageIpc";
 import { storageErrorText } from "../storage/format";
@@ -9,9 +9,10 @@ export interface FilesLoaders {
   start: (tool: Tool, options: FilesOptions) => Promise<FilesScan>;
   cancel: () => Promise<void>;
   prepare: (ids: readonly string[]) => Promise<CleanupPreview>;
+  openFolder: (id: string) => Promise<string | null>;
 }
 
-const defaultLoaders: FilesLoaders = { start: startFilesScan, cancel: cancelFilesScan, prepare: prepareFilesRemoval };
+const defaultLoaders: FilesLoaders = { start: startFilesScan, cancel: cancelFilesScan, prepare: prepareFilesRemoval, openFolder: openFoundFolder };
 
 function errorText(error: unknown): string {
   const kind: StorageErrorKind = error instanceof StorageError ? error.kind : "unknown";
@@ -100,7 +101,10 @@ export function useFiles(onReviewChanged: () => void, loaders: FilesLoaders = de
     }
   }, [run, onReviewChanged]);
 
-  return { state, run, rerun, cancel, prepare };
+  /** A found folder's ID in the Browse view (`null`: search again). */
+  const openFolder = useCallback((id: string) => loaders.openFolder(id), [loaders]);
+
+  return { state, run, rerun, cancel, prepare, openFolder };
 }
 
 export type Files = ReturnType<typeof useFiles>;

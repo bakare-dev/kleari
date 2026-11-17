@@ -129,6 +129,7 @@ pub fn run() {
             files_commands::start_files_scan,
             files_commands::cancel_files_scan,
             files_commands::prepare_files_removal,
+            files_commands::open_found_folder,
             maintenance_commands::get_maintenance_info,
             maintenance_commands::run_maintenance_task,
             maintenance_commands::prepare_launch_agent_removal,

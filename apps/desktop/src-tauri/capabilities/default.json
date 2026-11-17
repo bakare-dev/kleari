@@ -75,6 +75,7 @@
     "allow-start-files-scan",
     "allow-cancel-files-scan",
     "allow-prepare-files-removal",
+    "allow-open-found-folder",
     "allow-get-maintenance-info",
     "allow-run-maintenance-task",
     "allow-prepare-launch-agent-removal",

@@ -11,6 +11,7 @@ use crate::cleanup_commands::{blocking_failed, check_ids, home};
 use crate::commands::{CommandError, CommandErrorCode};
 use crate::files::{self, FilesScan, FilesState, Options, ScanBusy, Tool};
 use crate::history::History;
+use crate::storage::explorer::ExplorerState;
 use crate::system_monitor::open_paths;
 use crate::system_monitor::running_apps;
 
@@ -68,6 +69,26 @@ pub async fn start_files_scan(
 #[tauri::command]
 pub fn cancel_files_scan(state: State<'_, FilesState>) {
     state.cancel();
+}
+
+/// Opens a folder the last search found (Files › Downloads) in the Browse view, read-only:
+/// its ID there, to list with `list_storage_folder`, or `None` when it isn't a known folder
+/// or changed since.
+#[tauri::command]
+pub async fn open_found_folder(app: AppHandle, id: String) -> Result<Option<String>, CommandError> {
+    check_ids(std::slice::from_ref(&id))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let home = home()?;
+        let excluded = app.state::<History>().exclusions()?;
+        let Some((path, stat)) = app.state::<FilesState>().folder(&id) else {
+            return Ok(None);
+        };
+        Ok(app
+            .state::<ExplorerState>()
+            .folder_at(&home, &path, &stat, &excluded))
+    })
+    .await
+    .map_err(blocking_failed)?
 }
 
 /// Prepares what you chose for removal on the Files page (in a group of copies one is always

@@ -210,6 +210,14 @@ impl FilesState {
             .map(|item| item.chosen.path.clone())
     }
 
+    /// A found folder's path and identity, to open it in the Browse view.
+    pub fn folder(&self, id: &str) -> Option<(PathBuf, FileStat)> {
+        lock(&self.found)
+            .get(id)
+            .filter(|item| item.chosen.stat.is_dir())
+            .map(|item| (item.chosen.path.clone(), item.chosen.stat))
+    }
+
     /// What `ids` stand for, ready for the review. In a group where one copy must be kept, if
     /// every member was asked for, the group's first (the one the page marks Keep) is held back.
     pub fn chosen(&self, ids: &[String]) -> Vec<Chosen> {

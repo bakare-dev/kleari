@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FileGroup, FileItem, FilesOptions, Tool } from "../../../contracts/files";
 import type { FileCategory } from "../../../contracts/storage";
 import type { Files } from "../../../features/files/useFiles";
+import type { StorageExplorer as Explorer } from "../../../features/storage/useStorageExplorer";
 import type { IconName } from "../../ui/icons";
 import { Button, FloatingBar, IconTile, PageHeader, Pill, Segmented, Select, Spinner, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
@@ -9,6 +10,8 @@ import { headingIdFor } from "../../shell/routes";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
 import { Picture } from "../../ui/Picture";
 import { ImagePreview, type PreviewImage } from "../../ui/ImagePreview";
+import { StorageExplorer } from "../storage/StorageExplorer";
+import "../storage/storage.css";
 import "./files.css";
 
 const toolMeta: Record<Tool, { label: string; tone: Tone; icon: IconName; what: string; group: (group: FileGroup) => string }> = {
@@ -86,10 +89,13 @@ function keeps(group: FileGroup): boolean {
   return group.kind === "copies" || group.kind === "similar";
 }
 
-export function FilesScreen({ files }: { files: Files }) {
+export function FilesScreen({ files, explorer }: { files: Files; explorer: Explorer }) {
   const { state } = files;
   const remove = useRemoval();
   const [tool, setTool] = useState<Tool>("largeOld");
+  // A folder of Downloads opened in place (the Browse view), and why one didn't open.
+  const [browsing, setBrowsing] = useState(false);
+  const [folderNote, setFolderNote] = useState<string | null>(null);
   const [options, setOptions] = useState<FilesOptions>({ largeMinMb: 500, oldDays: 180 });
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
   // The images seen large: a group's images and the one chosen.
@@ -118,6 +124,22 @@ export function FilesScreen({ files }: { files: Files }) {
     setSelection(new Set(ids));
   };
 
+  const openFolder = (item: FileItem) => {
+    setFolderNote(null);
+    files.openFolder(item.id).then(
+      (id) => {
+        if (id === null) {
+          setFolderNote(`“${item.name}” changed since the search. Search again to open it.`);
+          return;
+        }
+        setSelection(new Set());
+        setBrowsing(true);
+        explorer.open(id);
+      },
+      () => setFolderNote(`Kleari couldn’t open “${item.name}”.`),
+    );
+  };
+
   const removePicked = () => {
     const ids = picked.map((item) => item.id);
     remove({
@@ -144,6 +166,8 @@ export function FilesScreen({ files }: { files: Files }) {
           onChange={(next) => {
             setTool(next);
             setSelection(new Set());
+            setBrowsing(false);
+            setFolderNote(null);
           }}
           options={(Object.keys(toolMeta) as Tool[]).map((value) => ({ value, label: toolMeta[value].label }))}
         />
@@ -193,8 +217,18 @@ export function FilesScreen({ files }: { files: Files }) {
           </div>
         </section>
         {(state.error || state.stopped) && <span role="status" className="v2-card-note">{state.error ?? "The search was stopped. Showing the last full result."}</span>}
+        {folderNote && <span role="status" className="v2-card-note">{folderNote}</span>}
         {/* The tabs and the tool stay in place; only what was found scrolls. */}
         <div className="files-results" tabIndex={0} role="region" aria-label="What was found">
+          {browsing ? (
+            <section aria-label="Folder in Downloads" className="v2-card files-browse">
+              <div>
+                <Button variant="soft" size="sm" onClick={() => setBrowsing(false)}>‹ Back to Downloads</Button>
+              </div>
+              <StorageExplorer explorer={explorer} intro="Open folders inside it and keep going deeper. Choose what to remove and you'll see it all again first." />
+            </section>
+          ) : (
+          <>
           {running && !result && (
             <section className="v2-card files-empty" aria-label="Searching">
               <Spinner size={30} />
@@ -245,7 +279,13 @@ export function FilesScreen({ files }: { files: Files }) {
                         }}
                       />
                       <span className="v2-row-text">
-                        <span className="v2-row-title v2-ellipsis">{item.name}</span>
+                        {tool === "downloads" && item.folder ? (
+                          <button type="button" className="v2-row-title v2-ellipsis v2-link files-open" title={`Open ${item.name}`} onClick={() => openFolder(item)}>
+                            {item.name} ›
+                          </button>
+                        ) : (
+                          <span className="v2-row-title v2-ellipsis">{item.name}</span>
+                        )}
                         <span className="v2-row-sub v2-ellipsis">
                           {item.location} · {tool === "largeOld" && group.kind === "old" ? `opened ${age(item.openedMs ?? item.modifiedMs, nowMs)}` : `changed ${age(item.modifiedMs, nowMs)}`}
                         </span>
@@ -261,10 +301,12 @@ export function FilesScreen({ files }: { files: Files }) {
               </ul>
             </section>
           ))}
+          </>
+          )}
         </div>
       </div>
 
-      {result && groups.length > 0 && (
+      {!browsing && result && groups.length > 0 && (
         <FloatingBar>
           <div className="v2-float-text">
             <span role="status" className="v2-float-title">{picked.length > 0 ? `${picked.length} chosen · ${formatGb(gb(sum(picked, (item) => item.bytes)))}` : "Nothing chosen"}</span>
