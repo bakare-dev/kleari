@@ -61,6 +61,9 @@ jobs:
       - run: cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --all -- --check
       - run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --locked
       - run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --locked --all-targets -- -D warnings
+      # Only the update check may reach the internet (docs/network.md); needs Cargo's resolved
+      # dependencies for macOS, which the steps above have fetched.
+      - run: pnpm check:network
       - run: cargo install cargo-audit --locked
       - run: cargo audit --file apps/desktop/src-tauri/Cargo.lock
 

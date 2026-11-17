@@ -10,7 +10,8 @@
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint .",
     "tauri": "tauri",
-    "check:release-bundle": "node scripts/check-release-bundle.mjs"
+    "check:release-bundle": "node scripts/check-release-bundle.mjs",
+    "check:network": "node scripts/check-network-boundary.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",

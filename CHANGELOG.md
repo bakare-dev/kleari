@@ -6,6 +6,14 @@ All notable user-facing changes to Kleari are documented here. This file follows
 
 ## [Unreleased]
 
+### Security
+
+- Kleari's window now blocks every outside connection by name (`connect-src`), objects,
+  frames, forms and base URLs, on top of loading nothing from outside the app. A new CI
+  check (`pnpm check:network`) fails any change that would let Kleari reach the internet
+  other than for updates, and [docs/network.md](docs/network.md) lists every address it
+  contacts and how to check it yourself.
+
 ### Fixed
 
 - **Settings › About › What's new** showed the release page's address as text you couldn't
