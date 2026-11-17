@@ -8,9 +8,10 @@ All notable user-facing changes to Kleari are documented here. This file follows
 
 ### Added
 
-- **Legal documents and a "use at your own risk" notice.** Kleari is a personal project shared
-  as is: [DISCLAIMER.md](DISCLAIMER.md) says so plainly and is shown once at first launch (and
-  to existing users once, after updating). Settings › About has a Legal section with the
+- **Legal documents and a "use at your own risk" notice.** Kleari is free, open-source software
+  provided as is, and only acts on what you approve: [DISCLAIMER.md](DISCLAIMER.md) says so
+  plainly, and a short notice is shown once at first launch (and to existing users once, after
+  updating). Settings › About has a Legal section with the
   disclaimer, [PRIVACY.md](PRIVACY.md), the licence, [SECURITY.md](SECURITY.md) and the new
   [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), generated from every package that ships, with
   a CI check that it stays current and that each licence can be combined with Kleari's. The ⓘ at

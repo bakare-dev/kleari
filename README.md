@@ -92,7 +92,7 @@ Kleari is free software under the [GNU General Public License v3.0 or later](LIC
 use, study, change and share it; if you distribute a modified version, you must share its
 source under the same license.
 
-It's a personal project, made for fun and shared as is, **without warranty**: read the
+It's provided as is, **without warranty**: read the
 [disclaimer](DISCLAIMER.md) before you clean up, and keep a backup. The other documents:
 
 - [PRIVACY.md](PRIVACY.md): what Kleari reads, and that it stays on your Mac.

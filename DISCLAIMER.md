@@ -1,9 +1,8 @@
 # Disclaimer
 
-Kleari is a personal project, made for fun and shared freely. Anyone may use it, study it,
-change it and contribute to it under its licence, the
-[GNU General Public License v3.0 or later](LICENSE). It isn't a company's product, and nobody is
-paid to support it.
+Kleari is free, open-source software. Anyone may use it, study it, change it and contribute to
+it under its licence, the [GNU General Public License v3.0 or later](LICENSE). It's maintained
+by volunteers, not sold by a company, so there's no paid support.
 
 ## Use it at your own risk
 
@@ -12,8 +11,9 @@ warranty that it fits a particular purpose or works without errors. The contribu
 liable for any loss or damage that comes from using it, as set out in sections 15 and 16 of the
 licence. Where this page and the licence differ, the licence applies.
 
-Kleari works on your Mac directly, so a mistake, a bug or an unexpected setup could cost you
-data or time. In particular it can:
+Kleari never moves, deletes or changes your files, apps or system settings on its own: each of
+the actions below happens only after you choose it and approve what it will do. Even so, a bug, a mistake or an unexpected
+setup could cost you data or time. When you approve them, Kleari can:
 
 - **move files out of their folders** into its quarantine, and **delete them for good** when you
   choose Delete permanently or empty its quarantine;
@@ -23,8 +23,7 @@ data or time. In particular it can:
 - **change how your mouse works**, and while you record a shortcut, briefly turn off macOS's own
   shortcuts such as ⌘⇥ and Spotlight.
 
-Kleari asks before anything like this happens, and what it moves can be restored from
-quarantine until you delete it. Even so:
+What it moves can be restored from quarantine until you delete it. To stay safe:
 
 - **Keep a current backup**, for example with Time Machine, before cleaning up.
 - **Read the preview** before you approve a move or a permanent delete.
