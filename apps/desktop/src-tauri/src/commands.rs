@@ -216,6 +216,16 @@ pub async fn open_system_settings(app: AppHandle, pane: SettingsPane) -> Result<
         .map_err(|system_settings::OpenFailed| CommandErrorCode::SettingsUnavailable.into())
 }
 
+/// Opens Kleari's release page for `version` in the browser (an update's "What's new"). The
+/// address is built in Rust; the page sends only a version, which must look like one.
+#[tauri::command]
+pub async fn open_release_page(app: AppHandle, version: String) -> Result<(), CommandError> {
+    tauri::async_runtime::spawn_blocking(move || system_settings::open_release_page(&app, &version))
+        .await
+        .map_err(|_| CommandError::from(CommandErrorCode::SettingsUnavailable))?
+        .map_err(|system_settings::OpenFailed| CommandErrorCode::SettingsUnavailable.into())
+}
+
 /// Opens the native folder panel. The chosen folder is kept in Rust under a grant ID; the
 /// frontend receives only the ID and the folder's name.
 #[tauri::command]

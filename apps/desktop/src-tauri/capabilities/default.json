@@ -11,6 +11,7 @@
     "allow-get-system-details",
     "allow-list-startup-items",
     "allow-open-system-settings",
+    "allow-open-release-page",
     "allow-get-storage-overview",
     "allow-start-storage-analysis",
     "allow-cancel-storage-analysis",

@@ -74,6 +74,54 @@ pub fn open<R: tauri::Runtime>(
     }
 }
 
+/// Kleari's release page for `version`, built here from a fixed address: the page names only a
+/// version, which must look like one (`0.1.0` or `0.1.0-beta.3`), and never a URL.
+pub fn release_page(version: &str) -> Option<String> {
+    let (core, pre) = version
+        .split_once('-')
+        .map_or((version, None), |(core, pre)| (core, Some(pre)));
+    let numbers: Vec<&str> = core.split('.').collect();
+    let digits = |part: &str| {
+        !part.is_empty() && part.len() <= 6 && part.bytes().all(|b| b.is_ascii_digit())
+    };
+    let core_ok = numbers.len() == 3 && numbers.iter().all(|part| digits(part));
+    let pre_ok = pre.is_none_or(|pre| {
+        pre.split_once('.').is_some_and(|(label, number)| {
+            matches!(label, "alpha" | "beta" | "rc") && digits(number)
+        })
+    });
+    (core_ok && pre_ok)
+        .then(|| format!("https://github.com/bakare-dev/kleari/releases/tag/v{version}"))
+}
+
+/// Opens Kleari's release page for `version` in the default browser.
+#[cfg(target_os = "macos")]
+pub fn open_release_page<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    version: &str,
+) -> Result<(), OpenFailed> {
+    let url = release_page(version).ok_or(OpenFailed)?;
+    let (sender, receiver) = std::sync::mpsc::channel();
+    app.run_on_main_thread(move || {
+        // The receiver only goes away if the waiting command was dropped; nothing to report.
+        let _ = sender.send(macos::open_url(&url));
+    })
+    .map_err(|_| OpenFailed)?;
+    if receiver.recv().map_err(|_| OpenFailed)? {
+        Ok(())
+    } else {
+        Err(OpenFailed)
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn open_release_page<R: tauri::Runtime>(
+    _app: &tauri::AppHandle<R>,
+    _version: &str,
+) -> Result<(), OpenFailed> {
+    Err(OpenFailed)
+}
+
 #[cfg(not(target_os = "macos"))]
 pub fn open<R: tauri::Runtime>(
     _app: &tauri::AppHandle<R>,
@@ -123,6 +171,28 @@ mod tests {
         )
         .is_err());
         assert!(serde_json::from_str::<SettingsPane>(r#""privacy""#).is_err());
+    }
+
+    #[test]
+    fn only_a_version_makes_a_release_page() {
+        assert_eq!(
+            release_page("0.1.0-beta.3").as_deref(),
+            Some("https://github.com/bakare-dev/kleari/releases/tag/v0.1.0-beta.3")
+        );
+        assert!(release_page("1.2.0").is_some());
+        for bad in [
+            "",
+            "1.2",
+            "1.2.0.4",
+            "v1.2.0",
+            "1.2.0-beta",
+            "1.2.0-nightly.1",
+            "1.2.0/../../evil",
+            "1.2.0-beta.3?x=1",
+            "https://example.com",
+        ] {
+            assert_eq!(release_page(bad), None, "{bad}");
+        }
     }
 
     #[test]

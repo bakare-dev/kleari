@@ -7,7 +7,7 @@ import type { AccessFolder, FolderSource, LoginItem, NotificationAccess, Prefere
 import type { ScanMode } from "../../../contracts/cleanup";
 import type { NotificationKey, UninstallOutcome } from "../../../features/settings/useSettings";
 import type { UpdateState } from "../../../features/settings/useUpdates";
-import { installable, updateStatus } from "./Updates";
+import { installable, notesText, showReleaseNotes, updateStatus } from "./Updates";
 import "./settings.css";
 import { AccessSteps } from "../../ui/AccessSteps";
 
@@ -604,7 +604,13 @@ export function SettingsScreen(props: SettingsScreenProps) {
                     )
                   }
                 />
-                {update?.status === "available" && update.notes && <Row label="What’s new" sub={update.notes} control={null} />}
+                {update?.status === "available" && (
+                  <Row
+                    label="What’s new"
+                    sub={notesText(update.notes) ?? `The release notes for ${update.version}, on GitHub`}
+                    control={<Button variant="soft" size="sm" onClick={() => showReleaseNotes(update.version)}>Open</Button>}
+                  />
+                )}
               </Group>
               <Group title="Uninstall" note="Your own files are never touched. Quarantine must be empty first, so nothing of yours goes to the Trash with Kleari.">
                 <Row

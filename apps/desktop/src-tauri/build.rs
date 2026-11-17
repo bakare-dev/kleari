@@ -75,6 +75,7 @@ fn main() {
             "get_issues",
             "list_browser_tabs",
             "close_browser_tabs",
+            "open_release_page",
         ]),
     ))
     .expect("failed to run tauri-build");

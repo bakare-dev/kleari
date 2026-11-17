@@ -99,6 +99,7 @@ pub fn run() {
             commands::get_system_details,
             commands::list_startup_items,
             commands::open_system_settings,
+            commands::open_release_page,
             commands::choose_scan_folder,
             commands::start_scan,
             commands::cancel_scan,

@@ -6,6 +6,11 @@ All notable user-facing changes to Kleari are documented here. This file follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Settings › About › What's new** showed the release page's address as text you couldn't
+  click; it now opens the release notes in your browser, as does the update offer.
+
 ## [0.1.0-beta.3] - 2026-11-14
 
 ### Added
