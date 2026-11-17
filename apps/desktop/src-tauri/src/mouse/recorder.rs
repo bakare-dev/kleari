@@ -40,13 +40,19 @@ const MAX_RECORDING: Duration = Duration::from_secs(30);
 const SUSPENDED_KEY: &str = "mouse.recorder.suspendedShortcuts";
 
 /// macOS's system shortcuts turned off while recording, by their number in macOS's
-/// `com.apple.symbolichotkeys` list: ⌘⇥ and ⌘⇧⇥ (1, 2), ⌘` (6), the screenshot shortcuts
+/// `com.apple.symbolichotkeys` list: ⌘⇥ and ⌘⇧⇥ (1, 2), ⌘` (27), the screenshot shortcuts
 /// (28–31, 184), Mission Control and App windows (32, 33), Show desktop (36), the previous and
 /// next Space (79, 81), Spotlight and its Finder search (64, 65), and the input-source switch
 /// (60, 61).
+///
+/// Checked on macOS 27 with `CGSGetSymbolicHotKeyValue`, which reported each number's default
+/// key: 1 ⌘⇥, 2 ⌘⇧⇥, 27 ⌘`, 28 ⌘⇧3, 29 ⌃⌘⇧3, 30 ⌘⇧4, 31 ⌃⌘⇧4, 32 ⌃↑, 33 ⌃↓, 36 F11, 60 ⌃Space,
+/// 61 ⌃⌥Space, 64 ⌘Space, 65 ⌘⌥Space, 79 ⌃←, 81 ⌃→, 184 ⌘⇧5. (6, once listed here, is ⌘⌥⇧⎋,
+/// Force Quit, and is never touched.) A number names the system action, so one the user has
+/// moved to another key is still turned off, and that key can then be recorded too.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 const SYSTEM_SHORTCUTS: [i32; 17] = [
-    1, 2, 6, 28, 29, 30, 31, 32, 33, 36, 60, 61, 64, 65, 79, 81, 184,
+    1, 2, 27, 28, 29, 30, 31, 32, 33, 36, 60, 61, 64, 65, 79, 81, 184,
 ];
 
 /// The recording running now; each start and each end moves it on, so an older recording's
@@ -136,23 +142,28 @@ fn save_suspended(db: &Database, numbers: &[i32]) -> bool {
 }
 
 /// At launch: turns back on any system shortcut a recording turned off and never got to turn
-/// back on (Kleari quit or crashed mid-recording).
+/// back on (Kleari quit or crashed mid-recording, or macOS refused last time).
 pub fn restore_after_crash(db: &Database) {
     #[cfg(target_os = "macos")]
     restore_with(db, |numbers| macos::set_enabled(numbers, true));
     #[cfg(not(target_os = "macos"))]
-    restore_with(db, |_| {});
+    restore_with(db, |_| Vec::new());
 }
 
 /// `restore_after_crash`, turning them on with `turn_on` (so tests never touch macOS).
-fn restore_with(db: &Database, turn_on: impl FnOnce(&[i32])) {
+fn restore_with(db: &Database, turn_on: impl FnOnce(&[i32]) -> Vec<i32>) {
     let left_off = saved_suspended(db);
-    if left_off.is_empty() {
-        return;
+    if !left_off.is_empty() {
+        restore_list(db, &left_off, turn_on);
     }
-    turn_on(&left_off);
-    // If this can't be saved, the next launch turns them on again, which changes nothing.
-    let _ = db.set_setting(SUSPENDED_KEY, "[]");
+}
+
+/// Turns `numbers` back on with `turn_on`, which returns those macOS didn't turn on; only
+/// those stay listed, so each launch tries them again until they are on. If the list can't be
+/// saved, it keeps what it held before, which is only ever more to turn on: never fewer.
+fn restore_list(db: &Database, numbers: &[i32], turn_on: impl FnOnce(&[i32]) -> Vec<i32>) {
+    let still_off = turn_on(numbers);
+    let _ = save_suspended(db, &still_off);
 }
 
 /// Starts recording (ending any recording before it) and waits until the keyboard is
@@ -195,8 +206,8 @@ mod macos {
     use tauri::{AppHandle, Emitter, Manager};
 
     use super::{
-        recorded, save_suspended, stop, Recorded, CURRENT, MAX_RECORDING, RECORD_EVENT, RUNNING,
-        SUSPENDED_KEY, SYSTEM_SHORTCUTS,
+        recorded, restore_list, save_suspended, stop, Recorded, CURRENT, MAX_RECORDING,
+        RECORD_EVENT, RUNNING, SYSTEM_SHORTCUTS,
     };
     use crate::history::History;
     use crate::mouse::config::Modifiers;
@@ -220,12 +231,19 @@ mod macos {
         fn CGSSetSymbolicHotKeyEnabled(hot_key: i32, enabled: bool) -> i32;
     }
 
-    pub fn set_enabled(numbers: &[i32], enabled: bool) {
-        for &number in numbers {
-            // SAFETY: plain values; an unknown number is ignored by macOS. The error code says
-            // only that it wasn't changed, which the next launch's restore covers.
-            let _ = unsafe { CGSSetSymbolicHotKeyEnabled(number, enabled) };
-        }
+    /// Turns each of `numbers` on or off; returns those that didn't end up that way (macOS
+    /// returned an error, or reads back the other state).
+    pub fn set_enabled(numbers: &[i32], enabled: bool) -> Vec<i32> {
+        numbers
+            .iter()
+            .copied()
+            .filter(|&number| {
+                // SAFETY: plain values; an unknown number is refused with an error code.
+                let error = unsafe { CGSSetSymbolicHotKeyEnabled(number, enabled) };
+                // SAFETY: a plain value.
+                error != 0 || unsafe { CGSIsSymbolicHotKeyEnabled(number) } != enabled
+            })
+            .collect()
     }
 
     /// Turns off the system shortcuts that are on, saving the list first; returns it.
@@ -242,12 +260,22 @@ mod macos {
         if on.is_empty() || !save_suspended(db, &on) {
             return Vec::new();
         }
-        set_enabled(&on, false);
-        on
+        let still_on = set_enabled(&on, false);
+        // Those macOS kept on needn't be turned back on; the list says exactly what is off.
+        let off: Vec<i32> = on
+            .into_iter()
+            .filter(|number| !still_on.contains(number))
+            .collect();
+        if !still_on.is_empty() {
+            // Unsaved, the list still names more than is off: turning those on changes nothing.
+            let _ = save_suspended(db, &off);
+        }
+        off
     }
 
-    /// Turns back on exactly what `suspend` turned off, and forgets the list. Runs when its
-    /// guard is dropped, so a panic on the recording's thread still restores them.
+    /// Turns back on exactly what `suspend` turned off, and keeps listed only what macOS
+    /// wouldn't turn on (tried again at the next launch). Runs when its guard is dropped, so a
+    /// panic on the recording's thread still restores them.
     struct Suspended {
         app: AppHandle,
         numbers: Vec<i32>,
@@ -258,10 +286,8 @@ mod macos {
             if self.numbers.is_empty() {
                 return;
             }
-            set_enabled(&self.numbers, true);
             let db = &self.app.state::<History>().db;
-            // If this can't be saved, the next launch turns them on again: no change.
-            let _ = db.set_setting(SUSPENDED_KEY, "[]");
+            restore_list(db, &self.numbers, |numbers| set_enabled(numbers, true));
         }
     }
 
@@ -494,11 +520,30 @@ mod tests {
         assert!(save_suspended(&db, &[1, 2]));
         assert_eq!(saved_suspended(&db), vec![1, 2]);
         let mut turned_on = Vec::new();
-        restore_with(&db, |numbers| turned_on.extend_from_slice(numbers));
+        restore_with(&db, |numbers| {
+            turned_on.extend_from_slice(numbers);
+            Vec::new()
+        });
         assert_eq!(turned_on, vec![1, 2]);
         assert!(saved_suspended(&db).is_empty());
         // Nothing saved: nothing is turned on.
         restore_with(&db, |_| panic!("nothing to turn on"));
+    }
+
+    #[test]
+    fn a_shortcut_macos_wouldnt_turn_back_on_stays_listed_for_the_next_launch() {
+        let db = Database::in_memory();
+        // macOS turns 64 back on but refuses 1 and 32.
+        restore_list(&db, &[1, 32, 64], |_| vec![1, 32]);
+        assert_eq!(saved_suspended(&db), vec![1, 32]);
+        // At the next launch it is tried again, and this time works: the list is cleared.
+        let mut tried = Vec::new();
+        restore_with(&db, |numbers| {
+            tried.extend_from_slice(numbers);
+            Vec::new()
+        });
+        assert_eq!(tried, vec![1, 32]);
+        assert!(saved_suspended(&db).is_empty());
     }
 
     #[test]
