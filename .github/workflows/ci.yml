@@ -32,6 +32,7 @@ jobs:
       - run: pnpm build
       # The v2 sample-data interface is development-only; fail if it reaches the release bundle.
       - run: pnpm check:release-bundle
+      - run: pnpm test:network
       - run: pnpm audit --audit-level high
 
   rust:

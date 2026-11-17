@@ -33,19 +33,30 @@ release file are the only usage figures there are.
 runs in CI on every change and fails if any of these stops being true:
 
 1. The only Rust code able to make HTTP or internet connections is reached through Tauri's
-   updater plugin, as Cargo resolves Kleari's dependencies for macOS.
-2. The updater is the only Tauri plugin, and no permission grants one that could fetch,
-   open sockets or run programs.
+   updater plugin, as Cargo resolves Kleari's dependencies for macOS. Kleari depends on no
+   socket library directly. Tauri's async runtime has its own, which Kleari's code can't use
+   for network sockets (see 4).
+2. The updater is the only Tauri plugin. No capability, whether in a file or written inside
+   `tauri.conf.json`, grants a plugin that could fetch, open sockets or run programs. A
+   capability file the check can't read counts as a failure.
 3. The updater's addresses are Kleari's own GitHub releases, over HTTPS.
-4. The Rust code opens no internet sockets and uses no native networking API. It runs only
-   a fixed few Apple programs, and none of its AppleScript fetches anything. Every web
-   address in it is Kleari's GitHub, Apple's plist identifier (a label, never fetched) or a
-   reserved test domain.
-5. The interface uses no `fetch`, XHR, WebSocket, EventSource, beacon or HTTP library, and
-   names no web address but Kleari's GitHub.
+4. The Rust code opens no internet sockets, uses no native networking API, and shows no web
+   page but Kleari's own. It runs only a fixed few Apple programs. AppleScript appears only
+   in the two files reviewed for it (browser tabs and maintenance tasks), and no script may
+   run a shell command that fetches or send a browser to an address. Every web address in it
+   is Kleari's GitHub, Apple's plist identifier (a label, never fetched) or a reserved test
+   domain.
+5. The interface uses no `fetch`, XHR, WebSocket, EventSource, beacon or HTTP library, loads
+   no outside file, and names no web address but Kleari's GitHub.
 6. The window's content security policy lets it load and connect to nothing outside the
-   app: `default-src 'self'; connect-src 'self' ipc: http://ipc.localhost`, with objects,
-   frames, forms and base URLs blocked.
+   app: `default-src 'self'; connect-src 'self' ipc: http://ipc.localhost`. Objects, frames,
+   forms and base URLs must stay blocked by name.
+
+The check has its own tests (`pnpm test:network`), which give it a violation of each kind and
+make sure it fails. Its lists of networking libraries and patterns are kept up to date by
+hand. Pattern checks catch what is written in the code; they aren't a proof against code
+built to hide. What does the heavy lifting is that only the updater has a way to connect at
+all.
 
 The download address in `latest.json` is checked again in Rust before an update is offered
 and before it is downloaded (`apps/desktop/src-tauri/src/updates.rs`).

@@ -1,33 +1,72 @@
 /* global process, console */
 // Fails when Kleari could reach the internet other than to check for and download updates
 // (docs/network.md). Kleari's promise is that the update check is its only request; this
-// keeps every way of making another one out of the code. It reads files only, so it runs
-// anywhere (`pnpm check:network`, and in CI's frontend job):
-// 1. Rust dependencies: the only crates that can speak HTTP or open internet connections are
-//    reached through tauri-plugin-updater, and through nothing else (`cargo metadata` for
-//    macOS; this part needs Cargo, so the whole check runs in CI's Rust job).
-// 2. Tauri plugins: tauri-plugin-updater is the only one, and no capability grants a plugin
-//    that could fetch, open a socket or run a shell.
+// keeps every way of making another one out of the code. It changes nothing, and fails closed:
+// anything it can't read or doesn't recognise is a failure, not a pass.
+// `pnpm check:network`, run in CI's Rust job (part 1 needs Cargo's resolved dependencies);
+// its own tests: `node --test scripts/check-network-boundary.test.mjs`.
+//
+// 1. Rust dependencies, as Cargo resolves them for macOS: the crates that speak HTTP or other
+//    internet protocols are reached only through tauri-plugin-updater, and kleari depends
+//    directly on no socket crate (tokio's own use of socket2 and mio is fine: Kleari's code
+//    may not use `tokio::net`, part 4).
+// 2. Tauri plugins and capabilities: the updater is the only plugin, and no capability, in any
+//    file or inline in tauri.conf.json, grants a plugin that could fetch, open a socket or run
+//    a program. A capability file in a format this check doesn't read is a failure.
 // 3. The updater's endpoints are Kleari's own GitHub releases, over HTTPS.
-// 4. Rust source: no internet sockets or native networking APIs (a local Unix socket, as the
-//    Docker check uses, is fine); every programme it runs is one of a fixed few, and no
-//    AppleScript it runs fetches anything; every web address written in it is Kleari's own
-//    GitHub, Apple's plist identifier (never fetched) or a reserved test domain.
-// 5. Frontend source: no fetch, XHR, WebSocket, EventSource, beacon or HTTP library, and
-//    every web address is Kleari's own GitHub.
-// 6. The content security policy blocks every outside source, names connect-src explicitly,
-//    and allows nothing beyond the app itself, its IPC and its local asset protocol.
+// 4. Rust source: no internet sockets, native networking API or web view showing anything
+//    but the app's own pages (`WebviewUrl::External`, `navigate`); every program it runs is one
+//    of a fixed few; AppleScript only in the files reviewed for it, with no shell command that
+//    fetches and no command that sends a browser anywhere; every web address written in it is
+//    Kleari's own GitHub, Apple's plist identifier (never fetched) or a reserved test domain.
+// 5. Frontend: no fetch, XHR, WebSocket, EventSource, beacon or HTTP library, no remote file in
+//    index.html, and every web address is Kleari's own GitHub.
+// 6. The content security policy: every source is the app itself, its IPC or its local asset
+//    protocol, and objects, frames, forms and base URLs are blocked by name.
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { pathToFileURL } from "node:url";
 
-const desktop = join(import.meta.dirname, "..");
-const tauriDir = join(desktop, "src-tauri");
-const problems = [];
-const fail = (message) => problems.push(message);
+/** Crates that speak HTTP or another internet protocol: reached only through the updater. */
+export const NETWORK_CRATES = [
+  "reqwest", "hyper", "h2", "h3", "quinn", "ureq", "isahc", "curl", "curl-sys", "surf", "attohttpc",
+  "tungstenite", "tokio-tungstenite", "async-tungstenite", "websocket", "native-tls", "openssl",
+  "rustls", "trust-dns-resolver", "hickory-resolver", "dns-lookup", "lettre", "ssh2", "libssh2-sys",
+  "tauri-plugin-http", "tauri-plugin-websocket", "tauri-plugin-upload",
+];
+/** Crates that open sockets: never a direct dependency of kleari. */
+export const SOCKET_CRATES = ["socket2", "mio", "net2", "nix", "polling", "async-io", "async-net", "smol", "pnet"];
+const UPDATER = "tauri-plugin-updater";
+const MAC_TARGETS = ["aarch64-apple-darwin", "x86_64-apple-darwin"];
+const KLEARI_RELEASES = "https://github.com/bakare-dev/kleari/releases/";
+const KLEARI_GITHUB = "https://github.com/bakare-dev/kleari";
 
-/** Every file under `dir` with one of `extensions`, skipping build output. */
+/** Programs Rust may run, all Apple's and all local. */
+const PROGRAMS = new Set(["/usr/bin/osascript", "/usr/sbin/system_profiler", "/bin/ps", "/usr/bin/tmutil", "/usr/bin/tccutil"]);
+/** The only files that may run AppleScript: each script in them was reviewed (docs/network.md). */
+const APPLESCRIPT_FILES = new Set(["src-tauri/src/browser.rs", "src-tauri/src/maintenance.rs"]);
+const RUST_NETWORK =
+  /\bstd::net\b|\bTcpStream\b|\bTcpListener\b|\bUdpSocket\b|\btokio::net\b|\bNSURLSession\b|\bNSURLConnection\b|\bNSURLDownload\b|\bCFSocket\w*|\bCFStream\w*|\bCFHTTP\w*|\bnw_connection\w*|\bnw_endpoint\w*|\bWKWebView\b|\bWebviewUrl::External\b|\.navigate\s*\(|\bload_url\b|\bsocket2\b|\bmio::net\b|\breqwest\b|\bureq\b|\bhyper\b/g;
+/** AppleScript that sends a browser (or anything) to an address, or runs code in a page. */
+const APPLESCRIPT_NAVIGATION = /\bopen location\b|\bset\s+(?:the\s+)?URL\b|\bmake new (?:tab|document|window)\b|\bdo JavaScript\b|\bexecute\b[^"\n]*\bjavascript\b|\bnavigate\b|\bGET URL\b/i;
+/** Shell tools that fetch, in an AppleScript `do shell script`. */
+const SCRIPT_FETCH = /\b(curl|wget|nc|ncat|ssh|scp|sftp|ftp|telnet|rsync|nslookup|dig|ping|open)\b|https?:\/\//;
+/** Web addresses Rust may contain: Kleari's GitHub (update feed, release pages), Apple's plist
+ * identifier (a DOCTYPE, never fetched) and reserved test domains (RFC 2606). */
+const RUST_HOSTS = /^(github\.com\/bakare-dev\/kleari\/|www\.apple\.com\/DTDs\/|([a-z0-9-]+\.)*example(\.(com|org|net))?([:/]|$)|[a-z]+@host\.example)/;
+const WEB_NETWORK =
+  /\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\bsendBeacon\b|\bnew\s+Image\s*\(|\bimportScripts\b|@tauri-apps\/plugin-(http|websocket|upload|shell|opener)\b/g;
+const HTTP_PACKAGES =
+  /^(axios|ky|got|node-fetch|cross-fetch|isomorphic-fetch|undici|superagent|socket\.io-client|ws|@tauri-apps\/plugin-(http|websocket|upload|shell|opener))$/;
+const FORBIDDEN_PERMISSIONS = /^(http|websocket|upload|shell|opener|process|fs|deep-link):/;
+/** Every source the content security policy may name. */
+const CSP_SOURCES = new Set(["'self'", "'none'", "'unsafe-inline'", "asset:", "http://asset.localhost", "data:", "ipc:", "http://ipc.localhost"]);
+/** Directives the policy must set to exactly this (form-action has no default-src fallback). */
+const CSP_REQUIRED = { "default-src": "'self'", "object-src": "'none'", "frame-src": "'none'", "base-uri": "'none'", "form-action": "'none'" };
+
+/** Every file under `dir` with one of `extensions` (all files for `null`), skipping build output. */
 function files(dir, extensions) {
   const found = [];
   for (const entry of readdirSync(dir)) {
@@ -37,14 +76,14 @@ function files(dir, extensions) {
     const path = join(dir, entry);
     if (statSync(path).isDirectory()) {
       found.push(...files(path, extensions));
-    } else if (extensions.some((extension) => entry.endsWith(extension))) {
+    } else if (extensions === null || extensions.some((extension) => entry.endsWith(extension))) {
       found.push(path);
     }
   }
   return found;
 }
 
-/** Each match of `pattern` in `text`, with its 1-based line. */
+/** Each match of `pattern` (global) in `text`, with its 1-based line. */
 function matches(text, pattern) {
   const found = [];
   for (const [index, line] of text.split("\n").entries()) {
@@ -55,34 +94,38 @@ function matches(text, pattern) {
   return found;
 }
 
-// 1. Rust dependencies, as Cargo resolves them for macOS (Kleari's only platform; Cargo.lock
-//    also lists other platforms' dependencies, such as tauri's reqwest for Android and iOS):
-//    what kleari reaches through normal and build dependencies without going through the
-//    updater. Needs Cargo, with the dependencies already fetched (CI's Rust job).
-const NETWORK_CRATES = [
-  "reqwest", "hyper", "h2", "h3", "quinn", "ureq", "isahc", "curl", "curl-sys", "surf", "attohttpc",
-  "tungstenite", "tokio-tungstenite", "async-tungstenite", "websocket", "native-tls", "openssl",
-  "rustls", "tauri-plugin-http", "tauri-plugin-websocket", "tauri-plugin-upload",
-];
-const UPDATER = "tauri-plugin-updater";
-const MAC_TARGETS = ["aarch64-apple-darwin", "x86_64-apple-darwin"];
-for (const target of MAC_TARGETS) {
+/** `cargo metadata` for `target`, as Cargo resolves Kleari's dependencies there. */
+export function cargoMetadata(tauriDir, target) {
   const run = spawnSync(
     "cargo",
-    ["metadata", "--locked", "--format-version", "1", "--filter-platform", target, "--manifest-path", join(tauriDir, "Cargo.toml"), ...(process.env.CARGO_NET_OFFLINE === "true" ? ["--offline"] : [])],
+    [
+      "metadata", "--locked", "--format-version", "1", "--filter-platform", target,
+      "--manifest-path", join(tauriDir, "Cargo.toml"),
+      ...(process.env.CARGO_NET_OFFLINE === "true" ? ["--offline"] : []),
+    ],
     { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
   );
   if (run.status !== 0) {
-    fail(`cargo metadata for ${target} failed: ${(run.stderr || run.error?.message || "").trim()}`);
-    continue;
+    throw new Error(`cargo metadata for ${target} failed: ${(run.stderr || run.error?.message || "").trim()}`);
   }
-  const metadata = JSON.parse(run.stdout);
+  return JSON.parse(run.stdout);
+}
+
+/** Part 1, for one target's metadata. */
+function checkDependencies(metadata, target, fail) {
   const nameOf = new Map(metadata.packages.map((pkg) => [pkg.id, pkg.name]));
   const nodes = new Map(metadata.resolve.nodes.map((node) => [node.id, node]));
   const root = metadata.packages.find((pkg) => pkg.name === "kleari")?.id;
   if (root === undefined) {
     fail("cargo metadata has no kleari package; update this check.");
-    continue;
+    return;
+  }
+  // Dev-dependencies (tests only) never ship.
+  const shipped = (dep) => dep.dep_kinds.some((kind) => kind.kind !== "dev");
+  for (const dep of nodes.get(root)?.deps ?? []) {
+    if (shipped(dep) && SOCKET_CRATES.includes(nameOf.get(dep.pkg))) {
+      fail(`Rust (${target}): kleari depends directly on the socket crate "${nameOf.get(dep.pkg)}".`);
+    }
   }
   const reached = new Set();
   const queue = [root];
@@ -93,8 +136,7 @@ for (const target of MAC_TARGETS) {
     }
     reached.add(id);
     for (const dep of nodes.get(id)?.deps ?? []) {
-      // Dev-dependencies (tests only) never ship.
-      if (dep.dep_kinds.some((kind) => kind.kind !== "dev")) {
+      if (shipped(dep)) {
         queue.push(dep.pkg);
       }
     }
@@ -106,120 +148,48 @@ for (const target of MAC_TARGETS) {
   }
 }
 
-// 2. Tauri plugins and capabilities.
-const cargoToml = readFileSync(join(tauriDir, "Cargo.toml"), "utf8");
-const plugins = [...cargoToml.matchAll(/^(tauri-plugin-[a-z0-9-]+)\s*=/gm)].map((match) => match[1]);
-for (const plugin of plugins) {
-  if (plugin !== UPDATER) {
-    fail(`Cargo.toml: the Tauri plugin ${plugin} isn't allowed (only ${UPDATER}); see docs/network.md.`);
+/** Part 2's check of one capability: every permission it grants. */
+function checkCapability(capability, where, fail) {
+  if (typeof capability !== "object" || capability === null || !Array.isArray(capability.permissions)) {
+    fail(`${where}: a capability this check can't read (it needs a permissions list).`);
+    return;
   }
-}
-const FORBIDDEN_PERMISSIONS = /^(http|websocket|upload|shell|opener|process|fs|deep-link):/;
-for (const path of files(join(tauriDir, "capabilities"), [".json"])) {
-  const capability = JSON.parse(readFileSync(path, "utf8"));
-  for (const permission of capability.permissions ?? []) {
-    const id = typeof permission === "string" ? permission : permission.identifier;
-    if (typeof id === "string" && FORBIDDEN_PERMISSIONS.test(id)) {
-      fail(`${relative(desktop, path)}: the permission "${id}" could reach the network or run programmes.`);
+  for (const permission of capability.permissions) {
+    const id = typeof permission === "string" ? permission : permission?.identifier;
+    if (typeof id !== "string") {
+      fail(`${where}: a permission this check can't read.`);
+    } else if (FORBIDDEN_PERMISSIONS.test(id)) {
+      fail(`${where}: the permission "${id}" could reach the network or run programs.`);
     }
   }
 }
 
-// 3. The updater's endpoints.
-const conf = JSON.parse(readFileSync(join(tauriDir, "tauri.conf.json"), "utf8"));
-const KLEARI_RELEASES = "https://github.com/bakare-dev/kleari/releases/";
-for (const endpoint of conf.plugins?.updater?.endpoints ?? []) {
-  if (!endpoint.startsWith(KLEARI_RELEASES)) {
-    fail(`tauri.conf.json: the updater endpoint ${endpoint} isn't one of Kleari's GitHub releases.`);
+/** Part 6. */
+function checkCsp(csp, fail) {
+  if (typeof csp !== "string") {
+    fail("tauri.conf.json: app.security.csp must be a string that blocks outside sources.");
+    return;
   }
-}
-
-// 4. Rust source.
-const RUST_NETWORK = /\bstd::net\b|\bTcpStream\b|\bTcpListener\b|\bUdpSocket\b|\btokio::net\b|\bNSURLSession\b|\bNSURLConnection\b|\bCFSocket\w*|\bCFStream\w*|\bnw_connection\w*|\breqwest\b|\bureq\b|\bhyper\b/g;
-const PROGRAMMES = new Set(["/usr/bin/osascript", "/usr/sbin/system_profiler", "/bin/ps", "/usr/bin/tmutil", "/usr/bin/tccutil"]);
-const SCRIPT_NETWORK = /\b(curl|wget|nc|ncat|ssh|scp|sftp|ftp|telnet|rsync)\b|open location|https?:\/\//;
-// Web addresses Rust may contain: Kleari's own GitHub (the update feed and release pages),
-// Apple's plist identifier (a DOCTYPE, never fetched) and reserved test domains (RFC 2606).
-const RUST_HOSTS = /^(github\.com\/bakare-dev\/kleari\/|www\.apple\.com\/DTDs\/|([a-z0-9-]+\.)*example(\.(com|org|net))?([:/]|$)|[a-z]+@host\.example)/;
-for (const path of files(join(tauriDir, "src"), [".rs"])) {
-  const name = relative(desktop, path);
-  const text = readFileSync(path, "utf8");
-  for (const found of matches(text, RUST_NETWORK)) {
-    fail(`${name}:${found.line}: "${found.text}" could open a network connection.`);
+  const directives = new Map();
+  for (const part of csp.split(";").map((text) => text.trim()).filter(Boolean)) {
+    const [directive, ...sources] = part.split(/\s+/);
+    if (directives.has(directive)) {
+      fail(`tauri.conf.json: the content security policy sets ${directive} twice.`);
+    }
+    directives.set(directive, sources);
   }
-  // Test-only files may run other programmes (to set up files): they never ship.
-  const testOnly = /(^|\/)tests?\.rs$/.test(name);
-  for (const found of testOnly ? [] : matches(text, /Command::new\(([^)]*)\)/g)) {
-    const argument = found.text.slice("Command::new(".length, -1).trim();
-    const constant = new RegExp(String.raw`const ${argument}: &str = "([^"]+)"`).exec(text)?.[1];
-    const programme = constant ?? /^"([^"]+)"$/.exec(argument)?.[1];
-    if (programme === undefined || !PROGRAMMES.has(programme)) {
-      fail(`${name}:${found.line}: runs ${argument}, which isn't one of the programmes this check allows.`);
+  for (const [directive, value] of Object.entries(CSP_REQUIRED)) {
+    const sources = directives.get(directive);
+    if (sources === undefined || sources.length !== 1 || sources[0] !== value) {
+      fail(`tauri.conf.json: the content security policy must set ${directive} ${value}.`);
     }
   }
-  for (const found of matches(text, /do shell script "[^"]*"/g)) {
-    if (SCRIPT_NETWORK.test(found.text)) {
-      fail(`${name}:${found.line}: an AppleScript shell command could reach the network: ${found.text}`);
-    }
-  }
-  const lines = text.split("\n");
-  for (const found of matches(text, /https?:\/\/[^\s"'`)\\]+/g)) {
-    // A test's deliberately wrong address is marked on its line, so each one is visible.
-    if (lines[found.line - 1].includes("never requested")) {
-      continue;
-    }
-    if (!RUST_HOSTS.test(found.text.replace(/^https?:\/\//, ""))) {
-      fail(`${name}:${found.line}: ${found.text} isn't an address this check allows.`);
-    }
-  }
-}
-
-// 5. Frontend source and dependencies.
-const WEB_NETWORK = /\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\bsendBeacon\b|\bnew\s+Image\s*\(|@tauri-apps\/plugin-(http|websocket|upload|shell|opener)\b/g;
-for (const path of files(join(desktop, "src"), [".ts", ".tsx", ".js", ".jsx", ".css", ".html"])) {
-  const name = relative(desktop, path);
-  const text = readFileSync(path, "utf8");
-  for (const found of matches(text, WEB_NETWORK)) {
-    fail(`${name}:${found.line}: "${found.text}" could make a network request.`);
-  }
-  for (const found of matches(text, /https?:\/\/[^\s"'`)\\]+/g)) {
-    if (!found.text.startsWith("https://github.com/bakare-dev/kleari")) {
-      fail(`${name}:${found.line}: ${found.text} isn't Kleari's own GitHub.`);
-    }
-  }
-}
-const indexHtml = readFileSync(join(desktop, "index.html"), "utf8");
-for (const found of matches(indexHtml, /(src|href)\s*=\s*"https?:\/\/[^"]*"/g)) {
-  fail(`index.html:${found.line}: loads ${found.text} from outside the app.`);
-}
-const pkg = JSON.parse(readFileSync(join(desktop, "package.json"), "utf8"));
-const HTTP_PACKAGES = /^(axios|ky|got|node-fetch|cross-fetch|isomorphic-fetch|undici|superagent|socket\.io-client|ws|@tauri-apps\/plugin-(http|websocket|upload|shell|opener))$/;
-for (const dependency of Object.keys(pkg.dependencies ?? {})) {
-  if (HTTP_PACKAGES.test(dependency)) {
-    fail(`package.json: the dependency ${dependency} makes network requests.`);
-  }
-}
-
-// 6. The content security policy.
-const csp = conf.app?.security?.csp;
-if (typeof csp !== "string") {
-  fail("tauri.conf.json: app.security.csp must be a string that blocks outside sources.");
-} else {
-  const ALLOWED_SOURCES = new Set(["'self'", "'none'", "'unsafe-inline'", "asset:", "http://asset.localhost", "data:", "ipc:", "http://ipc.localhost"]);
-  const directives = new Map(
-    csp.split(";").map((part) => part.trim()).filter(Boolean).map((part) => {
-      const [directive, ...sources] = part.split(/\s+/);
-      return [directive, sources];
-    }),
-  );
-  for (const required of ["default-src", "connect-src"]) {
-    if (!directives.has(required)) {
-      fail(`tauri.conf.json: the content security policy must set ${required}.`);
-    }
+  if (!directives.has("connect-src")) {
+    fail("tauri.conf.json: the content security policy must set connect-src.");
   }
   for (const [directive, sources] of directives) {
     for (const source of sources) {
-      if (!ALLOWED_SOURCES.has(source)) {
+      if (!CSP_SOURCES.has(source)) {
         fail(`tauri.conf.json: the content security policy's ${directive} allows ${source}.`);
       }
     }
@@ -229,8 +199,143 @@ if (typeof csp !== "string") {
   }
 }
 
-if (problems.length > 0) {
-  console.error(`Kleari could reach the network beyond its update check (docs/network.md):\n  ${problems.join("\n  ")}`);
-  process.exit(1);
+/**
+ * Every way the app in `desktop` (apps/desktop) could reach the internet beyond its update
+ * check, as messages; empty when there is none. `metadata(target)` gives `cargo metadata` for
+ * a target (tests pass their own).
+ */
+export function checkNetworkBoundary(desktop, metadata = (target) => cargoMetadata(join(desktop, "src-tauri"), target)) {
+  const tauriDir = join(desktop, "src-tauri");
+  const problems = [];
+  const fail = (message) => problems.push(message);
+  const read = (path) => readFileSync(path, "utf8");
+
+  // 1.
+  for (const target of MAC_TARGETS) {
+    try {
+      checkDependencies(metadata(target), target, fail);
+    } catch (error) {
+      fail(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  // 2.
+  const cargoToml = read(join(tauriDir, "Cargo.toml"));
+  for (const [, plugin] of cargoToml.matchAll(/^\s*(tauri-plugin-[a-z0-9-]+)\s*=/gm)) {
+    if (plugin !== UPDATER) {
+      fail(`Cargo.toml: the Tauri plugin ${plugin} isn't allowed (only ${UPDATER}); see docs/network.md.`);
+    }
+  }
+  for (const path of files(join(tauriDir, "capabilities"), null)) {
+    const where = relative(desktop, path);
+    if (!path.endsWith(".json")) {
+      fail(`${where}: capability files must be JSON so this check can read them.`);
+      continue;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(read(path));
+    } catch {
+      fail(`${where}: not valid JSON, so this check can't read it.`);
+      continue;
+    }
+    // A file may hold one capability, or a list of them.
+    for (const capability of Array.isArray(parsed) ? parsed : [parsed]) {
+      checkCapability(capability, where, fail);
+    }
+  }
+  const conf = JSON.parse(read(join(tauriDir, "tauri.conf.json")));
+  for (const capability of conf.app?.security?.capabilities ?? []) {
+    // A name refers to a file checked above; an object is a capability written inline.
+    if (typeof capability !== "string") {
+      checkCapability(capability, "tauri.conf.json (inline capability)", fail);
+    }
+  }
+
+  // 3.
+  for (const endpoint of conf.plugins?.updater?.endpoints ?? []) {
+    if (typeof endpoint !== "string" || !endpoint.startsWith(KLEARI_RELEASES)) {
+      fail(`tauri.conf.json: the updater endpoint ${endpoint} isn't one of Kleari's GitHub releases.`);
+    }
+  }
+
+  // 4.
+  for (const path of files(join(tauriDir, "src"), [".rs"])) {
+    const name = relative(desktop, path);
+    const text = read(path);
+    const lines = text.split("\n");
+    for (const found of matches(text, RUST_NETWORK)) {
+      fail(`${name}:${found.line}: "${found.text}" could open a network connection.`);
+    }
+    // Test-only files may run other programs (to set up files): they never ship.
+    if (!/(^|\/)tests?\.rs$/.test(name)) {
+      for (const found of matches(text, /Command::new\(([^)]*)\)/g)) {
+        const argument = found.text.slice("Command::new(".length, -1).trim();
+        const constant = new RegExp(String.raw`const ${argument}: &str = "([^"]+)"`).exec(text)?.[1];
+        const program = constant ?? /^"([^"]+)"$/.exec(argument)?.[1];
+        if (program === undefined || !PROGRAMS.has(program)) {
+          fail(`${name}:${found.line}: runs ${argument}, which isn't one of the programs this check allows.`);
+        }
+      }
+    }
+    const appleScript = /\bosascript\b|\bNSAppleScript\b|\bOSAScript\b|\bOSAKit\b/.test(text);
+    if (appleScript && !APPLESCRIPT_FILES.has(name)) {
+      fail(`${name}: runs AppleScript outside the files reviewed for it (${[...APPLESCRIPT_FILES].join(", ")}).`);
+    }
+    for (const [index, line] of lines.entries()) {
+      if (APPLESCRIPT_NAVIGATION.test(line)) {
+        fail(`${name}:${index + 1}: AppleScript that sends a browser to an address or runs code in a page.`);
+      }
+    }
+    for (const found of matches(text, /do shell script "[^"]*"/g)) {
+      if (SCRIPT_FETCH.test(found.text)) {
+        fail(`${name}:${found.line}: an AppleScript shell command could reach the network: ${found.text}`);
+      }
+    }
+    for (const found of matches(text, /https?:\/\/[^\s"'`)\\]+/g)) {
+      // A test's deliberately wrong address is marked on its line, so each one is visible.
+      if (lines[found.line - 1].includes("never requested")) {
+        continue;
+      }
+      if (!RUST_HOSTS.test(found.text.replace(/^https?:\/\//, ""))) {
+        fail(`${name}:${found.line}: ${found.text} isn't an address this check allows.`);
+      }
+    }
+  }
+
+  // 5.
+  for (const path of files(join(desktop, "src"), [".ts", ".tsx", ".js", ".jsx", ".mjs", ".css", ".html"])) {
+    const name = relative(desktop, path);
+    const text = read(path);
+    for (const found of matches(text, WEB_NETWORK)) {
+      fail(`${name}:${found.line}: "${found.text}" could make a network request.`);
+    }
+    for (const found of matches(text, /(?:https?|wss?):\/\/[^\s"'`)\\]+/g)) {
+      if (!found.text.startsWith(KLEARI_GITHUB)) {
+        fail(`${name}:${found.line}: ${found.text} isn't Kleari's own GitHub.`);
+      }
+    }
+  }
+  for (const found of matches(read(join(desktop, "index.html")), /(src|href)\s*=\s*["']?(?:https?:)?\/\/[^"'\s>]*/g)) {
+    fail(`index.html:${found.line}: loads ${found.text} from outside the app.`);
+  }
+  const pkg = JSON.parse(read(join(desktop, "package.json")));
+  for (const dependency of Object.keys(pkg.dependencies ?? {})) {
+    if (HTTP_PACKAGES.test(dependency)) {
+      fail(`package.json: the dependency ${dependency} makes network requests.`);
+    }
+  }
+
+  // 6.
+  checkCsp(conf.app?.security?.csp, fail);
+  return problems;
 }
-console.log("Network boundary: only the update check can reach the internet.");
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  const problems = checkNetworkBoundary(join(import.meta.dirname, ".."));
+  if (problems.length > 0) {
+    console.error(`Kleari could reach the network beyond its update check (docs/network.md):\n  ${problems.join("\n  ")}`);
+    process.exit(1);
+  }
+  console.log("Network boundary: only the update check can reach the internet.");
+}
