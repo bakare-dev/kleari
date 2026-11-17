@@ -79,18 +79,98 @@ const CSP_SOURCES = new Set(["'self'", "'none'", "'unsafe-inline'", "asset:", "h
 /** Directives the policy must set to exactly this (form-action has no default-src fallback). */
 const CSP_REQUIRED = { "default-src": "'self'", "object-src": "'none'", "frame-src": "'none'", "base-uri": "'none'", "form-action": "'none'" };
 
+/**
+ * Rust `text` with comments and the contents of strings and character literals replaced by
+ * spaces (newlines kept, so lines and columns stay put): only code is left, for finding
+ * attributes, modules and braces. Handles line and nested block comments, plain, byte and raw
+ * strings (`r#"…"#`) and character literals, telling `'a'` from a lifetime `'a`.
+ */
+export function rustCode(text) {
+  const out = [...text];
+  const blank = (from, to) => {
+    for (let at = from; at < to; at += 1) {
+      if (out[at] !== "\n") {
+        out[at] = " ";
+      }
+    }
+  };
+  const identifier = (ch) => ch !== undefined && /[A-Za-z0-9_]/.test(ch);
+  let at = 0;
+  while (at < text.length) {
+    const ch = text[at];
+    const next = text[at + 1];
+    if (ch === "/" && next === "/") {
+      const end = text.indexOf("\n", at);
+      const stop = end < 0 ? text.length : end;
+      blank(at, stop);
+      at = stop;
+    } else if (ch === "/" && next === "*") {
+      let depth = 1;
+      let end = at + 2;
+      while (end < text.length && depth > 0) {
+        if (text[end] === "/" && text[end + 1] === "*") {
+          depth += 1;
+          end += 2;
+        } else if (text[end] === "*" && text[end + 1] === "/") {
+          depth -= 1;
+          end += 2;
+        } else {
+          end += 1;
+        }
+      }
+      blank(at, end);
+      at = end;
+    } else if ((ch === "r" || (ch === "b" && next === "r")) && !identifier(text[at - 1])) {
+      // A raw string: r"…", r#"…"#, br#"…"#; otherwise just an identifier starting with r.
+      const start = ch === "b" ? at + 1 : at;
+      let hashes = 0;
+      while (text[start + 1 + hashes] === "#") {
+        hashes += 1;
+      }
+      if (text[start + 1 + hashes] !== '"') {
+        at += 1;
+        continue;
+      }
+      const close = `"${"#".repeat(hashes)}`;
+      const end = text.indexOf(close, start + 2 + hashes);
+      const stop = end < 0 ? text.length : end + close.length;
+      blank(at, stop);
+      at = stop;
+    } else if (ch === '"') {
+      let end = at + 1;
+      while (end < text.length && text[end] !== '"') {
+        end += text[end] === "\\" ? 2 : 1;
+      }
+      blank(at, end + 1);
+      at = end + 1;
+    } else if (ch === "'" && (next === "\\" || text[at + 2] === "'")) {
+      // A character literal ('x', '\n', '\u{1F600}'); a lifetime ('a) has no closing quote.
+      let end = at + 1;
+      while (end < text.length && text[end] !== "'") {
+        end += text[end] === "\\" ? 2 : 1;
+      }
+      blank(at, end + 1);
+      at = end + 1;
+    } else {
+      at += 1;
+    }
+  }
+  return out.join("");
+}
+
 /** `text` with each inline `#[cfg(test)] mod … { … }` blanked (line numbers kept): code that
- * is only compiled for tests. Braces are counted, so a module's `}` in a string could end it
- * early; that only ever checks more, never less. */
+ * is only compiled for tests. The module's extent is found in `rustCode`, so braces in its
+ * strings and comments can't stretch it over the code after it. */
 function withoutInlineTests(text) {
   const lines = text.split("\n");
-  for (let index = 0; index < lines.length; index += 1) {
-    if (!/^\s*#\[cfg\(test\)\]\s*$/.test(lines[index]) || !/^\s*(pub\s+)?mod\s+\w+\s*\{/.test(lines[index + 1] ?? "")) {
+  const code = rustCode(text).split("\n");
+  for (let index = 0; index < code.length; index += 1) {
+    if (!/^\s*#\[cfg\(test\)\]\s*$/.test(code[index]) || !/^\s*(pub(\([^)]*\))?\s+)?mod\s+\w+\s*\{/.test(code[index + 1] ?? "")) {
       continue;
     }
     let depth = 0;
-    for (let at = index + 1; at < lines.length; at += 1) {
-      depth += (lines[at].match(/\{/g) ?? []).length - (lines[at].match(/\}/g) ?? []).length;
+    for (let at = index + 1; at < code.length; at += 1) {
+      depth += (code[at].match(/\{/g) ?? []).length - (code[at].match(/\}/g) ?? []).length;
       lines[at] = "";
       if (depth <= 0) {
         index = at;
@@ -102,7 +182,8 @@ function withoutInlineTests(text) {
 }
 
 /** Whether the Rust file `name` (under src-tauri/src) is a module its parent declares only for
- * tests: `#[cfg(test)]` on the line before `mod <file>;` in `mod.rs` or `<parent>.rs`. */
+ * tests: a real `#[cfg(test)]` attribute (in code, not a comment or string) directly before
+ * `mod <file>;` in `mod.rs` or `<parent>.rs`. */
 function testOnlyModule(srcDir, name, read) {
   const parts = name.replace(/^src-tauri\/src\//, "").replace(/\.rs$/, "").split("/");
   const module = parts.pop() === "mod" ? parts.pop() : name.replace(/^.*\//, "").replace(/\.rs$/, "");
@@ -114,7 +195,7 @@ function testOnlyModule(srcDir, name, read) {
     } catch {
       return false;
     }
-    return new RegExp(String.raw`#\[cfg\(test\)\]\s*\n\s*mod\s+${module}\s*;`).test(text);
+    return new RegExp(String.raw`^\s*#\[cfg\(test\)\]\s*\n\s*mod\s+${module}\s*;`, "m").test(rustCode(text));
   });
 }
 

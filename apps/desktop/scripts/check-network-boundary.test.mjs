@@ -133,6 +133,17 @@ test("an unlisted program fails, except in a module compiled only for tests", ()
   // Named tests.rs but compiled into the app: no exemption.
   fails({ "src-tauri/src/quarantine/mod.rs": "mod tests;\n" }, /quarantine\/tests\.rs:1: runs "\/usr\/bin\/chflags"/);
   fails({ "src-tauri/src/sync/tests.rs": 'fn f() { Command::new("/usr/bin/curl"); }\n', "src-tauri/src/sync/mod.rs": "pub mod tests;\n" }, /runs "\/usr\/bin\/curl"/);
+  // The attribute commented out, or only inside a string: compiled into the app.
+  for (const parent of ["// #[cfg(test)]\nmod tests;\n", "/* #[cfg(test)] */\nmod tests;\n", 'const S: &str = "\n#[cfg(test)]\nmod tests;";\nmod tests;\n']) {
+    fails({ "src-tauri/src/quarantine/mod.rs": parent }, /quarantine\/tests\.rs:1: runs "\/usr\/bin\/chflags"/);
+  }
+});
+
+test("braces in a test module's strings and comments can't hide the shipped code after it", () => {
+  const maintenance =
+    '#[cfg(test)]\nmod tests {\n    const OPEN: &str = "{";\n    const RAW: &str = r#"{{ "#;\n    const C: char = \'{\';\n    // {\n    /* { */\n    fn f<\'a>(s: &\'a str) -> &\'a str { s }\n}\n' +
+    'const S: &str = r#"do shell script "/usr/bin/curl -s x""#;\n';
+  fails({ "src-tauri/src/maintenance.rs": maintenance }, /maintenance\.rs:10: AppleScript runs a shell command this check hasn't reviewed/);
 });
 
 test("AppleScript outside the reviewed files fails", () => {
