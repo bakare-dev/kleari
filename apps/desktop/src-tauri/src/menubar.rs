@@ -336,6 +336,8 @@ pub enum Destination {
     Processes,
     Mouse,
     Activity,
+    /// Activity's Network tab.
+    Network,
     Settings,
 }
 
@@ -354,6 +356,7 @@ impl Destination {
             Self::Processes => "processes",
             Self::Mouse => "mouse",
             Self::Activity => "activity",
+            Self::Network => "activity/network",
             Self::Settings => "settings",
         }
     }
@@ -401,6 +404,11 @@ mod tests {
             Some(Destination::Quarantine)
         );
         assert_eq!(Destination::Review.route(), "review");
+        assert_eq!(
+            serde_json::from_str::<Destination>(r#""network""#).ok(),
+            Some(Destination::Network)
+        );
+        assert_eq!(Destination::Network.route(), "activity/network");
         assert!(serde_json::from_str::<Destination>(r#""'; alert(1); '""#).is_err());
         assert!(serde_json::from_str::<Destination>(r#""preview""#).is_err());
     }

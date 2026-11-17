@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Glyph, type IconName } from "../../ui/icons";
 import { Button, IconTile, PageHeader, Pill, SearchField, Segmented, StatCard, type Status, type Tone } from "../../ui/components";
 import { hrefFor, headingIdFor, type V2Route } from "../../shell/routes";
@@ -52,6 +52,8 @@ interface ActivityScreenProps {
   truncated?: boolean;
   /** The log hasn't been read yet: show nothing rather than an empty log. */
   loading?: boolean;
+  /** Log and Network. */
+  tabs?: ReactNode;
 }
 
 const kindMeta: Record<ActivityKind, { tag: string; tone: Tone; status: Status; group: ActivityGroup }> = {
@@ -74,7 +76,7 @@ const filters: readonly { value: ActivityGroup | "all"; label: string }[] = [
   { value: "system", label: "System" },
 ];
 
-export function ActivityScreen({ days, stats, retentionDays, onExport, unavailable, truncated, loading }: ActivityScreenProps) {
+export function ActivityScreen({ days, stats, retentionDays, onExport, unavailable, truncated, loading, tabs }: ActivityScreenProps) {
   const [filter, setFilter] = useState<ActivityGroup | "all">("all");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
@@ -105,11 +107,16 @@ export function ActivityScreen({ days, stats, retentionDays, onExport, unavailab
         headingId={headingIdFor("activity")}
         subtitle="Everything Kleari has scanned, moved, restored or deleted. This log stays on this Mac."
         actions={
-          onExport && (
-            <Button variant="soft" size="sm" onClick={onExport}>
-              <Glyph name="download" size={13} strokeWidth={2.2} />
-              Export log
-            </Button>
+          (tabs || onExport) && (
+            <>
+              {tabs}
+              {onExport && (
+                <Button variant="soft" size="sm" onClick={onExport}>
+                  <Glyph name="download" size={13} strokeWidth={2.2} />
+                  Export log
+                </Button>
+              )}
+            </>
           )
         }
       />

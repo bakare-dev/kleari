@@ -2,8 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 import { Glyph, type IconName } from "../../ui/icons";
 import { Button, IconTile, type Tone } from "../../ui/components";
 import { NavigatorIcon, Wordmark } from "../../shell/brand";
-import { hrefFor } from "../../shell/routes";
-import type { MenuBarDestination } from "../../../lib/menubarIpc";
+import { menuBarHref, type MenuBarDestination } from "../../../lib/menubarIpc";
 import "./popover.css";
 
 export interface PopoverGauge {
@@ -109,7 +108,7 @@ export function MenuBarPopover({ gauges, network, alerts, startup = null, summar
   const shownAlerts = alerts.slice(0, MAX_ALERTS);
   const moreAlerts = alerts.length - shownAlerts.length;
   const link = (route: MenuBarDestination) => ({
-    href: hrefFor(route),
+    href: menuBarHref(route),
     onClick: (event: { preventDefault: () => void }) => {
       event.preventDefault();
       onGo(route);
@@ -141,7 +140,7 @@ export function MenuBarPopover({ gauges, network, alerts, startup = null, summar
             </a>
           ))}
         </div>
-        <a className="pop-tile pop-network" aria-label={`Network: download ${network.down}, upload ${network.up}`} {...link("system")}>
+        <a className="pop-tile pop-network" aria-label={`Network: download ${network.down}, upload ${network.up}`} {...link("network")}>
           <IconTile tone="teal" icon="network" size={22} glow />
           <span className="v2-muted pop-gauge-label">Network</span>
           {network.note ? (

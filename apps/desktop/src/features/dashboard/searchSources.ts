@@ -62,14 +62,21 @@ function pages(): SearchSource {
     icon: "dashboard",
     tone: "gray",
     target: { route: "dashboard" },
-    items: [...mainNav, { route: "settings" as const, label: "Settings", icon: "sliders" as const }].map((page) => ({
+    items: [...mainNav, { route: "settings" as const, label: "Settings", icon: "sliders" as const }].map((page): SearchItem => ({
       id: page.route,
       title: page.label,
       sub: "Open the page",
       text: pageWords[page.route],
       icon: page.icon,
       target: { route: page.route },
-    })),
+    })).concat({
+      id: "network",
+      title: "Network",
+      sub: "Activity › Network: download and upload now",
+      text: "internet traffic download upload speed",
+      icon: "network",
+      target: { route: "activity", detail: "network" },
+    }),
   };
 }
 

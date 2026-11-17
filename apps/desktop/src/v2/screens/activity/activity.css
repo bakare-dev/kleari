@@ -9,6 +9,12 @@
   padding: 4px 28px 0;
 }
 
+/* The Network tab has no log of its own to scroll, so the whole tab does in a short window. */
+.act-network {
+  overflow-y: auto;
+  padding-bottom: 22px;
+}
+
 /* The filters and the search share a line when they fit; in a narrow window the search
    moves under them instead of past the edge. */
 .act-toolbar {

@@ -1,12 +1,16 @@
-import type { V2Route } from "../v2/shell/routes";
+import { hrefFor, type V2Route } from "../v2/shell/routes";
 import { call } from "./storageIpc";
 
-/** The screens the popover opens; Preview needs a selection made in the main window. */
-/** The pages the popover can open; mirrors `Destination` in src-tauri/src/menubar.rs. */
-export type MenuBarDestination = Extract<
-  V2Route,
-  "dashboard" | "cleanup" | "review" | "quarantine" | "storage" | "system" | "developer" | "apps" | "maintenance" | "processes" | "mouse" | "activity" | "settings"
->;
+/** The pages the popover can open; mirrors `Destination` in src-tauri/src/menubar.rs.
+ * Preview needs a selection made in the main window. `network` is Activity's Network tab. */
+export type MenuBarDestination =
+  | Extract<V2Route, "dashboard" | "cleanup" | "review" | "quarantine" | "storage" | "system" | "developer" | "apps" | "maintenance" | "processes" | "mouse" | "activity" | "settings">
+  | "network";
+
+/** Where a destination is in the main window's hash. */
+export function menuBarHref(destination: MenuBarDestination): string {
+  return destination === "network" ? hrefFor("activity", "network") : hrefFor(destination);
+}
 
 /** Closes the popover and brings the main window forward at `destination`. */
 export async function openMain(destination: MenuBarDestination): Promise<void> {
