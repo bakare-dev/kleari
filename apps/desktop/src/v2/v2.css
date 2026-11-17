@@ -1611,3 +1611,46 @@ input[type="checkbox"]:disabled {
 .setup-step .v2-row-text {
   gap: 6px;
 }
+
+/* The sidebar's ⓘ: the "use at your own risk" notice on hover or focus; a click opens About. */
+.v2-disclaimer-info {
+  position: relative;
+  display: inline-flex;
+  margin-left: auto;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--mp-text-2);
+  cursor: pointer;
+}
+
+.v2-disclaimer-info:hover,
+.v2-disclaimer-info:focus-visible {
+  color: var(--mp-text);
+}
+
+.v2-disclaimer-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: -150px;
+  z-index: 20;
+  width: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--mp-border);
+  border-radius: 10px;
+  background: var(--mp-card);
+  box-shadow: var(--mp-card-shadow);
+  color: var(--mp-text);
+  font-size: 11.5px;
+  line-height: 1.45;
+  text-align: left;
+  visibility: hidden;
+  opacity: 0;
+}
+
+.v2-disclaimer-info:hover .v2-disclaimer-tip,
+.v2-disclaimer-info:focus-visible .v2-disclaimer-tip {
+  visibility: visible;
+  opacity: 1;
+}

@@ -1,6 +1,7 @@
 import { Glyph } from "../ui/icons";
 import { NavigatorIcon, Wordmark } from "./brand";
-import { hrefFor, mainNav, navRouteFor, settingsNav, type NavDestination, type V2Route } from "./routes";
+import { hrefFor, mainNav, navigate, navRouteFor, settingsNav, type NavDestination, type V2Route } from "./routes";
+import { DISCLAIMER_SHORT } from "../../features/legal/legal";
 import type { ReactNode } from "react";
 
 function NavItem({ destination, current }: { destination: NavDestination; current: boolean }) {
@@ -43,6 +44,18 @@ export function Sidebar({ route, destinations = mainNav, footer }: SidebarProps)
       <div className="v2-offline-chip">
         <span className="v2-online-dot" aria-hidden="true" />
         <span>Local. Your files never leave this Mac.</span>
+        <button
+          type="button"
+          className="v2-disclaimer-info"
+          aria-label="Use at your own risk. Open Settings, About"
+          aria-describedby="v2-disclaimer-tip"
+          onClick={() => navigate("settings", "about")}
+        >
+          <Glyph name="info" size={14} strokeWidth={2} />
+          <span id="v2-disclaimer-tip" role="tooltip" className="v2-disclaimer-tip">
+            {DISCLAIMER_SHORT}
+          </span>
+        </button>
       </div>
       {footer}
     </nav>

@@ -7,6 +7,7 @@ import { useMaintenance } from "../features/maintenance/useMaintenance";
 import { MaintenanceScreen } from "./screens/maintenance/MaintenanceScreen";
 import { BrowserScreen } from "./screens/browser/BrowserScreen";
 import { SetupWelcome } from "./shell/SetupWelcome";
+import { DisclaimerNotice } from "./shell/DisclaimerNotice";
 import { openSystemSettings } from "../lib/systemPageIpc";
 import { FilesScreen } from "./screens/files/FilesScreen";
 import { useStorageExplorer } from "../features/storage/useStorageExplorer";
@@ -167,6 +168,7 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
       <main className="v2-main" key={route}>
         {screens[route]()}
       </main>
+      <DisclaimerNotice settings={settings} />
       <SetupWelcome settings={settings} />
       <UpdateOffer offer={updates.offer} state={updates.state} onInstall={() => void updates.install()} onLater={updates.dismiss} />
     </div>

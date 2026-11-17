@@ -12,6 +12,9 @@
     "check:release-bundle": "pnpm --filter @kleari/desktop check:release-bundle",
     "check:network": "pnpm --filter @kleari/desktop check:network",
     "test:network": "pnpm --filter @kleari/desktop test:network",
+    "notices": "pnpm --filter @kleari/desktop notices",
+    "check:notices": "pnpm --filter @kleari/desktop check:notices",
+    "test:notices": "pnpm --filter @kleari/desktop test:notices",
     "typecheck": "pnpm --filter @kleari/desktop typecheck",
     "lint": "pnpm --filter @kleari/desktop lint",
     "tauri": "pnpm --filter @kleari/desktop tauri"

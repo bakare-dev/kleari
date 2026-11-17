@@ -6,6 +6,8 @@ import type { AppearancePreference, AppearanceStorageStatus } from "../../../fea
 import type { AccessFolder, FolderSource, LoginItem, NotificationAccess, Preferences, ScanSchedule, ScheduleFrequency, ScheduleStatus, SettingsState, Uninstalled } from "../../../contracts/settings";
 import type { ScanMode } from "../../../contracts/cleanup";
 import type { NotificationKey, UninstallOutcome } from "../../../features/settings/useSettings";
+import { COPYRIGHT, DISCLAIMER_SHORT, legalDocuments } from "../../../features/legal/legal";
+import { openLegalDocument } from "../../../lib/legalIpc";
 import type { UpdateState } from "../../../features/settings/useUpdates";
 import { installable, notesText, showReleaseNotes, updateStatus } from "./Updates";
 import "./settings.css";
@@ -66,7 +68,7 @@ const sections: readonly { id: Section; label: string; blurb: string; tone: Tone
   { id: "quarantine", label: "Quarantine", blurb: "Where moved items wait until you decide", tone: "orange", icon: "quarantine" },
   { id: "notifications", label: "Notifications", blurb: "When Kleari lets you know", tone: "red", icon: "bell" },
   { id: "privacy", label: "Privacy and safety", blurb: "What stays on this Mac, the activity log and built-in rules", tone: "green", icon: "shield" },
-  { id: "about", label: "About", blurb: "Version, updates and uninstalling", tone: "indigo", icon: "info" },
+  { id: "about", label: "About", blurb: "Version, updates, legal and uninstalling", tone: "indigo", icon: "info" },
 ];
 
 /** Settings › Notifications › Alerts: one switch per group (src-tauri/src/issues.rs). */
@@ -611,6 +613,25 @@ export function SettingsScreen(props: SettingsScreenProps) {
                     control={<Button variant="soft" size="sm" onClick={() => showReleaseNotes(update.version)}>Open</Button>}
                   />
                 )}
+              </Group>
+              <Group title="Legal" note={`${COPYRIGHT}. Kleari is free software under the GNU General Public License v3.0 or later.`}>
+                <Row label="Use at your own risk" sub={DISCLAIMER_SHORT} control={null} />
+                {legalDocuments.map((document) => (
+                  <Row
+                    key={document.id}
+                    label={document.label}
+                    sub={document.sub}
+                    control={
+                      <Button
+                        variant="soft"
+                        size="sm"
+                        onClick={() => void openLegalDocument(document.id).catch(() => toast.show(`${document.label} couldn’t be opened in your browser.`, "warn"))}
+                      >
+                        Open
+                      </Button>
+                    }
+                  />
+                ))}
               </Group>
               <Group title="Uninstall" note="Your own files are never touched. Quarantine must be empty first, so nothing of yours goes to the Trash with Kleari.">
                 <Row

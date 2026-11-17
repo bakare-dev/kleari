@@ -27,6 +27,8 @@ export interface Preferences {
   notifyReminders: boolean;
   /** The first-launch setup was seen. */
   setupDone: boolean;
+  /** Which version of the "use at your own risk" notice was acknowledged; 0 is none. */
+  disclaimerSeen: number;
   retentionDays: number;
   /** Kleari sits in the menu bar and keeps running when its window is closed. */
   menuBar: boolean;
@@ -158,6 +160,7 @@ function preferences(value: unknown, field: string): Preferences {
     notifyLoginItems: boolean(fields.notifyLoginItems, `${field}.notifyLoginItems`),
     notifyReminders: boolean(fields.notifyReminders, `${field}.notifyReminders`),
     setupDone: boolean(fields.setupDone, `${field}.setupDone`),
+    disclaimerSeen: nonNegativeInteger(fields.disclaimerSeen, `${field}.disclaimerSeen`),
     retentionDays: nonNegativeInteger(fields.retentionDays, `${field}.retentionDays`),
     menuBar: boolean(fields.menuBar, `${field}.menuBar`),
     checkForUpdates: boolean(fields.checkForUpdates, `${field}.checkForUpdates`),

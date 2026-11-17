@@ -12,7 +12,10 @@
     "tauri": "tauri",
     "check:release-bundle": "node scripts/check-release-bundle.mjs",
     "check:network": "node scripts/check-network-boundary.mjs",
-    "test:network": "node --test scripts/check-network-boundary.test.mjs"
+    "test:network": "node --test scripts/check-network-boundary.test.mjs",
+    "notices": "node scripts/third-party-notices.mjs",
+    "check:notices": "node scripts/third-party-notices.mjs --check",
+    "test:notices": "node --test scripts/third-party-notices.test.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",

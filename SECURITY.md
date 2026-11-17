@@ -10,8 +10,10 @@ Include the Kleari version (Settings › About), your macOS version, what an att
 and steps to reproduce, using made-up files and folders rather than your own. Don't send
 credentials, file contents or real paths unless they're essential.
 
-The maintainer acknowledges a report as soon as practical, keeps you informed, and credits
-you in the release notes unless you'd rather not be named. There is no paid bounty.
+Kleari is a personal project maintained in spare time, so there are no guaranteed response
+times. A report is acknowledged as soon as practical, you're kept informed, and you're credited
+in the release notes unless you'd rather not be named. There is no paid bounty. Kleari comes
+without warranty ([DISCLAIMER.md](DISCLAIMER.md)).
 
 ## Supported versions
 

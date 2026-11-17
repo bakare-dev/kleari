@@ -33,6 +33,7 @@ jobs:
       # The v2 sample-data interface is development-only; fail if it reaches the release bundle.
       - run: pnpm check:release-bundle
       - run: pnpm test:network
+      - run: pnpm test:notices
       - run: pnpm audit --audit-level high
 
   rust:
@@ -65,6 +66,10 @@ jobs:
       # Only the update check may reach the internet (docs/network.md); needs Cargo's resolved
       # dependencies for macOS, which the steps above have fetched.
       - run: pnpm check:network
+      # THIRD_PARTY_NOTICES.md must list every package that ships, with compatible licences.
+      # The macOS-only crates aren't built here, so fetch every crate's source first.
+      - run: cargo fetch --locked --manifest-path apps/desktop/src-tauri/Cargo.toml
+      - run: pnpm check:notices
       - run: cargo install cargo-audit --locked
       - run: cargo audit --file apps/desktop/src-tauri/Cargo.lock
 

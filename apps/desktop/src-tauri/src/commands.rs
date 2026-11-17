@@ -226,6 +226,21 @@ pub async fn open_release_page(app: AppHandle, version: String) -> Result<(), Co
         .map_err(|system_settings::OpenFailed| CommandErrorCode::SettingsUnavailable.into())
 }
 
+/// Opens one of Kleari's legal documents (Settings › About) in the browser. The page names only
+/// which one; the address is built in Rust.
+#[tauri::command]
+pub async fn open_legal_document(
+    app: AppHandle,
+    document: system_settings::LegalDocument,
+) -> Result<(), CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        system_settings::open_legal_document(&app, document)
+    })
+    .await
+    .map_err(|_| CommandError::from(CommandErrorCode::SettingsUnavailable))?
+    .map_err(|system_settings::OpenFailed| CommandErrorCode::SettingsUnavailable.into())
+}
+
 /// Opens the native folder panel. The chosen folder is kept in Rust under a grant ID; the
 /// frontend receives only the ID and the folder's name.
 #[tauri::command]
