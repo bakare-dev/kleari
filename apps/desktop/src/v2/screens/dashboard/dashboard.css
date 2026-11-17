@@ -204,6 +204,32 @@
   font-size: 11.5px;
 }
 
+/* Search results: one card per module, in place of the Dashboard while there is a query. */
+.dash-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dash-results-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--mp-text-2);
+  font-size: 12.5px;
+}
+
+.dash-found .v2-row-text {
+  min-width: 0;
+}
+
+.dash-found-count {
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .dash-hero {
   position: relative;
   display: flex;

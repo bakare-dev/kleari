@@ -61,7 +61,7 @@ interface SettingsScreenProps {
   onOpenPane: (pane: "loginItems" | "fullDiskAccess" | "filesAndFolders" | "notifications") => void;
 }
 
-const sections: readonly { id: Section; label: string; blurb: string; tone: Tone; icon: IconName }[] = [
+export const sections: readonly { id: Section; label: string; blurb: string; tone: Tone; icon: IconName }[] = [
   { id: "general", label: "General", blurb: "Startup, appearance and the default scan", tone: "gray", icon: "gear" },
   { id: "scanning", label: "Scanning", blurb: "What Kleari leaves out of its findings", tone: "blue", icon: "search" },
   { id: "access", label: "Folders and access", blurb: "Folders Kleari may read", tone: "teal", icon: "folder" },

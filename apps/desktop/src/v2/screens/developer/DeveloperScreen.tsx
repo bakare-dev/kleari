@@ -3,7 +3,7 @@ import type { IconName } from "../../ui/icons";
 import type { CleanupPreview } from "../../../contracts/cleanup";
 import { Button, FloatingBar, IconTile, PageHeader, Pill, Segmented, Spinner, StatCard, Toast, useToast, type Status, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
-import { headingIdFor } from "../../shell/routes";
+import { headingIdFor, tabFromHash } from "../../shell/routes";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
 import { applyFilter, FilterBar, useListFilter, type ListFilterSpec, type TypeChip } from "../../ui/ListFilter";
 import "./developer.css";
@@ -89,7 +89,8 @@ const projectSpec: ListFilterSpec<DevEntry> = { ...toolchainSpec, date: (entry) 
 /** Reclaiming Docker space is Docker's job; Kleari only shows the command (ADR-005). */
 const DOCKER_COMMAND = "docker system prune";
 
-type View = "toolchains" | "projects";
+const views = ["toolchains", "projects"] as const;
+type View = (typeof views)[number];
 
 function size(entry: { gb: number; lowerBound?: boolean }): string {
   return `${entry.lowerBound ? "≥ " : ""}${formatGb(entry.gb)}`;
@@ -98,7 +99,7 @@ function size(entry: { gb: number; lowerBound?: boolean }): string {
 export function DeveloperScreen(props: DeveloperScreenProps) {
   const { toolchains, projects, status } = props;
   const removal = useRemoval();
-  const [view, setView] = useState<View>("toolchains");
+  const [view, setView] = useState<View>(() => tabFromHash(views, "toolchains"));
   const [focus, setFocus] = useState<string | null>(null);
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
   const [copied, setCopied] = useState(false);

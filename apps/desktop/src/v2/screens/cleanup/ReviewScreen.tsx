@@ -25,7 +25,6 @@ interface ReviewScreenProps {
   subtitle: string;
   selection: ReadonlySet<string>;
   onSelectionChange: (next: ReadonlySet<string>) => void;
-  initialQuery: string;
   /** Shows the item in Finder; resolves to a message when it couldn't. */
   onRevealInFinder: (finding: Finding) => Promise<string | null>;
   /** Why the review couldn't load, if it didn't. */
@@ -41,8 +40,8 @@ function EligibilityText({ finding }: { finding: Finding }) {
   );
 }
 
-export function ReviewScreen({ findings, subtitle, selection, onSelectionChange, initialQuery, onRevealInFinder, error }: ReviewScreenProps) {
-  const [filter, setFilter] = useListFilter("review", "largest", initialQuery);
+export function ReviewScreen({ findings, subtitle, selection, onSelectionChange, onRevealInFinder, error }: ReviewScreenProps) {
+  const [filter, setFilter] = useListFilter("review", "largest");
   const [eligibleOnly, setEligibleOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);

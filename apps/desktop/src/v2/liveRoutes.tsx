@@ -157,7 +157,7 @@ export function CleanupRoute({ cleanup, review }: { cleanup: CleanupScan; review
 }
 
 /** Step 2: the review is read again on each visit. */
-export function ReviewRoute({ review, initialQuery = "" }: { review: CleanupReview; initialQuery?: string }) {
+export function ReviewRoute({ review }: { review: CleanupReview }) {
   const { refresh } = review;
   useEffect(() => {
     refresh();
@@ -170,7 +170,6 @@ export function ReviewRoute({ review, initialQuery = "" }: { review: CleanupRevi
       subtitle={reviewSubtitle(review.review, nowMs)}
       selection={review.selection}
       onSelectionChange={review.setSelection}
-      initialQuery={initialQuery}
       onRevealInFinder={(finding) => review.reveal(finding.id)}
       error={review.reviewError}
     />

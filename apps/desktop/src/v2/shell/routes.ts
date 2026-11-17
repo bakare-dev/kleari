@@ -36,6 +36,12 @@ export function detailFromHash(hash: string): string | null {
   return detail || null;
 }
 
+/** The tab the current hash's detail names (`leftovers` in `#apps/leftovers`), or `fallback`. */
+export function tabFromHash<T extends string>(tabs: readonly T[], fallback: T): T {
+  const detail = typeof window === "undefined" ? null : detailFromHash(window.location.hash);
+  return tabs.find((tab) => tab === detail) ?? fallback;
+}
+
 export function hrefFor(route: V2Route, detail?: string): string {
   return detail ? `#${route}/${detail}` : `#${route}`;
 }

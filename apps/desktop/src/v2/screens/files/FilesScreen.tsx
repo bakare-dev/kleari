@@ -1,12 +1,12 @@
 import { useState } from "react";
-import type { FileGroup, FileItem, FilesOptions, Tool } from "../../../contracts/files";
+import { tools, type FileGroup, type FileItem, type FilesOptions, type Tool } from "../../../contracts/files";
 import type { FileCategory } from "../../../contracts/storage";
 import type { Files } from "../../../features/files/useFiles";
 import type { StorageExplorer as Explorer } from "../../../features/storage/useStorageExplorer";
 import type { IconName } from "../../ui/icons";
 import { Button, FloatingBar, IconTile, PageHeader, Pill, Segmented, Select, Spinner, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
-import { headingIdFor } from "../../shell/routes";
+import { headingIdFor, tabFromHash } from "../../shell/routes";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
 import { Picture } from "../../ui/Picture";
 import { ImagePreview, type PreviewImage } from "../../ui/ImagePreview";
@@ -15,7 +15,7 @@ import { StorageExplorer } from "../storage/StorageExplorer";
 import "../storage/storage.css";
 import "./files.css";
 
-const toolMeta: Record<Tool, { label: string; tone: Tone; icon: IconName; what: string; group: (group: FileGroup) => string }> = {
+export const toolMeta: Record<Tool, { label: string; tone: Tone; icon: IconName; what: string; group: (group: FileGroup) => string }> = {
   largeOld: {
     label: "Large & Old",
     tone: "orange",
@@ -106,7 +106,7 @@ const filterSpec: ListFilterSpec<FileItem> = {
 export function FilesScreen({ files, explorer }: { files: Files; explorer: Explorer }) {
   const { state } = files;
   const remove = useRemoval();
-  const [tool, setTool] = useState<Tool>("largeOld");
+  const [tool, setTool] = useState<Tool>(() => tabFromHash(tools, "largeOld"));
   // A folder of Downloads opened in place (the Browse view), and why one didn't open.
   const [browsing, setBrowsing] = useState(false);
   const [folderNote, setFolderNote] = useState<string | null>(null);

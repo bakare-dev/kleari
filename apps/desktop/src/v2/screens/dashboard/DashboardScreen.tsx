@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useDeferredValue, useEffect, useRef, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import type { SearchResult, SearchTarget } from "../../../features/dashboard/search";
 import { Glyph, type IconName } from "../../ui/icons";
 import { Button, Dot, IconTile, LinkButton, ScrollBody, seriesPoints, type Tone } from "../../ui/components";
-import { formatGb } from "../../ui/format";
-import { headingIdFor, hrefFor, type V2Route } from "../../shell/routes";
+import { formatGb, plural } from "../../ui/format";
+import { headingIdFor, hrefFor, navigate, type V2Route } from "../../shell/routes";
 import "./dashboard.css";
 
 export interface DashboardMetric {
@@ -57,8 +58,14 @@ export interface DashboardData {
 
 interface DashboardScreenProps {
   data: DashboardData;
-  /** Search hands the query to Review, where findings are filtered. */
-  onSearch: (query: string) => void;
+  /** The search, kept by the app so results are still there after opening one. */
+  query: string;
+  /** An empty query clears the search, and the list searches it filled in. */
+  onQueryChange: (query: string) => void;
+  /** Searches what Kleari holds this session; called only while there is a query. */
+  search: (query: string) => SearchResult;
+  /** Before a result's page opens: fills that page's list search with the query. */
+  onOpen: (target: SearchTarget, query: string) => void;
   /** Starts a read-only Storage analysis; absent where analysis isn't available. */
   onAnalyze?: () => void;
   /** Issue alerts, shown under the readings when there are any. */
@@ -157,9 +164,59 @@ interface QuickAction {
   icon: IconName;
 }
 
-export function DashboardScreen({ data, onSearch, onAnalyze, alerts }: DashboardScreenProps) {
-  const [query, setQuery] = useState("");
+function SearchResults({ result, query, onOpen, onClear }: { result: SearchResult; query: string; onOpen: (target: SearchTarget) => void; onClear: () => void }) {
+  const link = (target: SearchTarget) => ({ href: hrefFor(target.route, target.detail), onClick: () => onOpen(target) });
+  return (
+    <section aria-label="Search results" className="dash-results">
+      <div className="dash-results-head" role="status">
+        <span>{result.total === 0 ? `Nothing matches “${query}”.` : `${plural(result.total, "match", "matches")} for “${query}”`}</span>
+        <Button variant="soft" size="sm" onClick={onClear}>Clear search</Button>
+      </div>
+      {result.groups.map((group) => (
+        <section key={group.source.id} aria-labelledby={`dash-found-${group.source.id}`} className="v2-card dash-list dash-found">
+          <div className="dash-card-head dash-list-title">
+            <h2 id={`dash-found-${group.source.id}`} className="v2-card-title">
+              {group.source.label} <span className="v2-muted dash-found-count">{group.total}</span>
+            </h2>
+            {group.total > group.matches.length && <a className="v2-link" {...link(group.showAll)}>Show all {group.total}</a>}
+          </div>
+          {group.matches.map((item) => (
+            <a key={item.id} className="v2-row-action" {...link(item.target ?? group.source.target)}>
+              <IconTile tone={item.tone ?? group.source.tone} icon={item.icon ?? group.source.icon} size={30} />
+              <span className="v2-row-text">
+                <span className="v2-row-title v2-ellipsis">{item.title}</span>
+                <span className="dash-row-sub v2-ellipsis">{item.sub}</span>
+              </span>
+              <span className="v2-chevron"><Glyph name="chevronRight" size={14} /></span>
+            </a>
+          ))}
+        </section>
+      ))}
+      {result.pending.length > 0 && (
+        <section aria-label="Not searched yet" className="v2-card dash-list dash-pending">
+          <h2 className="v2-card-title-sm dash-list-title">Not searched yet</h2>
+          {result.pending.map((source) => (
+            <a key={source.id} className="v2-row-action" href={hrefFor(source.target.route, source.target.detail)}>
+              <IconTile tone={source.tone} icon={source.icon} size={28} />
+              <span className="v2-row-text">
+                <span className="v2-row-title">{source.label}</span>
+                <span className="dash-row-sub">{source.pending}</span>
+              </span>
+              <span className="v2-chevron"><Glyph name="chevronRight" size={14} /></span>
+            </a>
+          ))}
+        </section>
+      )}
+    </section>
+  );
+}
+
+export function DashboardScreen({ data, query, onQueryChange, search: searchFor, onOpen, onAnalyze, alerts }: DashboardScreenProps) {
   const search = useRef<HTMLInputElement>(null);
+  // Typing stays quick on big lists: the results catch up after each key.
+  const deferred = useDeferredValue(query);
+  const result = deferred.trim() === "" ? null : searchFor(deferred);
+  const open = (target: SearchTarget) => onOpen(target, deferred.trim());
 
   // ⌘K focuses search, as the field's hint says.
   useEffect(() => {
@@ -173,9 +230,23 @@ export function DashboardScreen({ data, onSearch, onAnalyze, alerts }: Dashboard
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Return opens the first result.
   function submit(event: FormEvent) {
     event.preventDefault();
-    onSearch(query.trim());
+    const first = result?.groups[0];
+    if (first) {
+      const target = first.matches[0].target ?? first.source.target;
+      open(target);
+      navigate(target.route, target.detail);
+    }
+  }
+
+  // Escape clears the search, as the field's own clear button does.
+  function onFieldKey(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Escape" && query !== "") {
+      event.preventDefault();
+      onQueryChange("");
+    }
   }
 
   const actions: QuickAction[] = [
@@ -206,10 +277,11 @@ export function DashboardScreen({ data, onSearch, onAnalyze, alerts }: Dashboard
               <input
                 ref={search}
                 type="search"
-                aria-label="Search files, apps or findings"
-                placeholder="Search files, apps or findings"
+                aria-label="Search Kleari: pages, findings, apps, files and more"
+                placeholder="Search everything"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => onQueryChange(event.target.value)}
+                onKeyDown={onFieldKey}
               />
               <kbd>⌘K</kbd>
             </label>
@@ -218,6 +290,10 @@ export function DashboardScreen({ data, onSearch, onAnalyze, alerts }: Dashboard
       </header>
 
       <ScrollBody label="Dashboard" className="dash-body">
+        {result ? (
+          <SearchResults result={result} query={deferred.trim()} onOpen={open} onClear={() => { onQueryChange(""); search.current?.focus(); }} />
+        ) : (
+        <>
         {data.note && (
           <div role="status" className="v2-banner v2-banner-warn">
             <IconTile tone="yellow" icon="warning" size={32} />
@@ -315,6 +391,8 @@ export function DashboardScreen({ data, onSearch, onAnalyze, alerts }: Dashboard
             <LinkButton href={hrefFor("cleanup")} variant="primary" className="dash-hero-cta">Start scan →</LinkButton>
           </section>
         </div>
+        </>
+        )}
       </ScrollBody>
     </>
   );

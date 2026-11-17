@@ -71,6 +71,24 @@ const sortLabels: Record<SortKey, string> = { largest: "Largest first", smallest
 const storageKey = (list: ListId) => `kleari.listFilter.${list}`;
 /** Searches typed this session, per list: kept while Kleari runs, never stored. */
 const queries = new Map<ListId, string>();
+/** Searches another page filled in (the Dashboard's), so it can take back the ones still as it left them. */
+const handed = new Map<ListId, string>();
+
+/** Fills a list's search before its page opens, as if typed there. */
+export function handOverQuery(list: ListId, query: string): void {
+  queries.set(list, query);
+  handed.set(list, query);
+}
+
+/** Empties every search `handOverQuery` filled that hasn't been changed since. */
+export function takeBackQueries(): void {
+  for (const [list, query] of handed) {
+    if (queries.get(list) === query) {
+      queries.delete(list);
+    }
+  }
+  handed.clear();
+}
 
 function remembered(list: ListId, fallback: SortKey): Pick<FilterState, "sort" | "type"> {
   try {
@@ -97,11 +115,11 @@ function remember(list: ListId, state: FilterState): void {
   }
 }
 
-/** A list's filter: sort and type remembered on this Mac per list, search for the session.
- * `initialQuery`, when not empty, starts the search (a search handed over from elsewhere). */
-export function useListFilter(list: ListId, fallback: SortKey = "largest", initialQuery = ""): [FilterState, (next: Partial<FilterState>) => void] {
-  const start = (id: ListId, query: string): FilterState => ({ ...remembered(id, fallback), query: query || (queries.get(id) ?? "") });
-  const [held, setHeld] = useState<{ list: ListId; state: FilterState }>(() => ({ list, state: start(list, initialQuery) }));
+/** A list's filter: sort and type remembered on this Mac per list, search for the session
+ * (or as another page handed it over, `handOverQuery`). */
+export function useListFilter(list: ListId, fallback: SortKey = "largest"): [FilterState, (next: Partial<FilterState>) => void] {
+  const start = (id: ListId): FilterState => ({ ...remembered(id, fallback), query: queries.get(id) ?? "" });
+  const [held, setHeld] = useState<{ list: ListId; state: FilterState }>(() => ({ list, state: start(list) }));
   const update = useCallback(
     (next: Partial<FilterState>) => {
       setHeld((current) => {
@@ -117,7 +135,7 @@ export function useListFilter(list: ListId, fallback: SortKey = "largest", initi
   );
   // Another list shown in the same place (a Files tool, a Developer view): its own filter.
   if (held.list !== list) {
-    const next = { list, state: start(list, "") };
+    const next = { list, state: start(list) };
     setHeld(next);
     return [next.state, update];
   }

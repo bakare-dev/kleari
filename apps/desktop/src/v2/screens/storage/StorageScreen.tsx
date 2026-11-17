@@ -4,7 +4,7 @@ import { StorageExplorer } from "./StorageExplorer";
 import { Glyph, StatusMark } from "../../ui/icons";
 import { Button, IconTile, Modal, PageHeader, Pill, ProgressBar, Segmented, Spinner, Toast, useToast, type Status } from "../../ui/components";
 import { formatGb } from "../../ui/format";
-import { headingIdFor } from "../../shell/routes";
+import { headingIdFor, tabFromHash } from "../../shell/routes";
 import type { CleanupPreview } from "../../../contracts/cleanup";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
 import type { AnalysisStep, FolderNode, FolderTag, LargeFile, ManagedSpace, StorageAnalysis, StorageCapacity, StorageCategoryDetail } from "./types";
@@ -43,7 +43,8 @@ const tagMeta: Record<FolderTag, { label: string; status: Status }> = {
   yours: { label: "Your files", status: "link" },
 };
 
-type View = "folders" | "files" | "browse";
+const views = ["folders", "files", "browse"] as const;
+type View = (typeof views)[number];
 
 /**
  * Whether Analyze first explains Full Disk Access: only when it is known to be off, once per
@@ -60,7 +61,7 @@ function sizeText(gb: number, lowerBound: boolean | undefined): string {
 
 export function StorageScreen(props: StorageScreenProps) {
   const { tree, categories, analysis, capacity } = props;
-  const [view, setView] = useState<View>("folders");
+  const [view, setView] = useState<View>(() => tabFromHash(views, "folders"));
   const [path, setPath] = useState<readonly number[]>([]);
   const [categoryId, setCategoryId] = useState("developer");
   const [analysisOpen, setAnalysisOpen] = useState(false);

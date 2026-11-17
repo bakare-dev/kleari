@@ -6,14 +6,17 @@ import type { IconName } from "../../ui/icons";
 import { Button, IconTile, Modal, PageHeader, Pill, Segmented, Spinner, Toast, useToast, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
 import { cacheBytes, type Apps } from "../../../features/apps/useApps";
-import { headingIdFor } from "../../shell/routes";
+import { headingIdFor, tabFromHash } from "../../shell/routes";
 import "./maintenance.css";
 import { AccessSteps } from "../../ui/AccessSteps";
 import { openSystemSettings } from "../../../lib/systemPageIpc";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
 import { Picture } from "../../ui/Picture";
 
-const taskMeta: Record<Task, { title: string; tone: Tone; icon: IconName; what: string; after: string }> = {
+const tabs = ["tasks", "caches", "login", "notOffered"] as const;
+type Tab = (typeof tabs)[number];
+
+export const taskMeta: Record<Task, { title: string; tone: Tone; icon: IconName; what: string; after: string }> = {
   freeRam: {
     title: "Free up memory",
     tone: "green",
@@ -114,7 +117,7 @@ const outcomeText: Record<TaskOutcome, string> = {
 
 export function MaintenanceScreen({ maintenance, apps, onOpenLoginItems }: { maintenance: Maintenance; apps: Apps; onOpenLoginItems: () => void }) {
   const { info, startup, running } = maintenance;
-  const [tab, setTab] = useState<"tasks" | "caches" | "login" | "notOffered">("tasks");
+  const [tab, setTab] = useState<Tab>(() => tabFromHash(tabs, "tasks"));
   const [cachePick, setCachePick] = useState<ReadonlySet<string>>(new Set());
   // Installed apps with caches, from the last Apps scan, largest first.
   const cached = (apps.state.result?.apps ?? [])

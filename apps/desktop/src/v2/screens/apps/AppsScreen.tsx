@@ -3,7 +3,7 @@ import type { AppEntry, AppsScan, InstallerEntry, LeftoverEntry } from "../../..
 import type { CleanupPreview } from "../../../contracts/cleanup";
 import { Button, FloatingBar, IconTile, Modal, PageHeader, Pill, Segmented, Spinner, StatCard, Toast, useToast } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
-import { headingIdFor } from "../../shell/routes";
+import { headingIdFor, tabFromHash } from "../../shell/routes";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
 import { cacheBytes } from "../../../features/apps/useApps";
 import { Picture } from "../../ui/Picture";
@@ -12,7 +12,8 @@ import "../developer/developer.css";
 import "./apps.css";
 import { AccessSteps } from "../../ui/AccessSteps";
 
-type View = "apps" | "leftovers" | "installers";
+const views = ["apps", "leftovers", "installers"] as const;
+type View = (typeof views)[number];
 
 interface AppsScreenProps {
   result: AppsScan | null;
@@ -62,7 +63,7 @@ function size(item: { bytes: number; lowerBound?: boolean }): string {
 export function AppsScreen(props: AppsScreenProps) {
   const { result, running } = props;
   const removal = useRemoval();
-  const [view, setView] = useState<View>("apps");
+  const [view, setView] = useState<View>(() => tabFromHash(views, "apps"));
   const [focus, setFocus] = useState<string | null>(null);
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
   const [confirm, setConfirm] = useState<AppEntry | null>(null);
