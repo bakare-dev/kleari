@@ -47,7 +47,7 @@ export function Sidebar({ route, destinations = mainNav, footer }: SidebarProps)
         <button
           type="button"
           className="v2-disclaimer-info"
-          aria-label="Use at your own risk. Open Settings, About"
+          aria-label="About Kleari. Open Settings, About"
           aria-describedby="v2-disclaimer-tip"
           onClick={() => navigate("settings", "about")}
         >

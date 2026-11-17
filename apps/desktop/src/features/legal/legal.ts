@@ -5,11 +5,11 @@ export const DISCLAIMER_VERSION = 1;
 
 /** The notice in one sentence, for the sidebar's ⓘ and Settings › About. */
 export const DISCLAIMER_SHORT =
-  "Kleari is free, open-source software, provided as is with no warranty. It only moves or deletes what you approve, and you can restore it from quarantine. Keep a backup all the same.";
+  "Kleari is free and open source, and provided as is. Nothing changes without your OK, and anything it moves can be put back from quarantine.";
 
 /** The documents Settings › About opens (src-tauri `LegalDocument`). */
 export const legalDocuments = [
-  { id: "disclaimer", label: "Disclaimer", sub: "Provided as is, with no warranty: what to keep in mind" },
+  { id: "disclaimer", label: "Disclaimer", sub: "Provided as is: what to keep in mind" },
   { id: "privacy", label: "Privacy", sub: "What Kleari reads, and that it stays on your Mac" },
   { id: "license", label: "Licence", sub: "GNU General Public License v3.0 or later: use, change and share it" },
   { id: "thirdPartyNotices", label: "Third-party notices", sub: "The open-source software inside Kleari, and its licences" },

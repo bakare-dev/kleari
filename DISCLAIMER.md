@@ -4,7 +4,7 @@ Kleari is free, open-source software. Anyone may use it, study it, change it and
 it under its licence, the [GNU General Public License v3.0 or later](LICENSE). It's maintained
 by volunteers, not sold by a company, so there's no paid support.
 
-## Use it at your own risk
+## No warranty
 
 Kleari is provided **as is, without warranty of any kind**, express or implied, including any
 warranty that it fits a particular purpose or works without errors. The contributors aren't

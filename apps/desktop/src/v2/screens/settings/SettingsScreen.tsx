@@ -615,7 +615,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
                 )}
               </Group>
               <Group title="Legal" note={`${COPYRIGHT}. Kleari is free software under the GNU General Public License v3.0 or later.`}>
-                <Row label="Use at your own risk" sub={DISCLAIMER_SHORT} control={null} />
+                <Row label="A friendly note" sub={DISCLAIMER_SHORT} control={null} />
                 {legalDocuments.map((document) => (
                   <Row
                     key={document.id}
