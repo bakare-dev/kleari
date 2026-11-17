@@ -65,6 +65,8 @@ fn main() {
             "capture_mouse_probe",
             "start_shortcut_recording",
             "stop_shortcut_recording",
+            "start_keyboard_lock",
+            "get_keyboard_lock",
             "start_apps_scan",
             "cancel_apps_scan",
             "prepare_app_items_removal",

@@ -32,6 +32,8 @@ import { Sidebar } from "./shell/Sidebar";
 import { mainNav, useFocusHeadingOnRouteChange, useV2Route, v2Routes, type V2Route } from "./shell/routes";
 import { ActivityRoute, DashboardRoute, MouseRoute, SettingsRoute } from "./homeRoutes";
 import { AppsRoute, CleanupRoute, DeveloperRoute, PreviewRoute, ProcessesRoute, QuarantineRoute, ReviewRoute, StorageRoute, SystemRoute } from "./liveRoutes";
+import { useKeyboardLock } from "../features/keyboard/useKeyboardLock";
+import { KeyboardLockScreen } from "./shell/KeyboardLockScreen";
 import { searchEverything } from "../features/dashboard/search";
 import { searchSources } from "../features/dashboard/searchSources";
 import { handOverQuery, takeBackQueries } from "./ui/ListFilter";
@@ -83,6 +85,9 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
   const filesExplorer = useStorageExplorer(review.refresh);
   // App-level so a running task's result still shows after leaving the page.
   const maintenance = useMaintenance(review.refresh);
+  // App-level so the lock screen covers every page, whichever started it (Maintenance or the
+  // menu bar).
+  const keyboard = useKeyboardLock();
   // App-level so a Mouse save, and the combination changes waiting their turn, finish after
   // leaving the Mouse page; read and watched only while it is open.
   const mouse = useMouse(route === "mouse");
@@ -192,7 +197,7 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
     apps: () => <AppsRoute apps={apps} />,
     files: () => <FilesScreen files={files} explorer={filesExplorer} />,
     browser: () => <BrowserScreen monitor={processes} />,
-    maintenance: () => <MaintenanceScreen maintenance={maintenance} apps={apps} onOpenLoginItems={() => void openSystemSettings("loginItems")} />,
+    maintenance: () => <MaintenanceScreen maintenance={maintenance} apps={apps} keyboard={keyboard} onOpenLoginItems={() => void openSystemSettings("loginItems")} />,
     processes: () => <ProcessesRoute monitor={processes} />,
     mouse: () => <MouseRoute settings={settings} mouse={mouse} combos={mouseCombos} />,
     activity: () => <ActivityRoute activity={activity} monitor={system} />,
@@ -210,6 +215,7 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
         <DisclaimerNotice settings={settings} />
         <SetupWelcome settings={settings} />
         <UpdateOffer offer={updates.offer} state={updates.state} onInstall={() => void updates.install()} onLater={updates.dismiss} />
+        <KeyboardLockScreen state={keyboard.state} />
       </div>
     </RemovalProvider>
   );

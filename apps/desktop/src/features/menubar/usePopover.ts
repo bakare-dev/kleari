@@ -4,6 +4,8 @@ import type { QuarantineList, ReviewList } from "../../contracts/cleanup";
 import type { StorageOverview } from "../../contracts/storageAnalysis";
 import type { SystemActivity, SystemDetails } from "../../contracts/systemPage";
 import { getCleanupReview, listQuarantine } from "../../lib/cleanupIpc";
+import type { LockDuration, LockStart } from "../../contracts/keyboardLock";
+import { startKeyboardLock } from "../../lib/keyboardLockIpc";
 import { hidePopover, openMain, quitKleari, type MenuBarDestination } from "../../lib/menubarIpc";
 import { call, fetchStorageOverview } from "../../lib/storageIpc";
 import { fetchSystemActivity, fetchSystemDetails } from "../../lib/systemPageIpc";
@@ -23,6 +25,7 @@ export interface PopoverLoaders {
   open: (destination: MenuBarDestination) => Promise<void>;
   hide: () => Promise<void>;
   quit: () => Promise<void>;
+  lock: (seconds: LockDuration) => Promise<LockStart>;
 }
 
 const defaultLoaders: PopoverLoaders = {
@@ -35,7 +38,11 @@ const defaultLoaders: PopoverLoaders = {
   open: openMain,
   hide: hidePopover,
   quit: quitKleari,
+  lock: startKeyboardLock,
 };
+
+/** How long the menu bar's Clean keyboard locks for: Maintenance offers the other lengths. */
+const MENU_LOCK_SECONDS = 60;
 
 function failed<T>(current: Loadable<T>, error: unknown): Loadable<T> {
   return { status: "error", error: toErrorKind(error), last: current.status === "ready" ? current.value : current.status === "error" ? current.last : null };
@@ -113,7 +120,7 @@ export function usePopover(loaders: PopoverLoaders = defaultLoaders) {
   const quarantine = useReadWhenShown(loaders.quarantine, shown);
   const issues = useReadWhenShown(loaders.issues, shown);
   const [failedAction, setFailedAction] = useState(false);
-  const { open, hide, quit } = loaders;
+  const { open, hide, quit, lock } = loaders;
 
   const run = useCallback((action: () => Promise<void>) => {
     setFailedAction(false);
@@ -137,5 +144,14 @@ export function usePopover(loaders: PopoverLoaders = defaultLoaders) {
     failed: failedAction,
     go: (destination: MenuBarDestination) => run(() => open(destination)),
     quit: () => run(quit),
+    /** Locks the keyboard for a minute; the main window shows the lock screen. If it can't
+     * (Accessibility is off), Maintenance opens, where its card explains. */
+    lockKeyboard: () =>
+      run(async () => {
+        const started = await lock(MENU_LOCK_SECONDS);
+        if (started.kind !== "locked") {
+          await open("maintenance");
+        }
+      }),
   };
 }

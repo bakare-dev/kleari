@@ -216,7 +216,8 @@ function maintenance(startup: StartupItems | null): SearchSource {
     icon: "power" as const,
     target: { route: "maintenance" as const, detail: "login" },
   }));
-  return { id: "maintenance", label: "Maintenance", icon: "gear", tone: "gray", target: { route: "maintenance", detail: "tasks" }, items: [...tasks, ...login] };
+  const keyboard = { id: "keyboard", title: "Clean the keyboard", sub: "Maintenance task: lock every key for a while", text: "keyboard lock wipe", icon: "key" as const, tone: "blue" as const };
+  return { id: "maintenance", label: "Maintenance", icon: "gear", tone: "gray", target: { route: "maintenance", detail: "tasks" }, items: [keyboard, ...tasks, ...login] };
 }
 
 function developer(state: DeveloperScanState, folders: readonly string[], nowMs: number): SearchSource {

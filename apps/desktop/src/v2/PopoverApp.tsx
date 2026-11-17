@@ -13,5 +13,5 @@ function fit(height: number) {
 /** The menu-bar popover window (label "popover"), on live data in every build. */
 export function PopoverApp() {
   const popover = usePopover();
-  return <MenuBarPopover {...popover.data} failed={popover.failed} onGo={popover.go} onQuit={popover.quit} onFit={fit} />;
+  return <MenuBarPopover {...popover.data} failed={popover.failed} onGo={popover.go} onQuit={popover.quit} onLockKeyboard={popover.lockKeyboard} onFit={fit} />;
 }

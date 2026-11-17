@@ -179,6 +179,8 @@ pub fn run() {
             mouse::capture_mouse_probe,
             mouse::start_shortcut_recording,
             mouse::stop_shortcut_recording,
+            mouse::start_keyboard_lock,
+            mouse::get_keyboard_lock,
             menubar::open_main,
             menubar::hide_popover,
             menubar::fit_popover
@@ -190,6 +192,12 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             if let tauri::RunEvent::Reopen { .. } = _event {
                 menubar::show_main(_app);
+            }
+            // Quitting always unlocks the keyboard, and the lock's thread gets to turn macOS's
+            // system shortcuts back on before the process ends (a crash leaves that to the
+            // next launch).
+            if let tauri::RunEvent::Exit = _event {
+                mouse::keylock::stop_and_wait(std::time::Duration::from_millis(500));
             }
         });
 }

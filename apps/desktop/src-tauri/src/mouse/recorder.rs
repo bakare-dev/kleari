@@ -239,6 +239,10 @@ pub fn start(_app: tauri::AppHandle) -> Result<u64, StartError> {
     Err(StartError::Unsupported)
 }
 
+/// The keyboard lock turns the same system shortcuts off, one holder at a time.
+#[cfg(target_os = "macos")]
+pub(super) use macos::hold as hold_system_shortcuts;
+
 #[cfg(target_os = "macos")]
 mod macos {
     use std::ffi::c_void;
@@ -359,6 +363,32 @@ mod macos {
             let db = &self.app.state::<History>().db;
             restore_list(db, &self.numbers, |numbers| set_enabled(numbers, true));
         }
+    }
+
+    /// macOS's system shortcuts held off for the keyboard lock (`super::super::keylock`): they
+    /// are turned back on when this drops, before a recording can start again.
+    pub struct Held {
+        // Dropped in this order: the shortcuts come back on, then a recording may start.
+        _suspended: Suspended,
+        _session: std::sync::MutexGuard<'static, ()>,
+    }
+
+    /// Turns the system shortcuts off for the keyboard lock, as a recording does (saved first,
+    /// so a crash restores them at the next launch); `None` while a recording has them.
+    pub fn hold(app: &AppHandle) -> Option<Held> {
+        let session = match SESSION.try_lock() {
+            Ok(session) => session,
+            // Only `()` inside: a panic in another holder leaves nothing half-done here.
+            Err(std::sync::TryLockError::Poisoned(poisoned)) => poisoned.into_inner(),
+            Err(std::sync::TryLockError::WouldBlock) => return None,
+        };
+        Some(Held {
+            _suspended: Suspended {
+                numbers: suspend(app),
+                app: app.clone(),
+            },
+            _session: session,
+        })
     }
 
     struct Context {

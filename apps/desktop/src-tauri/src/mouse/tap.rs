@@ -359,9 +359,10 @@ fn handle(context: &Context, kind: CGEventType, event: &CGEvent) -> bool {
     {
         return true;
     }
-    // A shortcut is being recorded: the mouse does nothing of Kleari's meanwhile (presses
-    // already held still pair with their release, as when the settings are turned off).
-    if super::recorder::active() {
+    // A shortcut is being recorded, or the keyboard is locked (its first click unlocks): the
+    // mouse does nothing of Kleari's meanwhile (presses already held still pair with their
+    // release, as when the settings are turned off).
+    if super::recorder::active() || super::keylock::active() {
         let input = match pressed {
             Some((button, Phase::Up)) => Input::Up(button),
             Some((button, Phase::Dragged)) => Input::Dragged(button),

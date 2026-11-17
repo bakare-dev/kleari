@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { Task, TaskInfo, TaskOutcome } from "../../../contracts/maintenance";
 import type { StartupItem } from "../../../contracts/systemPage";
+import { lockDurations, type LockDuration } from "../../../contracts/keyboardLock";
+import type { KeyboardLock } from "../../../features/keyboard/useKeyboardLock";
 import type { Maintenance } from "../../../features/maintenance/useMaintenance";
 import type { IconName } from "../../ui/icons";
 import { Button, IconTile, Modal, PageHeader, Pill, Segmented, Spinner, Toast, useToast, type Tone } from "../../ui/components";
@@ -115,7 +117,34 @@ const outcomeText: Record<TaskOutcome, string> = {
   failed: "macOS didn’t finish it. Nothing more was changed.",
 };
 
-export function MaintenanceScreen({ maintenance, apps, onOpenLoginItems }: { maintenance: Maintenance; apps: Apps; onOpenLoginItems: () => void }) {
+const lockLabels: Record<LockDuration, string> = { 30: "30 s", 60: "1 min", 120: "2 min", 300: "5 min" };
+
+/** Keyboard cleaning mode: locks every key for the time chosen; any click unlocks. */
+function KeyboardCard({ keyboard }: { keyboard: KeyboardLock }) {
+  const [seconds, setSeconds] = useState<LockDuration>(60);
+  return (
+    <article className="v2-card mt-task">
+      <div className="mt-task-head">
+        <IconTile tone="blue" icon="key" size={34} />
+        <h2 className="v2-card-title-sm">Clean the keyboard</h2>
+      </div>
+      <span className="v2-card-note">Locks every key, media keys and macOS shortcuts included, so you can wipe it. Click anywhere to unlock sooner.</span>
+      <Segmented
+        label="Lock for"
+        value={String(seconds)}
+        onChange={(value) => setSeconds(lockDurations.find((length) => String(length) === value) ?? 60)}
+        options={lockDurations.map((length) => ({ value: String(length), label: lockLabels[length] }))}
+      />
+      {keyboard.error && <span role="status" className="v2-card-note">{keyboard.error}</span>}
+      {keyboard.needsAccess && <AccessSteps kind="accessibility" compact onOpen={() => void openSystemSettings("accessibility")} />}
+      <div className="mt-task-foot">
+        <Button variant="soft" size="sm" disabled={keyboard.state.state === "locked"} onClick={() => keyboard.start(seconds)}>Lock keyboard</Button>
+      </div>
+    </article>
+  );
+}
+
+export function MaintenanceScreen({ maintenance, apps, keyboard, onOpenLoginItems }: { maintenance: Maintenance; apps: Apps; keyboard: KeyboardLock; onOpenLoginItems: () => void }) {
   const { info, startup, running } = maintenance;
   const [tab, setTab] = useState<Tab>(() => tabFromHash(tabs, "tasks"));
   const [cachePick, setCachePick] = useState<ReadonlySet<string>>(new Set());
@@ -234,6 +263,7 @@ export function MaintenanceScreen({ maintenance, apps, onOpenLoginItems }: { mai
         )}
         {tab === "tasks" && (
         <section aria-label="Tasks" className="mt-grid" tabIndex={0}>
+          <KeyboardCard keyboard={keyboard} />
           {(Object.keys(taskMeta) as Task[]).map((task) => {
             const meta = taskMeta[task];
             const entry = byTask.get(task);

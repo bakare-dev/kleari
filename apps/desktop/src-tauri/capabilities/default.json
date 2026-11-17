@@ -64,6 +64,8 @@
     "allow-capture-mouse-probe",
     "allow-start-shortcut-recording",
     "allow-stop-shortcut-recording",
+    "allow-start-keyboard-lock",
+    "allow-get-keyboard-lock",
     "allow-start-apps-scan",
     "allow-cancel-apps-scan",
     "allow-prepare-app-items-removal",

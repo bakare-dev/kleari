@@ -11,6 +11,7 @@ pub mod devices;
 // Only the macOS event tap drives it; on other targets (Linux CI) only its tests do.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub mod engine;
+pub mod keylock;
 pub mod probe;
 pub mod recorder;
 #[cfg(target_os = "macos")]
@@ -329,6 +330,34 @@ pub async fn start_shortcut_recording(app: AppHandle) -> Result<RecordingStart, 
 #[tauri::command]
 pub fn stop_shortcut_recording(session: u64) {
     recorder::stop(session);
+}
+
+/// Locks the keyboard for `seconds` (30, 60, 120 or 300) for cleaning it: until then, or the
+/// first mouse or trackpad click, or Kleari quitting. Brings the main window forward,
+/// where the lock screen shows the time left (from the popover too).
+#[tauri::command]
+pub async fn start_keyboard_lock(
+    app: AppHandle,
+    seconds: u64,
+) -> Result<keylock::LockStart, CommandError> {
+    if !keylock::valid_duration(seconds) {
+        return Err(CommandErrorCode::InvalidRequest.into());
+    }
+    let handle = app.clone();
+    let started = tauri::async_runtime::spawn_blocking(move || keylock::start(handle, seconds))
+        .await
+        .map_err(blocking_failed)?;
+    if matches!(started, keylock::LockStart::Locked { .. }) {
+        crate::menubar::hide_popover(app.clone());
+        crate::menubar::show_main(&app);
+    }
+    Ok(started)
+}
+
+/// Whether the keyboard is locked, and until when.
+#[tauri::command]
+pub fn get_keyboard_lock() -> keylock::LockState {
+    keylock::state()
 }
 
 /// The Mouse page starts (`true`) and stops (`false`) listening for which button is pressed.

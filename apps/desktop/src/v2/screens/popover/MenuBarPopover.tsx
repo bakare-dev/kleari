@@ -68,6 +68,8 @@ interface MenuBarPopoverProps {
   /** Opens the main window at `route` (and closes the popover). */
   onGo: (route: MenuBarDestination) => void;
   onQuit: () => void;
+  /** Locks the keyboard for cleaning (a minute; any click unlocks). */
+  onLockKeyboard?: () => void;
   /** Given the panel's full height whenever it changes, to fit the window to it. */
   onFit?: (height: number) => void;
 }
@@ -104,7 +106,7 @@ function usePopoverFit(onFit: ((height: number) => void) | undefined) {
  * The menu-bar popover from the v2 design, shown below Kleari's menu-bar icon. It only
  * reads: links open the matching screen in the main window, and nothing here starts a scan.
  */
-export function MenuBarPopover({ gauges, network, alerts, startup = null, summary, links, failed = false, onGo, onQuit, onFit }: MenuBarPopoverProps) {
+export function MenuBarPopover({ gauges, network, alerts, startup = null, summary, links, failed = false, onGo, onQuit, onLockKeyboard, onFit }: MenuBarPopoverProps) {
   const shownAlerts = alerts.slice(0, MAX_ALERTS);
   const moreAlerts = alerts.length - shownAlerts.length;
   const link = (route: MenuBarDestination) => ({
@@ -197,6 +199,15 @@ export function MenuBarPopover({ gauges, network, alerts, startup = null, summar
               <span className="v2-chevron"><Glyph name="chevronRight" size={12} strokeWidth={2.2} /></span>
             </a>
           ))}
+          {onLockKeyboard && (
+            <button type="button" className="pop-link pop-link-button" onClick={onLockKeyboard}>
+              <IconTile tone="blue" icon="key" size={26} />
+              <span className="v2-row-text">
+                <span className="v2-row-title">Clean the keyboard</span>
+                <span className="v2-row-sub">Locks every key for a minute. Click to unlock.</span>
+              </span>
+            </button>
+          )}
         </div>
         </div>
       </div>

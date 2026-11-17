@@ -185,6 +185,16 @@
   background: var(--mp-sel-row);
 }
 
+/* Clean the keyboard is an action, drawn like the links around it. */
+.pop-link-button {
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+
 .pop-link-value {
   font-size: 12px;
   font-weight: 600;
