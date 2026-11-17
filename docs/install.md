@@ -5,8 +5,8 @@
 Kleari runs on a Mac with **Apple silicon** (M1 or later) and **macOS 14 or later**.
 
 **macOS will warn you the first time you open it. That is expected.** Kleari isn't from the
-App Store, and it isn't signed with a paid Apple developer account, so macOS can't check it
-with Apple. It is signed with Kleari's own certificate instead, which keeps your settings
+App Store and isn't **notarized** by Apple (notarizing needs a paid Apple developer account),
+so macOS can't check it with Apple. It is signed with Kleari's own certificate instead, which keeps your settings
 and the permissions you give it working from one version to the next. You confirm once, in
 System Settings, and after that it opens like any other app.
 
@@ -17,7 +17,9 @@ Three things to know before you start:
 - **Run it from Applications**, not from inside the downloaded disk image.
 - **Only install a copy from Kleari's [Releases page](https://github.com/bakare-dev/kleari/releases).**
   The steps below tell macOS to trust this app; don't follow them for a file from anywhere
-  else. The repository is private, so sign in to GitHub with an account that has access first.
+  else.
+- **You never need to turn off Gatekeeper** or paste Terminal commands. The steps below use
+  macOS's own Open Anyway, which allows only Kleari.
 
 ## Install
 

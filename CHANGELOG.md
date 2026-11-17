@@ -25,6 +25,14 @@ All notable user-facing changes to Kleari are documented here. This file follows
   other than for updates, and [docs/network.md](docs/network.md) lists every address it
   contacts and how to check it yourself.
 
+### Changed
+
+- **Clearer download and install notes.** The README now says before the download link that
+  Kleari isn't notarized by Apple and that macOS asks once, with no Gatekeeper changes or
+  Terminal commands needed. The install guide no longer asks you to sign in to GitHub (the
+  repository is public), and the README's privacy line says exactly what goes online: update
+  checks and downloads, nothing else.
+
 ### Fixed
 
 - **Settings › About › What's new** showed the release page's address as text you couldn't
