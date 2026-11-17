@@ -2,7 +2,7 @@ import { ContractError } from "../contracts/systemMetrics";
 import { call } from "./storageIpc";
 
 /** Which page's row a picture is for (src-tauri `PictureSource`). */
-export type PictureSource = "files" | "explorer" | "trash" | "app";
+export type PictureSource = "files" | "explorer" | "trash" | "app" | "planned";
 
 function parsePicture(payload: unknown): string | null {
   if (payload === null) {

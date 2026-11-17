@@ -4,8 +4,10 @@ import { approveCleanupPreview, deleteCleanupPreview, restoreQuarantineItems, re
 import { storageErrorText } from "../storage/format";
 import { errorKind } from "../cleanup/useCleanupScan";
 import { whyNotText } from "../cleanup/cleanupView";
-import { Button, Modal } from "../../v2/ui/components";
+import { Button, IconTile, Modal } from "../../v2/ui/components";
 import { Glyph } from "../../v2/ui/icons";
+import { Picture } from "../../v2/ui/Picture";
+import { categoryMeta } from "../../v2/screens/cleanup/findingMeta";
 import { formatGb, plural, sum } from "../../v2/ui/format";
 import "./removal.css";
 
@@ -166,8 +168,18 @@ export function RemovalProvider({ children }: { children: ReactNode }) {
 function ItemRow({ item }: { item: PlannedItem }) {
   const removable = item.state === "planned";
   const why = item.state === "changed" ? "it changed since it was found; look again to remove it" : item.whyNot ? whyNotText[item.whyNot] : "Kleari can't remove it now";
+  const meta = categoryMeta[item.category];
   return (
     <li className={`removal-item${removable ? "" : " held"}`}>
+      {/* An app's cache or leftover shows its app's icon, when the app is installed. */}
+      <Picture
+        source="planned"
+        id={item.id}
+        size={28}
+        label={item.name}
+        enabled={item.category === "cache" || item.category === "apps"}
+        fallback={<IconTile tone={meta.tone} icon={meta.icon} size={28} />}
+      />
       <span className="v2-row-text">
         <span className="removal-item-name">{item.name}</span>
         <span className="removal-item-sub">{removable ? item.location : `Stays: ${why}`}</span>

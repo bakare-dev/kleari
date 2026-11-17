@@ -332,6 +332,29 @@ fn app_bundles_in_an_applications_folder_or_two_folders_below_are_in_bounds() {
 }
 
 #[test]
+fn an_apps_cache_or_leftover_finds_its_installed_app_for_the_icon() {
+    let home = Home::new("owner");
+    home.app("Fake", "com.example.Fake");
+    let (_, bundles, review) = run(&home, &[]);
+    let state = AppsState::default();
+    state.finish(Some((bundles, review)));
+    let fake = Some(home.0.join("Applications/Fake.app"));
+    assert_eq!(state.owner_path(&Kind::AppCache, "com.example.Fake"), fake);
+    assert_eq!(state.owner_path(&Kind::AppCache, "Fake"), fake);
+    assert_eq!(
+        state.owner_path(
+            &Kind::AppLeftover {
+                owner: "com.example.fake".to_owned()
+            },
+            "com.example.Fake.plist"
+        ),
+        fake
+    );
+    assert_eq!(state.owner_path(&Kind::AppCache, "com.example.Other"), None);
+    assert_eq!(state.owner_path(&Kind::Installer, "Fake.dmg"), None);
+}
+
+#[test]
 fn apps_in_subfolders_are_found_two_levels_deep_never_inside_bundles_or_symlinks() {
     let home = Home::new("subfolders");
     home.app("Top", "com.example.Top");

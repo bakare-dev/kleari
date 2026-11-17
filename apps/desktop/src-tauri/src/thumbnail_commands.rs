@@ -5,6 +5,7 @@ use serde::Deserialize;
 use tauri::{AppHandle, Manager};
 
 use crate::apps::AppsState;
+use crate::cleanup::CleanupState;
 use crate::cleanup_commands::{blocking_failed, check_ids};
 use crate::commands::CommandError;
 use crate::files::FilesState;
@@ -24,6 +25,9 @@ pub enum PictureSource {
     Trash,
     /// An installed app (its icon).
     App,
+    /// A row of the removal sheet: for an app's cache or leftover, its app's icon (when the
+    /// Apps page's last scan found the app).
+    Planned,
 }
 
 /// The picture for row `id` on `source`'s page, at most `size` pixels on its long side, as a
@@ -46,6 +50,12 @@ pub async fn get_picture(
                 app.state::<AppsState>()
                     .bundle(&id)
                     .map(|bundle| bundle.path),
+                Kind::Icon,
+            ),
+            PictureSource::Planned => (
+                app.state::<CleanupState>()
+                    .item(&id)
+                    .and_then(|item| app.state::<AppsState>().owner_path(&item.kind, &item.name)),
                 Kind::Icon,
             ),
         };

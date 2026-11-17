@@ -220,6 +220,31 @@ impl AppsState {
             .collect()
     }
 
+    /// The installed app (from the last scan) that an app cache or leftover named `name`
+    /// belongs to, for its icon: matched by bundle ID or name as leftovers are.
+    pub fn owner_path(&self, kind: &Kind, name: &str) -> Option<PathBuf> {
+        let bundles = lock(&self.bundles);
+        let found = match kind {
+            Kind::AppLeftover { owner } => bundles.iter().find(|bundle| {
+                bundle
+                    .bundle_id
+                    .as_deref()
+                    .is_some_and(|id| id.eq_ignore_ascii_case(owner))
+                    || bundle.name.eq_ignore_ascii_case(owner)
+            }),
+            Kind::AppCache => bundles.iter().find(|bundle| {
+                bundle
+                    .bundle_id
+                    .as_deref()
+                    .into_iter()
+                    .chain(std::iter::once(bundle.name.as_str()))
+                    .any(|owner| leftover_matches(name, owner))
+            }),
+            _ => None,
+        };
+        found.map(|bundle| bundle.path.clone())
+    }
+
     /// Forgets a removed app.
     pub fn forget(&self, id: &str) {
         lock(&self.bundles).retain(|bundle| bundle.id != id);
