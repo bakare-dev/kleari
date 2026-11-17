@@ -1,0 +1,260 @@
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import type { TrashFailure, TrashItem, TrashList } from "../../../contracts/trash";
+import { runMaintenanceTask } from "../../../lib/maintenanceIpc";
+import { openSystemSettings } from "../../../lib/systemPageIpc";
+import { deleteTrashItems, listTrash, putBackTrashItems } from "../../../lib/trashIpc";
+import { storageErrorText } from "../../../features/storage/format";
+import { errorKind } from "../../../features/cleanup/useCleanupScan";
+import { AccessSteps } from "../../ui/AccessSteps";
+import { Button, FloatingBar, IconTile, Modal, PageHeader, Segmented, Spinner, StatCard, Toast, useToast } from "../../ui/components";
+import { formatGb, plural, sum } from "../../ui/format";
+import { headingIdFor } from "../../shell/routes";
+import "./trash.css";
+
+type Sort = "largest" | "newest" | "oldest" | "name";
+
+const sorts: Record<Sort, (a: TrashItem, b: TrashItem) => number> = {
+  largest: (a, b) => b.bytes - a.bytes,
+  newest: (a, b) => (b.trashedMs ?? 0) - (a.trashedMs ?? 0),
+  oldest: (a, b) => (a.trashedMs ?? Infinity) - (b.trashedMs ?? Infinity),
+  name: (a, b) => a.name.localeCompare(b.name),
+};
+
+const failureText: Record<TrashFailure, string> = {
+  changed: "it changed or is gone since the list was read",
+  noOrigin: "Finder didn't record where it came from",
+  exists: "something is already where it came from",
+  folderGone: "the folder it came from is gone",
+  needsAccess: "macOS didn't give Kleari access",
+  failed: "macOS reported an error",
+};
+
+const size = (item: { bytes: number; lowerBound: boolean }) => `${item.lowerBound ? "≥ " : ""}${formatGb(item.bytes / 1e9)}`;
+
+function when(ms: number | null): string {
+  return ms === null ? "" : `deleted ${new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
+}
+
+/**
+ * The Trash, inside Kleari: what is in it, Put Back, delete chosen items for good, and Empty
+ * Trash. Read when the tab opens and after each change; never polled.
+ */
+export function TrashScreen({ tabs }: { tabs: ReactNode }) {
+  const [list, setList] = useState<TrashList | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [sort, setSort] = useState<Sort>("largest");
+  const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
+  const [confirm, setConfirm] = useState<"delete" | "empty" | null>(null);
+  const toast = useToast(6000);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    listTrash().then(
+      (next) => {
+        setLoading(false);
+        setError(null);
+        setList(next);
+        setSelection(new Set());
+      },
+      (failure: unknown) => {
+        setLoading(false);
+        setError(storageErrorText[errorKind(failure)]);
+      },
+    );
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const items = list?.status === "available" ? [...list.items].sort(sorts[sort]) : [];
+  const picked = items.filter((item) => selection.has(item.id));
+  const canPutBack = picked.filter((item) => item.from !== null);
+
+  const toggle = (id: string) => {
+    const next = new Set(selection);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setSelection(next);
+  };
+
+  const finished = (verb: string, chosen: readonly TrashItem[], outcome: { done: string[]; bytes: number; failed: { id: string; reason: TrashFailure }[] }) => {
+    const first = outcome.failed[0];
+    const name = (id: string) => chosen.find((item) => item.id === id)?.name ?? "An item";
+    if (outcome.failed.length === 0) {
+      toast.show(`${verb} ${plural(outcome.done.length, "item")} (${formatGb(outcome.bytes / 1e9)}).`);
+    } else {
+      const rest = outcome.failed.length > 1 ? ` and ${plural(outcome.failed.length - 1, "other")}` : "";
+      toast.show(`${verb} ${outcome.done.length} of ${chosen.length}. ${name(first.id)}${rest} stayed in the Trash: ${failureText[first.reason]}.`, "warn");
+    }
+    load();
+  };
+
+  const act = (verb: string, chosen: readonly TrashItem[], run: (ids: readonly string[]) => Promise<Parameters<typeof finished>[2]>) => {
+    setBusy(true);
+    run(chosen.map((item) => item.id)).then(
+      (outcome) => {
+        setBusy(false);
+        finished(verb, chosen, outcome);
+      },
+      (failure: unknown) => {
+        setBusy(false);
+        toast.show(storageErrorText[errorKind(failure)], "warn");
+      },
+    );
+  };
+
+  const empty = () => {
+    setBusy(true);
+    runMaintenanceTask("emptyTrash").then(
+      (outcome) => {
+        setBusy(false);
+        toast.show(outcome === "done" ? "The Trash is empty." : outcome === "cancelled" ? "Emptying the Trash was cancelled." : "Finder couldn’t empty the Trash.", outcome === "done" ? undefined : "warn");
+        load();
+      },
+      (failure: unknown) => {
+        setBusy(false);
+        toast.show(storageErrorText[errorKind(failure)], "warn");
+      },
+    );
+  };
+
+  const total = list?.status === "available" ? list : null;
+
+  return (
+    <>
+      <PageHeader
+        title="Trash"
+        headingId={headingIdFor("quarantine")}
+        subtitle="What you’ve moved to the Trash, here and on external disks. Put things back, or delete them for good."
+        actions={
+          <>
+            {tabs}
+            <Button variant="soft" size="sm" disabled={loading} onClick={load}>{loading ? "Reading…" : "Refresh"}</Button>
+            <Button variant="dangerOutline" size="sm" disabled={busy || items.length === 0} onClick={() => setConfirm("empty")}>Empty Trash…</Button>
+          </>
+        }
+      />
+      <div className="trash-body">
+        {error && <span role="alert" className="v2-card-note">{error}</span>}
+        {list?.status === "notAllowed" ? (
+          <section aria-label="Full Disk Access" className="v2-card v2-card-pad trash-access">
+            <IconTile tone="blue" icon="lock" size={40} />
+            <span className="v2-row-title">Kleari needs Full Disk Access to show the Trash</span>
+            <span className="v2-card-note">macOS protects the Trash, so apps can only look inside with Full Disk Access. Kleari only reads names and sizes, and changes nothing until you choose.</span>
+            <AccessSteps kind="fullDiskAccess" compact onOpen={() => void openSystemSettings("fullDiskAccess")} />
+            <Button variant="soft" size="sm" onClick={load}>Check again</Button>
+          </section>
+        ) : !list ? (
+          <section aria-label="Reading" className="v2-card v2-card-pad trash-access">
+            <Spinner size={24} />
+            <span className="v2-card-note">Reading the Trash…</span>
+          </section>
+        ) : (
+          <>
+            <section aria-label="Trash summary" className="v2-grid-3">
+              <StatCard tone="red" icon="trash" label="In the Trash" value={total ? size(total) : "—"} sub="Space it frees when emptied" />
+              <StatCard tone="blue" icon="list" label="Items" value={String(items.length + (total?.more ?? 0))} sub={total && total.more > 0 ? `${total.more} more not listed` : "Across all disks"} />
+              <StatCard tone="green" icon="arrowRight" label="Can go back" value={String(items.filter((item) => item.from !== null).length)} sub="Where Finder recorded the place" />
+            </section>
+            <div className="trash-tools">
+              <Segmented
+                label="Sort"
+                value={sort}
+                onChange={setSort}
+                options={[
+                  { value: "largest", label: "Largest" },
+                  { value: "newest", label: "Newest" },
+                  { value: "oldest", label: "Oldest" },
+                  { value: "name", label: "Name" },
+                ]}
+              />
+            </div>
+            {items.length === 0 ? (
+              <section aria-label="Empty" className="v2-card v2-card-pad trash-access">
+                <IconTile tone="green" icon="check" size={40} />
+                <span className="v2-row-title">The Trash is empty</span>
+              </section>
+            ) : (
+              <ul className="v2-card trash-list" aria-label="Items in the Trash">
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <input type="checkbox" aria-label={`Choose ${item.name}`} checked={selection.has(item.id)} onChange={() => toggle(item.id)} />
+                    <IconTile tone={item.folder ? "blue" : "gray"} icon={item.folder ? "folder" : "file"} size={28} />
+                    <span className="v2-row-text">
+                      <span className="v2-row-title v2-ellipsis">{item.name}</span>
+                      <span className="v2-row-sub v2-ellipsis">
+                        {[item.from ? `from ${item.from}` : null, item.disk ? `on ${item.disk}` : null, when(item.trashedMs)].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                    <span className="v2-num trash-size">{size(item)}</span>
+                    <span className="trash-action">
+                      {item.from !== null && (
+                        <Button variant="soft" size="sm" disabled={busy} onClick={() => act("Put back", [item], putBackTrashItems)}>
+                          Put Back
+                        </Button>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </div>
+
+      {picked.length > 0 && (
+        <FloatingBar>
+          <div className="v2-float-text">
+            <span role="status" className="v2-float-title">{picked.length} chosen · {formatGb(sum(picked, (item) => item.bytes) / 1e9)}</span>
+          </div>
+          <div className="v2-float-actions">
+            <Button variant="soft" disabled={busy || canPutBack.length === 0} onClick={() => act("Put back", canPutBack, putBackTrashItems)}>
+              Put Back {canPutBack.length > 0 ? canPutBack.length : ""}
+            </Button>
+            <Button variant="danger" disabled={busy} onClick={() => setConfirm("delete")}>Delete permanently</Button>
+          </div>
+        </FloatingBar>
+      )}
+
+      <Modal open={confirm !== null} onClose={() => setConfirm(null)} labelledBy="trash-confirm-title" role="alertdialog">
+        {confirm && (
+          <div className="v2-dialog-body">
+            <h2 id="trash-confirm-title" className="v2-dialog-title">
+              {confirm === "empty" ? "Empty the Trash?" : `Delete ${plural(picked.length, "item")} for good?`}
+            </h2>
+            <p className="v2-dialog-text">
+              {confirm === "empty"
+                ? `Everything in the Trash (${total ? size(total) : ""}), on every disk, is deleted for good. Finder does it.`
+                : `${formatGb(sum(picked, (item) => item.bytes) / 1e9)} is deleted for good. It can’t be put back afterwards.`}
+            </p>
+            <div className="v2-dialog-actions">
+              <Button variant="secondary" onClick={() => setConfirm(null)}>Cancel</Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  const which = confirm;
+                  setConfirm(null);
+                  if (which === "empty") {
+                    empty();
+                  } else {
+                    act("Deleted", picked, deleteTrashItems);
+                  }
+                }}
+              >
+                {confirm === "empty" ? "Empty Trash" : "Delete permanently"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Toast message={toast.message} bottom={92} />
+    </>
+  );
+}

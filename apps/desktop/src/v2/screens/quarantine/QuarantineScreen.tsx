@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { StatusMark } from "../../ui/icons";
 import {
   Button,
@@ -20,6 +20,8 @@ import { actionable, chooseFolderHint, type DeleteJob, type QuarantineBatch, typ
 import "./quarantine.css";
 
 interface QuarantineScreenProps {
+  /** The Quarantine | Trash switch, shown in the header. */
+  tabs?: ReactNode;
   batches: readonly QuarantineBatch[];
   restored: ReadonlySet<string>;
   deleted: ReadonlySet<string>;
@@ -154,7 +156,12 @@ export function QuarantineScreen(props: QuarantineScreenProps) {
         title="Quarantine"
         headingId={headingIdFor("quarantine")}
         subtitle="Items here have left their original place but are still on this Mac. Restore any of them at any time."
-        actions={<LinkButton href={hrefFor("cleanup")} size="sm">Back to Cleanup</LinkButton>}
+        actions={
+          <>
+            {props.tabs}
+            <LinkButton href={hrefFor("cleanup")} size="sm">Back to Cleanup</LinkButton>
+          </>
+        }
       />
       {/* Only the list of batches scrolls; the totals and the note stay put, as on Processes. */}
       <div className="q-body">

@@ -1,4 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Segmented } from "./ui/components";
+import { TrashScreen } from "./screens/quarantine/TrashScreen";
 import {
   categoryCounts,
   clock,
@@ -225,17 +227,34 @@ export function PreviewRoute({ review, quarantine }: { review: CleanupReview; qu
   );
 }
 
-/** Read on each visit and after every restore or delete. */
+/** Read on each visit and after every restore or delete. The Trash tab reads the Trash only
+ * while it is shown. */
 export function QuarantineRoute({ quarantine }: { quarantine: Quarantine }) {
   const { refresh } = quarantine;
+  const [tab, setTab] = useState<"quarantine" | "trash">("quarantine");
   useEffect(() => {
     refresh();
   }, [refresh]);
   const nowMs = Date.now();
   const list = quarantine.list;
   const batches = list?.status === "available" ? list.batches : [];
+  const tabs = (
+    <Segmented
+      label="Show"
+      value={tab}
+      onChange={setTab}
+      options={[
+        { value: "quarantine", label: "Quarantine" },
+        { value: "trash", label: "Trash" },
+      ]}
+    />
+  );
+  if (tab === "trash") {
+    return <TrashScreen tabs={tabs} />;
+  }
   return (
     <QuarantineScreen
+      tabs={tabs}
       batches={quarantineBatches(batches, nowMs)}
       restored={quarantine.restored}
       deleted={new Set()}

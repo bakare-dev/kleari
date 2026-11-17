@@ -27,6 +27,8 @@ mod settings_commands;
 mod storage;
 mod system_monitor;
 mod system_settings;
+mod trash;
+mod trash_commands;
 mod uninstall;
 mod updates;
 
@@ -39,6 +41,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(updates::UpdateState::default())
+        .manage(trash::TrashState::default())
         .manage(Mutex::new(system_monitor::SystemSampler::new()))
         .manage(Mutex::new(system_monitor::ActivitySampler::new()))
         .manage(Mutex::new(system_monitor::ProcessListSampler::new()))
@@ -141,6 +144,9 @@ pub fn run() {
             cleanup_commands::create_cleanup_preview,
             cleanup_commands::approve_cleanup_preview,
             cleanup_commands::delete_cleanup_preview,
+            trash_commands::list_trash,
+            trash_commands::delete_trash_items,
+            trash_commands::put_back_trash_items,
             cleanup_commands::list_quarantine,
             cleanup_commands::restore_quarantine_items,
             cleanup_commands::delete_quarantine_items,

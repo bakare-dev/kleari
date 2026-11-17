@@ -1,0 +1,60 @@
+/* The Trash tab: summary, sort, and the list; only the list scrolls. */
+.trash-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.trash-access {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.trash-tools {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.trash-list {
+  min-height: 0;
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.trash-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--mp-border);
+}
+
+.trash-list li:last-child {
+  border-bottom: 0;
+}
+
+.trash-list .v2-row-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.trash-size {
+  flex-shrink: 0;
+  color: var(--mp-text-2);
+  font-size: 12.5px;
+}
+
+.trash-action {
+  display: inline-flex;
+  flex-shrink: 0;
+  min-width: 84px;
+  justify-content: flex-end;
+}

@@ -239,6 +239,27 @@ impl Store {
         fsops::remove_tree(&parent, &name, expected).map_err(|error| failure(&error))
     }
 
+    /// Moves the item at `from` to `to` (the Trash's Put Back): only if it still has
+    /// `expected` identity, only into a folder that exists, and never over anything already
+    /// at `to` (`Exists`). Both folders are opened by handle, without following links.
+    pub fn move_back(from: &Path, expected: Identity, to: &Path) -> Result<(), Failure> {
+        let (from_parent, from_name) = split(from).ok_or(Failure::ParentUnavailable)?;
+        let (to_parent, to_name) = split(to).ok_or(Failure::ParentUnavailable)?;
+        let (source, _) = open_absolute(from_parent).ok_or(Failure::ParentUnavailable)?;
+        let stat = source
+            .stat_child(&from_name)
+            .map_err(|error| failure(&error))?;
+        if !expected.matches(&stat) {
+            return Err(Failure::Changed);
+        }
+        let (destination, dev) = open_absolute(to_parent).ok_or(Failure::ParentUnavailable)?;
+        if dev != stat.dev {
+            return Err(Failure::OtherVolume);
+        }
+        fsops::rename_exclusive(&source, &from_name, &destination, &to_name)
+            .map_err(|error| failure(&error))
+    }
+
     /// Whether the held item is in the quarantine folder with its recorded identity.
     #[cfg(test)]
     pub fn holds(&self, batch_id: &str, item_id: &str, identity: Identity) -> bool {
