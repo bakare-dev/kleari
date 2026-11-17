@@ -180,7 +180,8 @@ pub fn run() {
             mouse::start_shortcut_recording,
             mouse::stop_shortcut_recording,
             menubar::open_main,
-            menubar::hide_popover
+            menubar::hide_popover,
+            menubar::fit_popover
         ])
         .build(tauri::generate_context!())
         .expect("failed to build Kleari desktop shell")

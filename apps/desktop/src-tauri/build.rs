@@ -55,6 +55,7 @@ fn main() {
             "quit_kleari",
             "open_main",
             "hide_popover",
+            "fit_popover",
             "check_for_update",
             "install_update",
             "get_mouse",
