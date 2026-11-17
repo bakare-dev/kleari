@@ -107,7 +107,8 @@
     beyond what any download sends (IP address, a user agent). The "Offline" wording in the
     interface became "Your files never leave this Mac".
   - An in-app update keeps Kleari's permissions only while every release is signed with the
-    same certificate ("Kleari Self-Signed"); the updater key and the code-signing
+    same certificate ("Kleari Self-Signed") and keeps the same bundle identifier (beta 4
+    changed it once, ADR-024, and asks for them again); the updater key and the code-signing
     certificate are separate, and both must be kept.
   - WebKit may write its storage once more as Kleari quits after an uninstall, recreating
     `~/Library/WebKit/dev.bakare.kleari` with the appearance choice only. The install guide

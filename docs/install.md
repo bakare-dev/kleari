@@ -128,17 +128,26 @@ Kleari stays where it is until a newer stable release comes out.
    login, then moves itself and its settings, history and caches to the Trash, and lists
    what it moved. Your own files aren't touched.
 3. To remove the permissions you gave it, run the command it shows in Terminal:
-   `tccutil reset All dev.bakare.kleari`. Then choose **Quit Kleari**.
+   `tccutil reset All dev.kleari.app`. Then choose **Quit Kleari**.
 
-As Kleari quits, macOS may write `~/Library/WebKit/dev.bakare.kleari` once more (it holds
+As Kleari quits, macOS may write `~/Library/WebKit/dev.kleari.app` once more (it holds
 only the light/dark choice); move it to the Trash too if you want nothing left.
 
 To uninstall by hand instead: empty Quarantine, turn off Open at
 login, quit Kleari, move it from Applications to the Trash, and move these to the Trash:
-`~/Library/Application Support/dev.bakare.kleari` (history, settings and the quarantine
-folder), `~/Library/Caches/dev.bakare.kleari`, `~/Library/WebKit/dev.bakare.kleari`,
-`~/Library/HTTPStorages/dev.bakare.kleari`,
-`~/Library/Saved Application State/dev.bakare.kleari.savedState` and
-`~/Library/Preferences/dev.bakare.kleari.plist`.
+`~/Library/Application Support/dev.kleari.app` (history, settings and the quarantine
+folder), `~/Library/Caches/dev.kleari.app`, `~/Library/WebKit/dev.kleari.app`,
+`~/Library/HTTPStorages/dev.kleari.app`,
+`~/Library/Saved Application State/dev.kleari.app.savedState` and
+`~/Library/Preferences/dev.kleari.app.plist`. Before beta 4 the identifier was
+`dev.bakare.kleari`; Kleari moves its folders to the new name at the first launch after
+the update.
+
+### After updating from beta 3 or older
+
+Beta 4 gave Kleari a new identifier on your Mac (`dev.kleari.app`). Your history, settings
+and quarantine come across on their own, but macOS asks for Kleari's permissions again: a
+one-time window lists the ones you used (Accessibility for the Mouse settings, Full Disk
+Access, notifications, Open at login) with a button for each.
 
 Kleari never deletes your files on its own, and uninstalling doesn't either.

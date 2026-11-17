@@ -8,6 +8,7 @@ import { MaintenanceScreen } from "./screens/maintenance/MaintenanceScreen";
 import { BrowserScreen } from "./screens/browser/BrowserScreen";
 import { SetupWelcome } from "./shell/SetupWelcome";
 import { DisclaimerNotice } from "./shell/DisclaimerNotice";
+import { IdentityMoveSheet } from "./shell/IdentityMoveSheet";
 import { RemovalProvider } from "../features/removal/RemovalProvider";
 import { openSystemSettings } from "../lib/systemPageIpc";
 import { FilesScreen } from "./screens/files/FilesScreen";
@@ -214,6 +215,7 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
         </main>
         <DisclaimerNotice settings={settings} />
         <SetupWelcome settings={settings} />
+        <IdentityMoveSheet settings={settings} />
         <UpdateOffer offer={updates.offer} state={updates.state} onInstall={() => void updates.install()} onLater={updates.dismiss} />
         <KeyboardLockScreen state={keyboard.state} />
       </div>

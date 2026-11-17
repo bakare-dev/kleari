@@ -54,6 +54,7 @@
     "allow-list-activity",
     "allow-clear-activity",
     "allow-uninstall-kleari",
+    "allow-dismiss-identity-move",
     "allow-quit-kleari",
     "allow-check-for-update",
     "allow-install-update",

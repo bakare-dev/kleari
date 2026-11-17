@@ -52,6 +52,7 @@ fn main() {
             "list_activity",
             "clear_activity",
             "uninstall_kleari",
+            "dismiss_identity_move",
             "quit_kleari",
             "open_main",
             "hide_popover",

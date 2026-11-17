@@ -99,18 +99,18 @@ mod tests {
     #[test]
     fn only_klearis_own_locations_are_listed() {
         let home = Path::new("/Users/someone");
-        let locations = data_locations(home, "dev.bakare.kleari");
+        let locations = data_locations(home, "dev.kleari.app");
         assert!(locations
             .iter()
             .all(|path| path.starts_with("/Users/someone/Library")));
         assert!(locations
             .iter()
-            .all(|path| path.to_string_lossy().contains("dev.bakare.kleari")));
+            .all(|path| path.to_string_lossy().contains("dev.kleari.app")));
         assert!(locations.contains(&PathBuf::from(
-            "/Users/someone/Library/Application Support/dev.bakare.kleari"
+            "/Users/someone/Library/Application Support/dev.kleari.app"
         )));
         assert!(locations.contains(&PathBuf::from(
-            "/Users/someone/Library/Preferences/dev.bakare.kleari.plist"
+            "/Users/someone/Library/Preferences/dev.kleari.app.plist"
         )));
     }
 

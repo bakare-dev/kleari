@@ -45,7 +45,11 @@ const KLEARI_RELEASES = "https://github.com/bakare-dev/kleari/releases/";
 const KLEARI_GITHUB = "https://github.com/bakare-dev/kleari";
 
 /** Programs Rust may run, all Apple's and all local. */
-const PROGRAMS = new Set(["/usr/bin/osascript", "/usr/sbin/system_profiler", "/bin/ps", "/usr/bin/tmutil", "/usr/bin/tccutil"]);
+const PROGRAMS = new Set([
+  "/usr/bin/osascript", "/usr/sbin/system_profiler", "/bin/ps", "/usr/bin/tmutil", "/usr/bin/tccutil",
+  // Registers and unregisters the stub that lets tccutil reset Kleari's old identifier.
+  "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister",
+]);
 /** The only files that may run AppleScript: each script in them was reviewed (docs/network.md). */
 const APPLESCRIPT_FILES = new Set(["src-tauri/src/browser.rs", "src-tauri/src/maintenance.rs"]);
 const RUST_NETWORK =

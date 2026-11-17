@@ -11,6 +11,7 @@ mod files;
 mod files_commands;
 mod finder;
 mod history;
+mod identity;
 mod ids;
 mod issues;
 mod login_item;
@@ -38,8 +39,27 @@ use std::sync::Mutex;
 
 use tauri::Manager;
 
+/// Moves what Kleari kept under its old bundle identifier to the new one's folders, before
+/// anything opens them (`identity`). `None` without a home folder: Tauri's data folder is used
+/// as it is.
+fn migrate(identifier: &str) -> Option<identity::Migration> {
+    let home = storage::home_dir()?;
+    let caches = home.join("Library/Caches").join(identifier);
+    Some(identity::migrate(
+        &home,
+        identifier,
+        identity::old_running(),
+        || {
+            std::fs::create_dir_all(&caches).is_ok()
+                && identity::stub_reset(&caches, identity::OLD_IDENTIFIER)
+        },
+    ))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let context = tauri::generate_context!();
+    let migration = migrate(&context.config().identifier);
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(updates::UpdateState::default())
@@ -59,11 +79,18 @@ pub fn run() {
         .manage(quarantine::QuarantineState::default())
         .manage(menubar::PopoverState::default())
         .manage(mouse::MouseState::default())
-        .setup(|app| {
-            // The history and quarantine folder live in the app's data folder. If it can't be
-            // found, the history is unavailable and nothing can be moved.
-            let folder = app.path().app_data_dir().ok();
+        .setup(move |app| {
+            // The history and quarantine folder live in the app's data folder (the old one, for
+            // a run whose move didn't happen). If it can't be found, the history is unavailable
+            // and nothing can be moved.
+            let folder = match &migration {
+                Some(migration) => Some(migration.data_folder.clone()),
+                None => app.path().app_data_dir().ok(),
+            };
             let history = history::History::open(folder);
+            if let Some(migration) = &migration {
+                identity::record(&history.db, migration.outcome);
+            }
             let menu_bar = preferences::load(&history.db).preferences.menu_bar;
             app.manage(history);
             // Without the item Kleari still opens, and closing the window quits as usual;
@@ -169,6 +196,7 @@ pub fn run() {
             settings_commands::list_activity,
             settings_commands::clear_activity,
             settings_commands::uninstall_kleari,
+            settings_commands::dismiss_identity_move,
             settings_commands::quit_kleari,
             updates::check_for_update,
             updates::install_update,
@@ -185,7 +213,7 @@ pub fn run() {
             menubar::hide_popover,
             menubar::fit_popover
         ])
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("failed to build Kleari desktop shell")
         .run(|_app, _event| {
             // Clicking the Dock icon brings back a window closed into the menu bar (macOS only).

@@ -68,6 +68,9 @@ pub struct SettingsState {
     pub version: String,
     /// When the saved schedule next scans and last did.
     pub schedule: crate::schedule::Status,
+    /// Kleari moved to its new bundle identifier and the sheet to allow its permissions again
+    /// hasn't been closed yet.
+    pub identity_move: Option<crate::identity::Pending>,
 }
 
 fn name_of(path: &Path) -> String {
@@ -143,7 +146,20 @@ fn state(app: &AppHandle) -> Result<SettingsState, CommandError> {
         exclusions: exclusions(&history, home.as_deref())?,
         quarantine_folder: display_path(&history.store.path(), home.as_deref()),
         version: app.package_info().version.to_string(),
+        identity_move: crate::identity::pending(&history.db),
     })
+}
+
+/// Closes the one-time sheet shown after Kleari's bundle identifier changed; it doesn't show
+/// again.
+#[tauri::command]
+pub async fn dismiss_identity_move(app: AppHandle) -> Result<(), CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::identity::dismiss(&app.state::<History>().db)
+            .map_err(|_| CommandErrorCode::HistoryUnavailable.into())
+    })
+    .await
+    .map_err(blocking_failed)?
 }
 
 /// Everything the Settings page shows, read now.

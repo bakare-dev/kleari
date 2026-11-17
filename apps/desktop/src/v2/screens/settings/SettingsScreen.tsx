@@ -14,7 +14,7 @@ import "./settings.css";
 import { AccessSteps } from "../../ui/AccessSteps";
 
 /** Kleari's bundle identifier (tauri.conf.json), which macOS keys its permissions by. */
-export const BUNDLE_ID = "dev.bakare.kleari";
+export const BUNDLE_ID = "dev.kleari.app";
 const RESET_PERMISSIONS = `tccutil reset All ${BUNDLE_ID}`;
 
 type Dialog =

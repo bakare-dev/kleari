@@ -92,6 +92,14 @@ export interface SettingsState {
   quarantineFolder: string;
   version: string;
   schedule: ScheduleStatus;
+  /** Kleari moved to its new bundle identifier and the sheet to allow its permissions again
+   * hasn't been closed; `null` otherwise. */
+  identityMove: IdentityMove | null;
+}
+
+export interface IdentityMove {
+  /** False: System Settings may still list the old "Kleari", for the user to remove. */
+  oldPermissionsReset: boolean;
 }
 
 const MAX_TEXT = 1024;
@@ -271,5 +279,11 @@ export function parseSettings(payload: unknown): SettingsState {
     quarantineFolder: text(fields.quarantineFolder, "quarantineFolder"),
     version: text(fields.version, "version"),
     schedule: scheduleStatus(fields.schedule, "schedule"),
+    identityMove: fields.identityMove === null ? null : identityMove(fields.identityMove, "identityMove"),
   };
+}
+
+function identityMove(value: unknown, field: string): IdentityMove {
+  const fields = record(value, field);
+  return { oldPermissionsReset: boolean(fields.oldPermissionsReset, `${field}.oldPermissionsReset`) };
 }

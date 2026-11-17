@@ -136,7 +136,8 @@
     A Tauri build only linker-signs the executable (identifier `kleari-<hash>`, bundle
     unsealed), which macOS's login items and notification centre don't accept, so the bundle
     is now signed ad hoc (`bundle.macOS.signingIdentity: "-"`, identifier
-    `dev.bakare.kleari`, sealed resources, hardened runtime). A distributed build still
+    `dev.kleari.app`, `dev.bakare.kleari` before beta 4 (ADR-024), sealed resources,
+    hardened runtime). A distributed build still
     needs a Developer ID signature and notarization. Without a usable signature they say so
     and stay off. On macOS 11 and 12, which lack `SMAppService`, Open at login is
     `unsupported`: it says it needs macOS 13 and points to Users & Groups › Login Items,
