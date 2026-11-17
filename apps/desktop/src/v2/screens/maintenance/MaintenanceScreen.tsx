@@ -15,7 +15,7 @@ import { openSystemSettings } from "../../../lib/systemPageIpc";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
 import { Picture } from "../../ui/Picture";
 
-const tabs = ["tasks", "caches", "login", "notOffered"] as const;
+const tabs = ["tasks", "caches", "login"] as const;
 type Tab = (typeof tabs)[number];
 
 export const taskMeta: Record<Task, { title: string; tone: Tone; icon: IconName; what: string; after: string }> = {
@@ -76,14 +76,6 @@ export const taskMeta: Record<Task, { title: string; tone: Tone; icon: IconName;
     after: "Everything in the Trash is deleted for good. macOS asks once to let Kleari control Finder.",
   },
 };
-
-const notOffered: readonly { title: string; why: string }[] = [
-  { title: "Repair disk permissions", why: "macOS protects its own permissions since El Capitan; use Disk Utility’s First Aid for disk problems." },
-  { title: "Run periodic scripts", why: "Modern macOS runs its own maintenance on schedule; there is nothing left to run by hand." },
-  { title: "Language files and universal binaries", why: "Removing them breaks apps’ signatures, so apps may refuse to open or update." },
-  { title: "Document versions", why: "macOS keeps them in a protected folder that no app may change." },
-  { title: "Mail’s Trash", why: "Mail keeps it in its own protected data; empty it in Mail (Mailbox › Erase Deleted Items)." },
-];
 
 const scopeLabel: Record<StartupItem["scope"], string> = {
   userAgent: "Starts when you log in",
@@ -194,7 +186,6 @@ export function MaintenanceScreen({ maintenance, apps, keyboard, onOpenLoginItem
             { value: "tasks", label: "Tasks" },
             { value: "caches", label: "App caches" },
             { value: "login", label: "Login items" },
-            { value: "notOffered", label: "Not offered" },
           ]}
         />
         {tab === "caches" && (
@@ -338,22 +329,6 @@ export function MaintenanceScreen({ maintenance, apps, keyboard, onOpenLoginItem
               })}
             </ul>
           )}
-        </section>
-        )}
-
-        {tab === "notOffered" && (
-        <section aria-labelledby="mt-not" className="v2-card mt-not">
-          <h2 id="mt-not" className="v2-card-title-sm">Not offered, and why</h2>
-          <ul className="v2-info-list mt-scroll" tabIndex={0} aria-label="Not offered">
-            {notOffered.map((item) => (
-              <li key={item.title}>
-                <span className="v2-row-text">
-                  <span className="v2-row-title">{item.title}</span>
-                  <span className="v2-row-sub">{item.why}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
         </section>
         )}
       </div>

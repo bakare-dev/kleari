@@ -29,8 +29,7 @@
 }
 
 .mt-grid:focus-visible,
-.mt-rows:focus-visible,
-.mt-scroll:focus-visible {
+.mt-rows:focus-visible {
   outline-offset: -2px;
 }
 
@@ -69,8 +68,7 @@
 }
 
 /* The card fills the rest of the page; its title and note stay, its list scrolls. */
-.mt-login,
-.mt-not {
+.mt-login {
   display: flex;
   min-height: 0;
   flex: 0 1 auto;
@@ -79,16 +77,8 @@
   padding: 14px;
 }
 
-.mt-login > :not(.mt-rows),
-.mt-not > :not(.mt-scroll) {
+.mt-login > :not(.mt-rows) {
   flex-shrink: 0;
-}
-
-.mt-scroll {
-  min-height: 0;
-  flex: 1 1 auto;
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
 .mt-login-head {
