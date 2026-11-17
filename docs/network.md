@@ -42,8 +42,9 @@ runs in CI on every change and fails if any of these stops being true:
 3. The updater's addresses are Kleari's own GitHub releases, over HTTPS.
 4. The Rust code opens no internet sockets, uses no native networking API, and shows no web
    page but Kleari's own. It runs only a fixed few Apple programs. AppleScript appears only
-   in the two files reviewed for it (browser tabs and maintenance tasks), and no script may
-   run a shell command that fetches or send a browser to an address. Every web address in it
+   in the two files reviewed for it (browser tabs and maintenance tasks). It may run only the
+   reviewed shell commands, exactly as written, and may never reach Cocoa, other scripts or
+   JavaScript for Automation, or send a browser to an address. Every web address in it
    is Kleari's GitHub, Apple's plist identifier (a label, never fetched) or a reserved test
    domain.
 5. The interface uses no `fetch`, XHR, WebSocket, EventSource, beacon or HTTP library, loads

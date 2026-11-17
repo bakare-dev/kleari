@@ -25,7 +25,11 @@ function passingApp() {
     "src-tauri/capabilities/default.json": JSON.stringify({ identifier: "default", permissions: ["core:default", "allow-get-mouse"] }),
     "src-tauri/src/lib.rs": 'const PS: &str = "/bin/ps";\nfn run() { let _ = std::process::Command::new(PS); }\n',
     "src-tauri/src/browser.rs": 'const OSASCRIPT: &str = "/usr/bin/osascript";\nconst LIST: &str = "set addresses to URL of every tab of w";\n',
-    "src-tauri/src/maintenance.rs": 'const PURGE: &str = r#"do shell script "/usr/sbin/purge" with administrator privileges"#;\n',
+    "src-tauri/src/maintenance.rs":
+      'const PURGE: &str = r#"do shell script "/usr/sbin/purge" with administrator privileges"#;\n' +
+      '#[cfg(test)]\nmod tests {\n    fn shape(s: &str) -> bool {\n        s.starts_with("do shell script")\n    }\n}\n',
+    "src-tauri/src/quarantine/mod.rs": "#[cfg(test)]\nmod tests;\n",
+    "src-tauri/src/quarantine/tests.rs": 'fn f() { Command::new("/usr/bin/chflags"); }\n',
   };
 }
 
@@ -122,9 +126,13 @@ test("Rust sockets, networking APIs and external web views fail", () => {
   }
 });
 
-test("an unlisted program fails, except in test-only files", () => {
+test("an unlisted program fails, except in a module compiled only for tests", () => {
   fails({ "src-tauri/src/extra.rs": 'fn f() { Command::new("/usr/bin/curl"); }\n' }, /runs "\/usr\/bin\/curl"/);
-  assert.deepEqual(problems({ "src-tauri/src/quarantine/tests.rs": 'fn f() { Command::new("/usr/bin/chflags"); }\n' }), []);
+  // The passing app's quarantine/tests.rs runs chflags: its parent declares it `#[cfg(test)]`.
+  assert.deepEqual(problems(), []);
+  // Named tests.rs but compiled into the app: no exemption.
+  fails({ "src-tauri/src/quarantine/mod.rs": "mod tests;\n" }, /quarantine\/tests\.rs:1: runs "\/usr\/bin\/chflags"/);
+  fails({ "src-tauri/src/sync/tests.rs": 'fn f() { Command::new("/usr/bin/curl"); }\n', "src-tauri/src/sync/mod.rs": "pub mod tests;\n" }, /runs "\/usr\/bin\/curl"/);
 });
 
 test("AppleScript outside the reviewed files fails", () => {
@@ -143,9 +151,23 @@ test("AppleScript that sends a browser somewhere fails, even with the address gi
   }
 });
 
-test("an AppleScript shell command that fetches fails", () => {
-  fails({ "src-tauri/src/maintenance.rs": 'const S: &str = r#"do shell script "/usr/bin/curl -s x""#;\n' }, /shell command could reach the network/);
-  fails({ "src-tauri/src/maintenance.rs": 'const S: &str = r#"do shell script "/usr/bin/open x""#;\n' }, /shell command could reach the network/);
+test("AppleScript may run only the reviewed shell commands, exactly", () => {
+  const maintenance = (script) => ({ "src-tauri/src/maintenance.rs": `const S: &str = r#"${script}"#;\n` });
+  fails(maintenance('do shell script "/usr/bin/curl -s x"'), /shell command this check hasn't reviewed/);
+  // Python opening a socket to an address put together at run time.
+  fails(maintenance(`do shell script "/usr/bin/python3 -c 'import socket; socket.create_connection((h, 443))'"`), /hasn't reviewed/);
+  // A command built at run time, or a reviewed one with something added.
+  fails(maintenance("do shell script command"), /hasn't reviewed: do shell script$/);
+  fails(maintenance('do shell script "/usr/sbin/purge; /usr/bin/nc x 80"'), /hasn't reviewed/);
+  // The reviewed one passes, and a test module's mention of the command's shape is ignored.
+  assert.deepEqual(problems(maintenance('do shell script "/usr/sbin/purge" with administrator privileges')), []);
+});
+
+test("AppleScript that reaches Cocoa, other scripts or JavaScript for Automation fails", () => {
+  for (const script of ['use framework "Foundation"', "set u to current application's NSURL's URLWithString:x", "run script x", 'load script file "x.scpt"']) {
+    fails({ "src-tauri/src/browser.rs": `const S: &str = r#"${script}"#;\n` }, /reaches Cocoa, other scripts or JavaScript/);
+  }
+  fails({ "src-tauri/src/browser.rs": 'fn f() { Command::new(OSASCRIPT).args(["-l", "JavaScript", "-e", s]); }\nconst OSASCRIPT: &str = "/usr/bin/osascript";\n' }, /JavaScript for Automation/);
 });
 
 test("a web address in Rust that isn't allowed fails, unless its line marks it as never requested", () => {

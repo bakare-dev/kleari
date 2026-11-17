@@ -16,8 +16,9 @@
 // 3. The updater's endpoints are Kleari's own GitHub releases, over HTTPS.
 // 4. Rust source: no internet sockets, native networking API or web view showing anything
 //    but the app's own pages (`WebviewUrl::External`, `navigate`); every program it runs is one
-//    of a fixed few; AppleScript only in the files reviewed for it, with no shell command that
-//    fetches and no command that sends a browser anywhere; every web address written in it is
+//    of a fixed few (outside modules compiled only for tests); AppleScript only in the files
+//    reviewed for it, running only the shell commands reviewed (exactly), never Cocoa, other
+//    scripts or JavaScript for Automation, and never sending a browser anywhere; every web address written in it is
 //    Kleari's own GitHub, Apple's plist identifier (never fetched) or a reserved test domain.
 // 5. Frontend: no fetch, XHR, WebSocket, EventSource, beacon or HTTP library, no remote file in
 //    index.html, and every web address is Kleari's own GitHub.
@@ -51,8 +52,20 @@ const RUST_NETWORK =
   /\bstd::net\b|\bTcpStream\b|\bTcpListener\b|\bUdpSocket\b|\btokio::net\b|\bNSURLSession\b|\bNSURLConnection\b|\bNSURLDownload\b|\bCFSocket\w*|\bCFStream\w*|\bCFHTTP\w*|\bnw_connection\w*|\bnw_endpoint\w*|\bWKWebView\b|\bWebviewUrl::External\b|\.navigate\s*\(|\bload_url\b|\bsocket2\b|\bmio::net\b|\breqwest\b|\bureq\b|\bhyper\b/g;
 /** AppleScript that sends a browser (or anything) to an address, or runs code in a page. */
 const APPLESCRIPT_NAVIGATION = /\bopen location\b|\bset\s+(?:the\s+)?URL\b|\bmake new (?:tab|document|window)\b|\bdo JavaScript\b|\bexecute\b[^"\n]*\bjavascript\b|\bnavigate\b|\bGET URL\b/i;
-/** Shell tools that fetch, in an AppleScript `do shell script`. */
-const SCRIPT_FETCH = /\b(curl|wget|nc|ncat|ssh|scp|sftp|ftp|telnet|rsync|nslookup|dig|ping|open)\b|https?:\/\//;
+/** The only shell commands AppleScript may run (Maintenance's tasks), exactly as written:
+ * anything else, including a command built at run time, fails, so a new one gets reviewed. */
+export const ALLOWED_SHELL_COMMANDS = new Set([
+  "/usr/sbin/purge",
+  "/usr/bin/dscacheutil -flushcache; /usr/bin/killall -HUP mDNSResponder",
+  "/usr/bin/tmutil thinlocalsnapshots / 999999999999 4",
+  "/usr/bin/mdutil -E /",
+  "/usr/bin/find -x /Library/Caches -mindepth 1 -maxdepth 1 ! -name 'com.apple.*' -exec /bin/rm -rf {} +",
+  "/usr/bin/find -x /private/var/log -type f -name '*.gz' -mtime +30 -delete; /usr/bin/find -x /private/var/log -type f -name '*.bz2' -mtime +30 -delete; /usr/bin/find -x /Library/Logs/DiagnosticReports -type f -mtime +30 -delete",
+  "/bin/rm -rf '/Users/Deleted Users'",
+]);
+/** AppleScript that reaches beyond its own commands: Cocoa (AppleScriptObjC), other scripts,
+ * or JavaScript for Automation (`osascript -l JavaScript`, which can call any framework). */
+const APPLESCRIPT_ESCAPE = /\buse framework\b|\bcurrent application's\b|\b(?:run|load|store) script\b|"-l"|\bJavaScript\b(?!["\s]*in\b)/;
 /** Web addresses Rust may contain: Kleari's GitHub (update feed, release pages), Apple's plist
  * identifier (a DOCTYPE, never fetched) and reserved test domains (RFC 2606). */
 const RUST_HOSTS = /^(github\.com\/bakare-dev\/kleari\/|www\.apple\.com\/DTDs\/|([a-z0-9-]+\.)*example(\.(com|org|net))?([:/]|$)|[a-z]+@host\.example)/;
@@ -65,6 +78,45 @@ const FORBIDDEN_PERMISSIONS = /^(http|websocket|upload|shell|opener|process|fs|d
 const CSP_SOURCES = new Set(["'self'", "'none'", "'unsafe-inline'", "asset:", "http://asset.localhost", "data:", "ipc:", "http://ipc.localhost"]);
 /** Directives the policy must set to exactly this (form-action has no default-src fallback). */
 const CSP_REQUIRED = { "default-src": "'self'", "object-src": "'none'", "frame-src": "'none'", "base-uri": "'none'", "form-action": "'none'" };
+
+/** `text` with each inline `#[cfg(test)] mod … { … }` blanked (line numbers kept): code that
+ * is only compiled for tests. Braces are counted, so a module's `}` in a string could end it
+ * early; that only ever checks more, never less. */
+function withoutInlineTests(text) {
+  const lines = text.split("\n");
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!/^\s*#\[cfg\(test\)\]\s*$/.test(lines[index]) || !/^\s*(pub\s+)?mod\s+\w+\s*\{/.test(lines[index + 1] ?? "")) {
+      continue;
+    }
+    let depth = 0;
+    for (let at = index + 1; at < lines.length; at += 1) {
+      depth += (lines[at].match(/\{/g) ?? []).length - (lines[at].match(/\}/g) ?? []).length;
+      lines[at] = "";
+      if (depth <= 0) {
+        index = at;
+        break;
+      }
+    }
+  }
+  return lines.join("\n");
+}
+
+/** Whether the Rust file `name` (under src-tauri/src) is a module its parent declares only for
+ * tests: `#[cfg(test)]` on the line before `mod <file>;` in `mod.rs` or `<parent>.rs`. */
+function testOnlyModule(srcDir, name, read) {
+  const parts = name.replace(/^src-tauri\/src\//, "").replace(/\.rs$/, "").split("/");
+  const module = parts.pop() === "mod" ? parts.pop() : name.replace(/^.*\//, "").replace(/\.rs$/, "");
+  const parents = parts.length === 0 ? ["lib.rs", "main.rs"] : [`${parts.join("/")}/mod.rs`, `${parts.join("/")}.rs`];
+  return parents.some((parent) => {
+    let text;
+    try {
+      text = read(join(srcDir, parent));
+    } catch {
+      return false;
+    }
+    return new RegExp(String.raw`#\[cfg\(test\)\]\s*\n\s*mod\s+${module}\s*;`).test(text);
+  });
+}
 
 /** Every file under `dir` with one of `extensions` (all files for `null`), skipping build output. */
 function files(dir, extensions) {
@@ -267,8 +319,9 @@ export function checkNetworkBoundary(desktop, metadata = (target) => cargoMetada
     for (const found of matches(text, RUST_NETWORK)) {
       fail(`${name}:${found.line}: "${found.text}" could open a network connection.`);
     }
-    // Test-only files may run other programs (to set up files): they never ship.
-    if (!/(^|\/)tests?\.rs$/.test(name)) {
+    // A module its parent compiles only for tests may run other programs (to set up files):
+    // it never ships. Decided by that declaration, never by the file's name.
+    if (!testOnlyModule(join(tauriDir, "src"), name, read)) {
       for (const found of matches(text, /Command::new\(([^)]*)\)/g)) {
         const argument = found.text.slice("Command::new(".length, -1).trim();
         const constant = new RegExp(String.raw`const ${argument}: &str = "([^"]+)"`).exec(text)?.[1];
@@ -282,14 +335,18 @@ export function checkNetworkBoundary(desktop, metadata = (target) => cargoMetada
     if (appleScript && !APPLESCRIPT_FILES.has(name)) {
       fail(`${name}: runs AppleScript outside the files reviewed for it (${[...APPLESCRIPT_FILES].join(", ")}).`);
     }
-    for (const [index, line] of lines.entries()) {
+    const shipped = withoutInlineTests(text);
+    for (const [index, line] of shipped.split("\n").entries()) {
       if (APPLESCRIPT_NAVIGATION.test(line)) {
         fail(`${name}:${index + 1}: AppleScript that sends a browser to an address or runs code in a page.`);
       }
-    }
-    for (const found of matches(text, /do shell script "[^"]*"/g)) {
-      if (SCRIPT_FETCH.test(found.text)) {
-        fail(`${name}:${found.line}: an AppleScript shell command could reach the network: ${found.text}`);
+      if (APPLESCRIPT_ESCAPE.test(line)) {
+        fail(`${name}:${index + 1}: AppleScript that reaches Cocoa, other scripts or JavaScript for Automation.`);
+      }
+      for (const shell of line.matchAll(/do shell script\b(?:\s+"([^"]*)")?/g)) {
+        if (shell[1] === undefined || !ALLOWED_SHELL_COMMANDS.has(shell[1])) {
+          fail(`${name}:${index + 1}: AppleScript runs a shell command this check hasn't reviewed: ${shell[0]}`);
+        }
       }
     }
     for (const found of matches(text, /https?:\/\/[^\s"'`)\\]+/g)) {
