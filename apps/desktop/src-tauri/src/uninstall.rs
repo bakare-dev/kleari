@@ -1,7 +1,8 @@
 //! Uninstalling Kleari from Settings: everything Kleari put on this Mac goes to the Trash
 //! (so it can still be recovered until the Trash is emptied), never deleted outright. It
-//! refuses while Quarantine holds anything, because those items are the user's files. An app
-//! can't reset the privacy permissions it was given; the page says how.
+//! refuses while Quarantine holds anything, because those items are the user's files. The
+//! privacy permissions macOS gave Kleari are reset first (`identity::reset_permissions`); if
+//! that fails, the page gives the command.
 
 use std::path::{Path, PathBuf};
 
@@ -46,6 +47,9 @@ pub struct Uninstalled {
     pub failed: Vec<String>,
     /// Open at login was on and macOS didn't turn it off; its reason, when it gave one.
     pub login_item_kept: Option<String>,
+    /// macOS forgot the permissions it gave Kleari (`tccutil reset All`). False: the page
+    /// gives the command to run.
+    pub permissions_reset: bool,
 }
 
 /// Moves each existing location to the Trash. Only locations that don't exist are skipped;
@@ -56,6 +60,7 @@ pub fn move_to_trash(locations: &[PathBuf], home: Option<&Path>) -> Uninstalled 
         moved: Vec::new(),
         failed: Vec::new(),
         login_item_kept: None,
+        permissions_reset: false,
     };
     for location in locations {
         match std::fs::symlink_metadata(location) {

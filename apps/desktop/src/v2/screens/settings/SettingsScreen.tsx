@@ -201,7 +201,7 @@ export function UninstallDialog(props: {
     );
   }
   if (dialog.kind === "uninstalled") {
-    const { moved, failed, loginItemKept } = dialog.uninstalled;
+    const { moved, failed, loginItemKept, permissionsReset } = dialog.uninstalled;
     const partly = failed.length > 0 || loginItemKept !== null;
     return (
       <div className="v2-dialog-body v2-dialog-centered">
@@ -216,10 +216,16 @@ export function UninstallDialog(props: {
             Open at login is still on ({loginItemKept}). Remove Kleari in System Settings › General › Login Items.
           </p>
         )}
-        <p className="v2-dialog-text">
-          macOS keeps the permissions you gave Kleari until you clear them. In Terminal, run:
-        </p>
-        <code className="set-command v2-mono">{RESET_PERMISSIONS}</code>
+        {permissionsReset ? (
+          <p className="v2-dialog-text">macOS has also forgotten the permissions you gave Kleari.</p>
+        ) : (
+          <>
+            <p className="v2-dialog-text">
+              macOS couldn’t clear the permissions you gave Kleari, so they stay until you do. In Terminal, run:
+            </p>
+            <code className="set-command v2-mono">{RESET_PERMISSIONS}</code>
+          </>
+        )}
         {dialog.quitProblem && <p role="alert" className="v2-dialog-text">{dialog.quitProblem} Quit with ⌘Q.</p>}
         <div className="v2-dialog-actions">
           <Button variant="primary" onClick={props.onQuit}>Quit Kleari</Button>
@@ -232,7 +238,7 @@ export function UninstallDialog(props: {
       <IconTile tone="red" icon="trash" size={52} glow />
       <h2 id="set-dialog-title" className="v2-dialog-title">Uninstall Kleari?</h2>
       <p className="v2-dialog-text">
-        Kleari tries to turn off Open at login (and tells you if macOS keeps it on), then moves itself, its settings, activity history and caches to the Trash, and asks you to quit. Your own files stay where they are. You can put it back from the Trash until you empty it.
+        Kleari tries to turn off Open at login (and tells you if macOS keeps it on), asks macOS to forget the permissions you gave it, then moves itself, its settings, activity history and caches to the Trash, and asks you to quit. Your own files stay where they are. You can put it back from the Trash until you empty it.
       </p>
       {dialog.problem && <p role="alert" className="v2-dialog-text">{dialog.problem}</p>}
       <div className="v2-dialog-actions">

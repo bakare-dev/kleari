@@ -125,9 +125,10 @@ Kleari stays where it is until a newer stable release comes out.
 1. In Kleari, restore or permanently delete anything still in **Quarantine**. Items there
    are your files, kept until you decide; Kleari won't uninstall until it's empty.
 2. Open **Settings › About** and choose **Uninstall…**. Kleari tries to turn off Open at
-   login, then moves itself and its settings, history and caches to the Trash, and lists
-   what it moved. Your own files aren't touched.
-3. To remove the permissions you gave it, run the command it shows in Terminal:
+   login, asks macOS to forget the permissions you gave it (it runs
+   `tccutil reset All dev.kleari.app`), then moves itself and its settings, history and
+   caches to the Trash, and lists what it moved. Your own files aren't touched.
+3. If it says macOS couldn't clear the permissions, run the command it shows in Terminal:
    `tccutil reset All dev.kleari.app`. Then choose **Quit Kleari**.
 
 As Kleari quits, macOS may write `~/Library/WebKit/dev.kleari.app` once more (it holds

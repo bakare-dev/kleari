@@ -410,11 +410,21 @@ pub async fn uninstall_kleari(
             None
         };
         let identifier = app.config().identifier.clone();
+        // macOS forgets Kleari's permissions while the bundle is still where it was:
+        // `tccutil` finds an app through LaunchServices, which may not find it in the Trash.
+        let permissions_reset = crate::identity::reset_permissions(&identifier);
+        // The old identifier's too, in case the move couldn't reset them (a stub in Kleari's
+        // caches folder, deleted before that folder goes to the Trash).
+        let caches = home.join("Library/Caches").join(&identifier);
+        if std::fs::create_dir_all(&caches).is_ok() {
+            let _ = crate::identity::stub_reset(&caches, crate::identity::OLD_IDENTIFIER);
+        }
         let mut locations = crate::uninstall::data_locations(&home, &identifier);
         // The app itself goes last, after its data.
         locations.push(bundle);
         let mut done = crate::uninstall::move_to_trash(&locations, Some(&home));
         done.login_item_kept = login_item_kept;
+        done.permissions_reset = permissions_reset;
         Ok(done)
     })
     .await

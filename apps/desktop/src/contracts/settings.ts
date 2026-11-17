@@ -251,6 +251,8 @@ export interface Uninstalled {
   failed: string[];
   /** Open at login was on and macOS didn't turn it off: its reason. */
   loginItemKept: string | null;
+  /** macOS forgot the permissions it gave Kleari; false: the page gives the command. */
+  permissionsReset: boolean;
 }
 
 export function parseUninstalled(payload: unknown): Uninstalled {
@@ -259,6 +261,7 @@ export function parseUninstalled(payload: unknown): Uninstalled {
     moved: parsePaths(fields.moved, "moved"),
     failed: parsePaths(fields.failed, "failed"),
     loginItemKept: fields.loginItemKept === null ? null : text(fields.loginItemKept, "loginItemKept"),
+    permissionsReset: boolean(fields.permissionsReset, "permissionsReset"),
   };
 }
 
