@@ -44,6 +44,8 @@ const MIN_OLD_BYTES: u64 = 50_000_000;
 const HEAD_BYTES: usize = 64 * 1024;
 /// A model download unused this long is "not used lately".
 const MODEL_IDLE_DAYS: u64 = 60;
+/// Found items kept for acting on and pictures, at most (see `FilesState::finish`).
+const MAX_FOUND: usize = 200_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -143,6 +145,9 @@ struct Found {
     chosen: Chosen,
     /// Its group, when one member must be kept, and whether it is the one kept by default.
     keep_group: Option<(String, bool)>,
+    /// It may be removed (`FileItem::selectable`). Every item is kept so the page can ask for
+    /// its picture; only these are ever handed to removal.
+    selectable: bool,
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -182,17 +187,27 @@ impl FilesState {
         *lock(&self.active) = None;
     }
 
-    /// Ends the scan; a completed one replaces what the last scan of the same items found.
+    /// Ends the scan; a completed one adds what it found to what earlier scans found, so each
+    /// tool's last result can still be acted on.
     fn finish(&self, found: Option<HashMap<String, Found>>) {
         if let Some(found) = found {
             let mut kept = lock(&self.found);
-            kept.extend(found);
-            // Bounded: keep the newest scan's items when it grows too large.
-            if kept.len() > 200_000 {
-                kept.clear();
+            // Bounded: when it would grow too large, only the newest scan's items are kept (never
+            // none of them, so what is on screen can still be removed).
+            if kept.len().saturating_add(found.len()) > MAX_FOUND {
+                *kept = found;
+            } else {
+                kept.extend(found);
             }
         }
         *lock(&self.active) = None;
+    }
+
+    /// The path of a found item, for its picture (any item, removable or not).
+    pub fn path(&self, id: &str) -> Option<PathBuf> {
+        lock(&self.found)
+            .get(id)
+            .map(|item| item.chosen.path.clone())
     }
 
     /// What `ids` stand for, ready for the review. In a group where one copy must be kept, if
@@ -220,6 +235,7 @@ impl FilesState {
         ids.iter()
             .filter(|id| !held.contains(id.as_str()))
             .filter_map(|id| found.get(id))
+            .filter(|item| item.selectable)
             .map(|item| item.chosen.clone())
             .collect()
     }
@@ -301,20 +317,19 @@ impl Ctx<'_> {
             file_category: (!folder).then(|| category_of(path)),
             selectable,
         };
-        if selectable {
-            self.found.insert(
-                id,
-                Found {
-                    chosen: Chosen {
-                        name: item.name.clone(),
-                        path: path.to_path_buf(),
-                        stat: *stat,
-                        measured,
-                    },
-                    keep_group: keep_group.map(|(group, keeper)| (group.to_owned(), keeper)),
+        self.found.insert(
+            id,
+            Found {
+                chosen: Chosen {
+                    name: item.name.clone(),
+                    path: path.to_path_buf(),
+                    stat: *stat,
+                    measured,
                 },
-            );
-        }
+                keep_group: keep_group.map(|(group, keeper)| (group.to_owned(), keeper)),
+                selectable,
+            },
+        );
         item
     }
 

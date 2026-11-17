@@ -1654,3 +1654,101 @@ input[type="checkbox"]:disabled {
   visibility: visible;
   opacity: 1;
 }
+
+/* A row's picture: a thumbnail or an app icon, in the space of its icon tile. */
+.v2-picture {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.v2-picture-img {
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.v2-picture-open {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  cursor: zoom-in;
+}
+
+.v2-picture-open:focus-visible {
+  outline: 2px solid var(--mp-link);
+  outline-offset: 2px;
+}
+
+/* The large preview: the image as big as the window allows, and its group below. */
+.v2-preview {
+  width: min(960px, calc(100vw - 32px));
+}
+
+.v2-preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.v2-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.v2-preview-head .v2-row-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.v2-preview-large {
+  display: flex;
+  min-height: 240px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--mp-glass-chip);
+}
+
+.v2-preview-large img {
+  max-width: 100%;
+  max-height: min(62vh, 720px);
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.v2-preview-strip {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 2px 0 4px;
+  overflow-x: auto;
+  list-style: none;
+}
+
+.v2-preview-strip li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.v2-preview-strip button {
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
+.v2-preview-strip li.on button {
+  border-color: var(--mp-link);
+}
+
+.v2-preview-note {
+  color: var(--mp-text-2);
+  font-size: 11px;
+}

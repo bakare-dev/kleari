@@ -6,6 +6,7 @@ import { formatGb, plural, sum } from "../../ui/format";
 import { headingIdFor } from "../../shell/routes";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
 import { cacheBytes } from "../../../features/apps/useApps";
+import { Picture } from "../../ui/Picture";
 import "../developer/developer.css";
 import "./apps.css";
 import { AccessSteps } from "../../ui/AccessSteps";
@@ -165,7 +166,7 @@ export function AppsScreen(props: AppsScreenProps) {
                     <li key={app.id} className={focused?.id === app.id ? "focused" : ""}>
                       <span className="apps-spacer" aria-hidden="true" />
                       <button type="button" className="dev-row-main" aria-pressed={focused?.id === app.id} onClick={() => setFocus(app.id)}>
-                        <IconTile tone={app.apple ? "gray" : "blue"} icon="apps" size={30} />
+                        <Picture source="app" id={app.id} size={30} label={app.name} fallback={<IconTile tone={app.apple ? "gray" : "blue"} icon="apps" size={30} />} />
                         <span className="v2-row-text">
                           <span className="v2-row-title">{app.name}</span>
                           <span className="v2-row-sub v2-ellipsis">{[app.version && `Version ${app.version}`, app.location].filter(Boolean).join(" · ")}</span>
@@ -218,7 +219,7 @@ export function AppsScreen(props: AppsScreenProps) {
               {view === "apps" && focused && (
                 <section aria-labelledby="apps-focus" className="v2-card dev-detail">
                   <div className="dev-detail-head">
-                    <IconTile tone={focused.apple ? "gray" : "blue"} icon="apps" size={42} glow />
+                    <Picture source="app" id={focused.id} size={42} label={focused.name} fallback={<IconTile tone={focused.apple ? "gray" : "blue"} icon="apps" size={42} glow />} />
                     <span className="v2-row-text">
                       <h2 id="apps-focus" className="v2-card-title-sm v2-ellipsis">{focused.name}</h2>
                       <span className="v2-muted v2-num dev-detail-meta">
@@ -285,7 +286,7 @@ export function AppsScreen(props: AppsScreenProps) {
         {confirm && (
           <div className="v2-dialog-body">
             <div className="v2-dialog-head">
-              <IconTile tone="red" icon="trashLines" size={48} glow />
+              <Picture source="app" id={confirm.id} size={48} label={confirm.name} fallback={<IconTile tone="red" icon="trashLines" size={48} glow />} />
               <div className="v2-row-text">
                 <h2 id="apps-remove-title" className="v2-dialog-title">Move {confirm.name} to the Trash?</h2>
                 <span className="v2-card-note">Finder’s Put Back returns it until you empty the Trash.</span>

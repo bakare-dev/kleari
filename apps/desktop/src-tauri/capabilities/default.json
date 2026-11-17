@@ -33,6 +33,7 @@
     "allow-create-cleanup-preview",
     "allow-approve-cleanup-preview",
     "allow-delete-cleanup-preview",
+    "allow-get-picture",
     "allow-list-trash",
     "allow-delete-trash-items",
     "allow-put-back-trash-items",

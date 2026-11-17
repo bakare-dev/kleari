@@ -147,6 +147,14 @@ impl ExplorerState {
         }
     }
 
+    /// The path of a listed file, for its picture.
+    pub fn file_path(&self, id: &str) -> Option<PathBuf> {
+        lock(&self.nodes)
+            .get(id)
+            .filter(|node| matches!(node.kind, EntryKind::File))
+            .map(|node| node.path.clone())
+    }
+
     /// The chosen entries, by ID, with what their listing measured.
     pub fn chosen(&self, ids: &[String]) -> Vec<Chosen> {
         let nodes = lock(&self.nodes);

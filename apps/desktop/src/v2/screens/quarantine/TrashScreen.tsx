@@ -9,6 +9,8 @@ import { AccessSteps } from "../../ui/AccessSteps";
 import { Button, FloatingBar, IconTile, Modal, PageHeader, Segmented, Spinner, StatCard, Toast, useToast } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
 import { headingIdFor } from "../../shell/routes";
+import { Picture } from "../../ui/Picture";
+import { ImagePreview, type PreviewImage } from "../../ui/ImagePreview";
 import "./trash.css";
 
 type Sort = "largest" | "newest" | "oldest" | "name";
@@ -29,6 +31,10 @@ const failureText: Record<TrashFailure, string> = {
   failed: "macOS reported an error",
 };
 
+/** Image files Kleari makes thumbnails of (src-tauri `files::images::EXTENSIONS`). */
+const IMAGE_EXTENSIONS = /\.(jpe?g|png|heic|heif|tiff?|webp|dng|cr2|nef|arw)$/i;
+const isImage = (item: TrashItem) => !item.folder && IMAGE_EXTENSIONS.test(item.name);
+
 const size = (item: { bytes: number; lowerBound: boolean }) => `${item.lowerBound ? "≥ " : ""}${formatGb(item.bytes / 1e9)}`;
 
 function when(ms: number | null): string {
@@ -47,6 +53,8 @@ export function TrashScreen({ tabs }: { tabs: ReactNode }) {
   const [sort, setSort] = useState<Sort>("largest");
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
   const [confirm, setConfirm] = useState<"delete" | "empty" | null>(null);
+  // The images seen large: the Trash's images and the one chosen.
+  const [preview, setPreview] = useState<{ images: PreviewImage[]; start: number } | null>(null);
   const toast = useToast(6000);
 
   const load = useCallback(() => {
@@ -185,7 +193,21 @@ export function TrashScreen({ tabs }: { tabs: ReactNode }) {
                 {items.map((item) => (
                   <li key={item.id}>
                     <input type="checkbox" aria-label={`Choose ${item.name}`} checked={selection.has(item.id)} onChange={() => toggle(item.id)} />
-                    <IconTile tone={item.folder ? "blue" : "gray"} icon={item.folder ? "folder" : "file"} size={28} />
+                    <Picture
+                      source="trash"
+                      id={item.id}
+                      size={28}
+                      label={item.name}
+                      enabled={isImage(item)}
+                      fallback={<IconTile tone={item.folder ? "blue" : "gray"} icon={item.folder ? "folder" : "file"} size={28} />}
+                      onOpen={() => {
+                        const images = items.filter(isImage);
+                        setPreview({
+                          images: images.map((other) => ({ id: other.id, name: other.name, detail: [other.from ? `from ${other.from}` : null, size(other)].filter(Boolean).join(" · ") })),
+                          start: Math.max(0, images.findIndex((other) => other.id === item.id)),
+                        });
+                      }}
+                    />
                     <span className="v2-row-text">
                       <span className="v2-row-title v2-ellipsis">{item.name}</span>
                       <span className="v2-row-sub v2-ellipsis">
@@ -254,6 +276,7 @@ export function TrashScreen({ tabs }: { tabs: ReactNode }) {
         )}
       </Modal>
 
+      {preview && <ImagePreview source="trash" images={preview.images} start={preview.start} onClose={() => setPreview(null)} />}
       <Toast message={toast.message} bottom={92} />
     </>
   );

@@ -11,6 +11,7 @@ import "./maintenance.css";
 import { AccessSteps } from "../../ui/AccessSteps";
 import { openSystemSettings } from "../../../lib/systemPageIpc";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
+import { Picture } from "../../ui/Picture";
 
 const taskMeta: Record<Task, { title: string; tone: Tone; icon: IconName; what: string; after: string }> = {
   freeRam: {
@@ -195,7 +196,7 @@ export function MaintenanceScreen({ maintenance, apps, onOpenLoginItems }: { mai
                           setCachePick(next);
                         }}
                       />
-                      <IconTile tone="blue" icon="apps" size={28} />
+                      <Picture source="app" id={app.id} size={28} label={app.name} fallback={<IconTile tone="blue" icon="apps" size={28} />} />
                       <span className="v2-row-text">
                         <span className="v2-row-title v2-ellipsis">{app.name}</span>
                         <span className="v2-row-sub v2-ellipsis">{app.running ? "Open now: its cache stays" : (app.bundleId ?? app.location)}</span>

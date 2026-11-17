@@ -7,6 +7,8 @@ import { Button, FloatingBar, IconTile, PageHeader, Pill, Segmented, Select, Spi
 import { formatGb, plural, sum } from "../../ui/format";
 import { headingIdFor } from "../../shell/routes";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
+import { Picture } from "../../ui/Picture";
+import { ImagePreview, type PreviewImage } from "../../ui/ImagePreview";
 import "./files.css";
 
 const toolMeta: Record<Tool, { label: string; tone: Tone; icon: IconName; what: string; group: (group: FileGroup) => string }> = {
@@ -90,6 +92,8 @@ export function FilesScreen({ files }: { files: Files }) {
   const [tool, setTool] = useState<Tool>("largeOld");
   const [options, setOptions] = useState<FilesOptions>({ largeMinMb: 500, oldDays: 180 });
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
+  // The images seen large: a group's images and the one chosen.
+  const [preview, setPreview] = useState<{ images: PreviewImage[]; start: number } | null>(null);
   const nowMs = Date.now();
 
   const result = state.results[tool] ?? null;
@@ -220,7 +224,26 @@ export function FilesScreen({ files }: { files: Files }) {
                   return (
                     <li key={item.id}>
                       <input type="checkbox" aria-label={`Choose ${item.name}`} checked={can && selection.has(item.id)} disabled={!can} onChange={() => toggle(item.id)} style={{ opacity: can ? 1 : 0.4 }} />
-                      <IconTile tone={meta.tone} icon={item.folder ? "folder" : fileIcon[item.fileCategory ?? "other"]} size={28} />
+                      <Picture
+                        source="files"
+                        id={item.id}
+                        size={28}
+                        label={item.name}
+                        enabled={item.fileCategory === "image"}
+                        fallback={<IconTile tone={meta.tone} icon={item.folder ? "folder" : fileIcon[item.fileCategory ?? "other"]} size={28} />}
+                        onOpen={() => {
+                          const images = group.items.filter((entry) => entry.fileCategory === "image");
+                          setPreview({
+                            images: images.map((entry) => ({
+                              id: entry.id,
+                              name: entry.name,
+                              detail: `${entry.location} · ${size(entry)}`,
+                              note: keeps(group) && group.items[0]?.id === entry.id ? "Keep" : undefined,
+                            })),
+                            start: Math.max(0, images.findIndex((entry) => entry.id === item.id)),
+                          });
+                        }}
+                      />
                       <span className="v2-row-text">
                         <span className="v2-row-title v2-ellipsis">{item.name}</span>
                         <span className="v2-row-sub v2-ellipsis">
@@ -255,6 +278,8 @@ export function FilesScreen({ files }: { files: Files }) {
           </div>
         </FloatingBar>
       )}
+
+      {preview && <ImagePreview source="files" images={preview.images} start={preview.start} onClose={() => setPreview(null)} />}
     </>
   );
 }

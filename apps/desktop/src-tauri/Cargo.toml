@@ -48,7 +48,7 @@ libc = "0.2.191"
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6.5", default-features = false, features = ["std"] }
 objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "block2", "objc2-core-graphics", "NSApplication", "NSEvent", "NSGraphics", "NSGraphicsContext", "NSImage", "NSImageRep", "NSOpenPanel", "NSPanel", "NSResponder", "NSRunningApplication", "NSSavePanel", "NSScreen", "NSWindow", "NSWorkspace", "libc"] }
-objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFBase", "CFDate", "CFDictionary", "CFMachPort", "CFNumber", "CFRunLoop", "CFString"] }
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFBase", "CFData", "CFDate", "CFDictionary", "CFMachPort", "CFNumber", "CFRunLoop", "CFString", "CFURL"] }
 # CGEvent*: the Mouse module's event tap and the events it posts (ADR-016).
 objc2-core-graphics = { version = "0.3.2", default-features = false, features = ["std", "libc", "CGBitmapContext", "CGColorSpace", "CGContext", "CGDirectDisplay", "CGDisplayConfiguration", "CGError", "CGEvent", "CGEventSource", "CGEventTypes", "CGImage", "CGRemoteOperation"] }
 objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSBundle", "NSDictionary", "NSError", "NSFileManager", "NSProcessInfo", "NSString", "NSURL", "NSValue"] }

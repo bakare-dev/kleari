@@ -31,6 +31,7 @@ fn main() {
             "create_cleanup_preview",
             "approve_cleanup_preview",
             "delete_cleanup_preview",
+            "get_picture",
             "list_trash",
             "delete_trash_items",
             "put_back_trash_items",

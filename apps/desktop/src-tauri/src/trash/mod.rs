@@ -96,6 +96,16 @@ impl TrashState {
             .collect()
     }
 
+    /// The path of a listed item, for its picture.
+    pub fn path(&self, id: &str) -> Option<PathBuf> {
+        self.entries
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .iter()
+            .find(|entry| entry.id == id)
+            .map(|entry| entry.path.clone())
+    }
+
     fn forget(&self, ids: &[String]) {
         self.entries
             .lock()

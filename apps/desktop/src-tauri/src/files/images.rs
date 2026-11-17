@@ -1,6 +1,7 @@
 //! Similar Images: photos and pictures in the home folder that look alike (burst shots, edits,
-//! resized copies). Each image is decoded by macOS (ImageIO through `NSImage`, as Quick Look
-//! does) and drawn into a 9×8 grayscale thumbnail; its 64-bit difference hash says how it looks.
+//! resized copies). Each image is decoded small by macOS's ImageIO (from its embedded preview
+//! when it has one) and drawn into a 9×8 grayscale thumbnail; its 64-bit difference hash says
+//! how it looks.
 //! Images whose hashes differ in at most `MAX_DISTANCE` bits are grouped. Pixels never leave
 //! the function and nothing is stored.
 
@@ -67,24 +68,20 @@ pub fn cluster(hashes: &[u64]) -> Vec<Vec<usize>> {
 }
 
 /// The 9×8 grayscale thumbnail of the image at `path`, decoded by macOS. `None` when it can't
-/// be decoded.
+/// be decoded. ImageIO decodes it small (from the file's embedded preview when it has one), so
+/// a large photo or RAW file isn't decoded at full size just to be shrunk.
 #[cfg(target_os = "macos")]
 pub fn thumbnail(path: &Path) -> Option<[u8; 72]> {
-    use objc2::AnyThread;
-    use objc2_app_kit::NSImage;
     use objc2_core_foundation::{CGPoint, CGRect, CGSize};
     use objc2_core_graphics::{
         CGBitmapContextCreate, CGColorSpace, CGContext, CGImageAlphaInfo, CGInterpolationQuality,
     };
-    use objc2_foundation::NSURL;
+
+    /// Decoded this small, then drawn into 9 × 8: plenty for a difference hash.
+    const DECODE_PIXELS: u32 = 64;
 
     objc2::rc::autoreleasepool(|_| {
-        let url = NSURL::from_file_path(path)?;
-        let image = NSImage::initWithContentsOfURL(NSImage::alloc(), &url)?;
-        // SAFETY: a null proposed rect asks for the image's own size; no context or hints.
-        let cg = unsafe {
-            image.CGImageForProposedRect_context_hints(std::ptr::null_mut(), None, None)
-        }?;
+        let cg = crate::thumbnails::small_image(path, DECODE_PIXELS)?;
         let mut pixels = [0_u8; 72];
         let space = CGColorSpace::new_device_gray()?;
         // SAFETY: `pixels` is 9 × 8 bytes, one 8-bit gray byte per pixel with no alpha, and
@@ -116,7 +113,7 @@ pub fn thumbnail(_path: &Path) -> Option<[u8; 72]> {
     None
 }
 
-fn is_image(path: &Path) -> bool {
+pub(crate) fn is_image(path: &Path) -> bool {
     path.extension()
         .and_then(|extension| extension.to_str())
         .is_some_and(|extension| EXTENSIONS.contains(&extension.to_lowercase().as_str()))

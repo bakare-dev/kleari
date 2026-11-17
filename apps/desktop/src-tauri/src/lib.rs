@@ -27,6 +27,8 @@ mod settings_commands;
 mod storage;
 mod system_monitor;
 mod system_settings;
+mod thumbnail_commands;
+mod thumbnails;
 mod trash;
 mod trash_commands;
 mod uninstall;
@@ -145,6 +147,7 @@ pub fn run() {
             cleanup_commands::create_cleanup_preview,
             cleanup_commands::approve_cleanup_preview,
             cleanup_commands::delete_cleanup_preview,
+            thumbnail_commands::get_picture,
             trash_commands::list_trash,
             trash_commands::delete_trash_items,
             trash_commands::put_back_trash_items,

@@ -6,6 +6,8 @@ import type { IconName } from "../../ui/icons";
 import { Button, IconTile, Pill, Spinner, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
+import { Picture } from "../../ui/Picture";
+import { ImagePreview, type PreviewImage } from "../../ui/ImagePreview";
 
 const fileLook: Record<FileCategory, { icon: IconName; tone: Tone }> = {
   video: { icon: "film", tone: "pink" },
@@ -46,6 +48,8 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
   const { listing } = state;
   const removal = useRemoval();
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
+  // The images seen large: this folder's images and the one chosen.
+  const [preview, setPreview] = useState<{ images: PreviewImage[]; start: number } | null>(null);
 
   const entries = listing?.entries ?? [];
   const can = (entry: ExplorerEntry) => entry.selectable;
@@ -165,7 +169,21 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
             return (
               <li key={entry.id}>
                 <input type="checkbox" aria-label={`Choose ${entry.name}`} checked={choosable && selection.has(entry.id)} disabled={!choosable} onChange={() => toggle(entry)} style={{ opacity: choosable ? 1 : 0.4 }} />
-                <IconTile tone={tone} icon={icon} size={28} />
+                <Picture
+                  source="explorer"
+                  id={entry.id}
+                  size={28}
+                  label={entry.name}
+                  enabled={entry.kind === "file" && entry.fileCategory === "image"}
+                  fallback={<IconTile tone={tone} icon={icon} size={28} />}
+                  onOpen={() => {
+                    const images = entries.filter((other) => other.kind === "file" && other.fileCategory === "image");
+                    setPreview({
+                      images: images.map((other) => ({ id: other.id, name: other.name, detail: size(other) })),
+                      start: Math.max(0, images.findIndex((other) => other.id === entry.id)),
+                    });
+                  }}
+                />
                 {entry.kind === "folder" ? (
                   <button type="button" className="st-browse-name v2-link" disabled={state.loading} onClick={() => open(entry.id)}>
                     <span className="v2-ellipsis">{entry.name}</span>
@@ -209,6 +227,8 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
           </Button>
         </div>
       )}
+
+      {preview && <ImagePreview source="explorer" images={preview.images} start={preview.start} onClose={() => setPreview(null)} />}
     </div>
   );
 }
