@@ -158,6 +158,13 @@ fn restore_with(db: &Database, turn_on: impl FnOnce(&[i32]) -> Vec<i32>) {
     }
 }
 
+/// Whether a shortcut read back as `now` failed to become `wanted`. Only the read-back state
+/// counts, never the call's return code.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+const fn missed(now: bool, wanted: bool) -> bool {
+    now != wanted
+}
+
 /// Turns `numbers` back on with `turn_on`, which returns those macOS didn't turn on; only
 /// those stay listed, so each launch tries them again until they are on. If the list can't be
 /// saved, it keeps what it held before, which is only ever more to turn on: never fewer.
@@ -206,7 +213,7 @@ mod macos {
     use tauri::{AppHandle, Emitter, Manager};
 
     use super::{
-        recorded, restore_list, save_suspended, stop, Recorded, CURRENT, MAX_RECORDING,
+        missed, recorded, restore_list, save_suspended, stop, Recorded, CURRENT, MAX_RECORDING,
         RECORD_EVENT, RUNNING, SYSTEM_SHORTCUTS,
     };
     use crate::history::History;
@@ -231,17 +238,19 @@ mod macos {
         fn CGSSetSymbolicHotKeyEnabled(hot_key: i32, enabled: bool) -> i32;
     }
 
-    /// Turns each of `numbers` on or off; returns those that didn't end up that way (macOS
-    /// returned an error, or reads back the other state).
+    /// Turns each of `numbers` on or off; returns those that didn't end up that way. The state
+    /// macOS reads back afterwards decides, whatever the call returned: an error may still have
+    /// changed it, and success may not have.
     pub fn set_enabled(numbers: &[i32], enabled: bool) -> Vec<i32> {
         numbers
             .iter()
             .copied()
             .filter(|&number| {
-                // SAFETY: plain values; an unknown number is refused with an error code.
-                let error = unsafe { CGSSetSymbolicHotKeyEnabled(number, enabled) };
+                // SAFETY: plain values; an unknown number is refused with an error code. The
+                // code itself isn't needed: the read-back below says where it ended up.
+                let _ = unsafe { CGSSetSymbolicHotKeyEnabled(number, enabled) };
                 // SAFETY: a plain value.
-                error != 0 || unsafe { CGSIsSymbolicHotKeyEnabled(number) } != enabled
+                missed(unsafe { CGSIsSymbolicHotKeyEnabled(number) }, enabled)
             })
             .collect()
     }
@@ -544,6 +553,17 @@ mod tests {
         });
         assert_eq!(tried, vec![1, 32]);
         assert!(saved_suspended(&db).is_empty());
+    }
+
+    #[test]
+    fn only_the_state_read_back_decides_whether_a_shortcut_changed() {
+        // Turned off as asked (whatever the call returned): not listed as still on.
+        assert!(!missed(false, false));
+        // Still on after asking for off: kept out of the list of what is off.
+        assert!(missed(true, false));
+        // Turning back on: on is done, off stays listed for the next launch.
+        assert!(!missed(true, true));
+        assert!(missed(false, true));
     }
 
     #[test]
