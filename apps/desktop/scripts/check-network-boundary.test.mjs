@@ -146,6 +146,17 @@ test("braces in a test module's strings and comments can't hide the shipped code
   fails({ "src-tauri/src/maintenance.rs": maintenance }, /maintenance\.rs:10: AppleScript runs a shell command this check hasn't reviewed/);
 });
 
+test("emoji and raw C strings in a test module can't hide the shipped code after it either", () => {
+  const shipped = 'const S: &str = r#"do shell script "/usr/bin/curl -s x""#;\n';
+  // An emoji (\u{1F600}: one character, two UTF-16 units) in a comment, a string and a char,
+  // near the closing brace: written as an escape so the file itself stays plain text.
+  const emoji = '#[cfg(test)]\nmod tests {\n    // \u{1F600} {\n    const E: &str = "\u{1F600} { \u{1F600}";\n    const C: char = \'\u{1F600}\';\n}\n' + shipped;
+  fails({ "src-tauri/src/maintenance.rs": emoji }, /maintenance\.rs:7: AppleScript runs a shell command this check hasn't reviewed/);
+  // A raw C string with a quote and a brace inside, and a C string.
+  const raw = '#[cfg(test)]\nmod tests {\n    const R: &CStr = cr#"say "{" here"#;\n    const C: &CStr = c"{";\n}\n' + shipped;
+  fails({ "src-tauri/src/maintenance.rs": raw }, /maintenance\.rs:6: AppleScript runs a shell command this check hasn't reviewed/);
+});
+
 test("AppleScript outside the reviewed files fails", () => {
   fails({ "src-tauri/src/extra.rs": 'const OSASCRIPT: &str = "/usr/bin/osascript";\n' }, /AppleScript outside the files reviewed/);
 });

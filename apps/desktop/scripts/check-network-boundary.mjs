@@ -82,11 +82,15 @@ const CSP_REQUIRED = { "default-src": "'self'", "object-src": "'none'", "frame-s
 /**
  * Rust `text` with comments and the contents of strings and character literals replaced by
  * spaces (newlines kept, so lines and columns stay put): only code is left, for finding
- * attributes, modules and braces. Handles line and nested block comments, plain, byte and raw
- * strings (`r#"…"#`) and character literals, telling `'a'` from a lifetime `'a`.
+ * attributes, modules and braces. Handles line and nested block comments, plain, byte, C and
+ * raw strings (`r#"…"#`, `br`, `cr`) and character literals, telling `'a'` from a lifetime `'a`.
  */
+/** Where a raw string starts at a position: `r`, `br` or `cr`, any hashes, then a quote. */
+const RAW_START = /(?:[bc]?r)(#*)"/y;
+
 export function rustCode(text) {
-  const out = [...text];
+  // Indexed like `text` itself (UTF-16 code units), so an emoji can't shift a range.
+  const out = text.split("");
   const blank = (from, to) => {
     for (let at = from; at < to; at += 1) {
       if (out[at] !== "\n") {
@@ -120,19 +124,17 @@ export function rustCode(text) {
       }
       blank(at, end);
       at = end;
-    } else if ((ch === "r" || (ch === "b" && next === "r")) && !identifier(text[at - 1])) {
-      // A raw string: r"…", r#"…"#, br#"…"#; otherwise just an identifier starting with r.
-      const start = ch === "b" ? at + 1 : at;
-      let hashes = 0;
-      while (text[start + 1 + hashes] === "#") {
-        hashes += 1;
-      }
-      if (text[start + 1 + hashes] !== '"') {
+    } else if (/[bcr]/.test(ch) && !identifier(text[at - 1])) {
+      // A raw string, r"…" or r#"…"#, also as bytes (br) or a C string (cr); otherwise an
+      // identifier that starts with one of these letters.
+      RAW_START.lastIndex = at;
+      const raw = RAW_START.exec(text);
+      if (raw === null) {
         at += 1;
         continue;
       }
-      const close = `"${"#".repeat(hashes)}`;
-      const end = text.indexOf(close, start + 2 + hashes);
+      const close = `"${raw[1]}`;
+      const end = text.indexOf(close, at + raw[0].length);
       const stop = end < 0 ? text.length : end + close.length;
       blank(at, stop);
       at = stop;
