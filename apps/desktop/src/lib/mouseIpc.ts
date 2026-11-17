@@ -1,4 +1,4 @@
-import { parseMouseStatus, type MouseSettings, type MouseStatus } from "../contracts/mouse";
+import { parseMouseStatus, parseRecordingStart, type MouseSettings, type MouseStatus, type RecordingStart } from "../contracts/mouse";
 import { call } from "./storageIpc";
 
 /** The saved Mouse settings and whether they are in effect; also starts them once allowed. */
@@ -24,4 +24,15 @@ export async function captureMouseProbe(on: boolean): Promise<void> {
 /** Asks macOS for Accessibility access (its own prompt the first time). */
 export function requestMouseAccess(): Promise<MouseStatus> {
   return call("request_mouse_access", {}, parseMouseStatus);
+}
+
+/** Starts recording a shortcut: every key press, system shortcuts included, goes to the page
+ * (`mouse-shortcut-record`) and the mouse settings pause, until `stopShortcutRecording`. */
+export function startShortcutRecording(): Promise<RecordingStart> {
+  return call("start_shortcut_recording", {}, parseRecordingStart);
+}
+
+/** Ends a shortcut recording; the keyboard and the mouse settings work as usual again. */
+export async function stopShortcutRecording(): Promise<void> {
+  await call("stop_shortcut_recording", {}, () => undefined);
 }

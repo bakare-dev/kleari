@@ -55,6 +55,8 @@
     "allow-request-mouse-access",
     "allow-listen-mouse-probe",
     "allow-capture-mouse-probe",
+    "allow-start-shortcut-recording",
+    "allow-stop-shortcut-recording",
     "allow-start-apps-scan",
     "allow-cancel-apps-scan",
     "allow-send-app-items-to-review",

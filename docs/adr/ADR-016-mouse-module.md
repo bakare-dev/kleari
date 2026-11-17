@@ -22,7 +22,8 @@
     but changes nothing: new presses pass untouched at once, and a press held back or replaced
     before still has its drag and release dropped. Each try reads the latest settings under
     the tap's lock, so a retry never applies settings a later change replaced.
-    It never sees keystrokes or pointer movement.
+    It never sees keystrokes or pointer movement. Left and right clicks a trackpad marks as its
+    own (`kCGMouseEventSubtype` touch) pass untouched: the module is for external mice only.
     Nothing it sees is stored, logged or sent. It runs on its own thread with its own run loop, checked
     four times a second for a stop, and for Accessibility having been withdrawn (then the
     settings are put in effect again, which drains and stops it, asked again at each wake until
@@ -38,12 +39,20 @@
     Mouse) passes untouched, so the trackpad keeps its direction. A stepped wheel is reversed and
     scaled in place (its line, fixed-point and point deltas), or, with smooth scrolling, dropped
     and replaced by a glide of pixel scroll events (about 120 a second, easing out).
-  - **Buttons** 3 to 8 (macOS's 2–7) can do: Back (⌘[), Forward (⌘]), Mission Control (⌃↑),
-    App windows (⌃↓), previous or next Space (⌃← / ⌃→), a middle click, nothing, or a keyboard
-    shortcut recorded on the page (61 keys; positional key codes, so on a non-ANSI layout a
-    letter is the key in that position), or a media key: Play/Pause, Next or Previous track,
-    Volume up or down, Mute (posted as the system-defined events a Mac keyboard's media keys
-    send). Left and right click aren't set up as buttons (they can be part of a combination,
+  - **Buttons** 3 to 8 (macOS's 2–7) can do (beta 4): Back, Forward, Scroll up or down,
+    Refresh, Zoom in or out; New, Close, Next or Previous tab; Next or Previous application
+    (⌘⇥ / ⌘⇧⇥), Next or Previous window (⌘` / ⌘⇧`); Mission Control, Application windows,
+    Show desktop (F11), Previous or Next desktop, Spotlight; Screenshot, Screenshot of an area,
+    Screen recording (⌘⇧3/4/5); Lock Mac (⌃⌘Q); or a keyboard shortcut recorded on the page
+    (61 keys; positional key codes, so on a non-ANSI layout a letter is the key in that
+    position). Minimise, Full screen, Close window, Tile left or right and Hide application act
+    on the focused window or frontmost app directly (`mouse/window.rs`: Accessibility's
+    `AXFocusedWindow`, on a worker thread with a 0.5 s limit per call, never the tap's), since
+    their shortcuts differ between apps. Middle click, Do nothing and the media keys were
+    removed in beta 4: a button saved with one goes back to its usual click, and a combination
+    pressed for one is dropped, when the settings are next read; "Last app used" is read as
+    Next application.
+    Left and right click aren't set up as buttons (they can be part of a combination,
     below). A mapped button acts on press; its drag and
     release are dropped.
   - **Combinations** (up to 8): up to two of buttons 3–8 (or left or right click
@@ -70,7 +79,15 @@
     menu opens on release instead of press, and ⌘-right-click stays one). A button 3–8 held first
     and then left or right clicked doesn't complete a press combination. Neither can be set up
     as a button of its own, and neither is flagged as unseen.
-  - **Events Kleari posts** (keys, clicks, glides, media keys) carry a tag in the event's
+  - **Recording a shortcut** (`mouse/recorder.rs`): while the page records, a keyboard event
+    tap at the HID level, ahead of macOS's own shortcut handling, swallows every key press and
+    release so system shortcuts (⌘⇥, ⌘Space) are captured instead of acted on, and the mouse tap
+    passes everything (pairing held presses). It ends on Use or Cancel, Escape, the window
+    losing focus, or after 30 s. Without Accessibility the page records inside its window only.
+  - **Connected mice** (`mouse/devices.rs`): IOKit's registry of pointing devices, read when
+    the page reads the settings (never polled, no device opened); built-in devices (SPI/FIFO)
+    and trackpads are left out.
+  - **Events Kleari posts** (keys, clicks, glides) carry a tag in the event's
     source-user-data field and are let through by the tap. A failure while deciding passes the
     event through unchanged (`catch_unwind`), so the mouse never stops working.
   - **Button finder** (`mouse/probe.rs`), so the user can tell which button is which before

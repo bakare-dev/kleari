@@ -163,6 +163,8 @@ pub fn run() {
             mouse::request_mouse_access,
             mouse::listen_mouse_probe,
             mouse::capture_mouse_probe,
+            mouse::start_shortcut_recording,
+            mouse::stop_shortcut_recording,
             menubar::open_main,
             menubar::hide_popover
         ])

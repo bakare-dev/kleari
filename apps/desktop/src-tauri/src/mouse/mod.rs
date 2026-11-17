@@ -7,12 +7,15 @@
 //! sees only wheel and extra-button events; nothing it sees is stored or sent anywhere.
 
 pub mod config;
+pub mod devices;
 // Only the macOS event tap drives it; on other targets (Linux CI) only its tests do.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub mod engine;
 pub mod probe;
+pub mod recorder;
 #[cfg(target_os = "macos")]
 mod tap;
+pub mod window;
 
 #[cfg(target_os = "macos")]
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -54,6 +57,8 @@ pub struct MouseStatus {
     pub access: Access,
     /// The settings are being applied to the mouse now.
     pub active: bool,
+    /// The external mice connected now; trackpads are never listed (or changed).
+    pub mice: Vec<devices::Mouse>,
 }
 
 #[cfg(target_os = "macos")]
@@ -273,14 +278,47 @@ fn refresh(app: &AppHandle) -> MouseStatus {
         source: loaded.source,
         access,
         active,
+        mice: devices::connected(),
     }
 }
 
 /// At launch: the saved settings take effect if they are on and macOS allows it.
 pub fn start(app: &AppHandle) {
+    window::init(app.clone());
     let _ = refresh(app);
     // The button finder's in-app monitor; silent until the Mouse page listens.
     probe::install(app.clone());
+}
+
+/// How starting a shortcut recording went.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum RecordingStart {
+    /// Every key press goes to the page (`recorder::RECORD_EVENT`) until it stops recording.
+    Recording,
+    /// Accessibility isn't allowed: the page records in its own window instead.
+    NotAllowed,
+    Unsupported,
+}
+
+/// Starts recording a shortcut: the keyboard, system shortcuts included, goes only to the
+/// page, and the mouse settings pause, until `stop_shortcut_recording` (or Escape, or
+/// `recorder::MAX_RECORDING`).
+#[tauri::command]
+pub async fn start_shortcut_recording(app: AppHandle) -> Result<RecordingStart, CommandError> {
+    tauri::async_runtime::spawn_blocking(move || match recorder::start(app) {
+        Ok(()) => RecordingStart::Recording,
+        Err(recorder::StartError::NotAllowed) => RecordingStart::NotAllowed,
+        Err(recorder::StartError::Unsupported) => RecordingStart::Unsupported,
+    })
+    .await
+    .map_err(blocking_failed)
+}
+
+/// Ends a shortcut recording; the keyboard and the mouse settings work as usual again.
+#[tauri::command]
+pub fn stop_shortcut_recording() {
+    recorder::stop();
 }
 
 /// The Mouse page starts (`true`) and stops (`false`) listening for which button is pressed.

@@ -93,7 +93,8 @@ use the feature.
 - **Notifications:** only if you turn one on in Settings › Notifications, or turn on a
   scheduled scan in Settings › Scanning.
 - **Accessibility:** only if you turn on the Mouse page's settings. Kleari then sees your
-  mouse wheel and extra buttons (never your keystrokes) to change what they do. Turn it on in
+  external mouse's wheel and extra buttons (never your trackpad, and never your keystrokes,
+  except while you record a shortcut on that page) to change what they do. Turn it on in
   System Settings › Privacy & Security › Accessibility; the Mouse page offers the way there.
 - **Open at login:** only if you turn it on in Settings › General; macOS may ask you to
   approve it in System Settings › General › Login Items.

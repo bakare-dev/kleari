@@ -118,7 +118,9 @@ pub struct Shortcut {
     pub modifiers: Modifiers,
 }
 
-/// What a button does instead of its own click.
+/// What a button does instead of its own click. Most send macOS's standard shortcut for the
+/// action (so they follow the user's own shortcut settings only where macOS has no other way);
+/// the window actions work on the focused window directly, through Accessibility.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(
     tag = "kind",
@@ -132,29 +134,92 @@ pub enum ButtonAction {
     Forward,
     /// ⌃↑, macOS's Mission Control shortcut.
     MissionControl,
-    /// ⌃↓, macOS's App Exposé shortcut.
+    /// ⌃↓, macOS's App Exposé shortcut (the app's windows).
     AppWindows,
-    /// ⌃←, the previous Space.
+    /// F11, macOS's Show Desktop shortcut.
+    ShowDesktop,
+    /// ⌘Space.
+    Spotlight,
+    /// ⌃←, the previous desktop (Space). Stored under its older name.
     PreviousSpace,
-    /// ⌃→, the next Space.
+    /// ⌃→, the next desktop (Space).
     NextSpace,
-    MiddleClick,
-    /// The button does nothing.
-    Disabled,
+    /// ⌘⇥ once: the app used last. Stored as `lastApp` before beta 4.
+    #[serde(alias = "lastApp")]
+    NextApp,
+    /// ⌘⇧⇥ once: the other way round the app list.
+    PreviousApp,
+    /// ⌘`: the app's next window.
+    NextWindow,
+    /// ⌘⇧`: the app's previous window.
+    PreviousWindow,
+    /// ⌘T, ⌘W, ⌃⇥, ⌃⇧⇥.
+    NewTab,
+    CloseTab,
+    NextTab,
+    PreviousTab,
+    /// ⌘R.
+    Refresh,
+    /// ⌘= and ⌘-.
+    ZoomIn,
+    ZoomOut,
+    /// A few wheel steps' worth of scrolling.
+    ScrollUp,
+    ScrollDown,
+    /// ⌘⇧3, ⌘⇧4, ⌘⇧5 (the Screenshot toolbar, where recording starts).
+    Screenshot,
+    ScreenshotArea,
+    ScreenRecording,
+    /// The focused window: minimised, full screen on/off, closed, or tiled to half its screen.
+    Minimize,
+    ToggleFullScreen,
+    CloseWindow,
+    TileLeft,
+    TileRight,
+    /// Hides the frontmost app.
+    HideApp,
+    /// ⌃⌘Q.
+    LockScreen,
     Shortcut {
         shortcut: Shortcut,
     },
-    /// The media keys on a Mac keyboard.
-    PlayPause,
-    NextTrack,
-    PreviousTrack,
-    VolumeUp,
-    VolumeDown,
-    Mute,
-    /// ⌘⇥ once: back to the app you used last.
-    LastApp,
-    /// ⌘`: the app's next window.
-    NextWindow,
+}
+
+/// Actions offered before beta 4 and no longer: a button set to one goes back to its usual
+/// click, and a combination pressed for one is removed (`migrate`).
+const RETIRED_ACTIONS: [&str; 8] = [
+    "disabled",
+    "middleClick",
+    "playPause",
+    "nextTrack",
+    "previousTrack",
+    "volumeUp",
+    "volumeDown",
+    "mute",
+];
+
+/// Brings stored settings (either shape) up to date before they are read: retired actions are
+/// dropped as `RETIRED_ACTIONS` says. Renamed ones are read by their serde aliases. Anything
+/// else unexpected is left for the strict parse to reject.
+fn migrate(mut value: serde_json::Value) -> serde_json::Value {
+    let retired = |action: &serde_json::Value| {
+        action
+            .get("kind")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|kind| RETIRED_ACTIONS.contains(&kind))
+    };
+    if let Some(buttons) = value.get_mut("buttons").and_then(|v| v.as_array_mut()) {
+        buttons.retain(|mapping| !mapping.get("action").is_some_and(retired));
+    }
+    if let Some(combos) = value.get_mut("combos").and_then(|v| v.as_array_mut()) {
+        combos.retain(|combo| {
+            !combo
+                .get("does")
+                .and_then(|does| does.get("action"))
+                .is_some_and(retired)
+        });
+    }
+    value
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -464,10 +529,18 @@ pub fn load(db: &Database) -> Loaded {
     };
     // Settings from before combinations could use two buttons and keys: carried over (and
     // saved in the new shape at the next change).
-    let parsed = match (stored(KEY), stored(KEY_V1)) {
-        (Some(text), _) => serde_json::from_str::<MouseSettings>(text).ok(),
-        (None, Some(text)) => serde_json::from_str::<v1::Settings>(text)
+    // Retired actions are dropped first, so settings from before beta 4 keep everything else.
+    let current = |text: &str| {
+        serde_json::from_str::<serde_json::Value>(text)
             .ok()
+            .map(migrate)
+    };
+    let parsed = match (stored(KEY), stored(KEY_V1)) {
+        (Some(text), _) => {
+            current(text).and_then(|value| serde_json::from_value::<MouseSettings>(value).ok())
+        }
+        (None, Some(text)) => current(text)
+            .and_then(|value| serde_json::from_value::<v1::Settings>(value).ok())
             .map(MouseSettings::from),
         (None, None) => {
             return Loaded {
@@ -597,14 +670,14 @@ mod tests {
         assert!(!ok(wheel(&[], none, ScrollAction::Zoom)));
         // Press: two buttons, or one with keys; a button alone is a button setting.
         assert!(ok(press(&[3, 4], none, ButtonAction::MissionControl)));
-        assert!(ok(press(&[2], CMD, ButtonAction::PlayPause)));
+        assert!(ok(press(&[2], CMD, ButtonAction::NewTab)));
         assert!(!ok(press(&[3], none, ButtonAction::Back)));
         assert!(!ok(press(&[], CMD, ButtonAction::Back)));
         // Left or right click with one of buttons 3–8, for the wheel or a press, with or
         // without keys; never alone, never both, never with keys only.
         assert!(ok(wheel(&[RIGHT, 3], none, ScrollAction::Zoom)));
         assert!(ok(press(&[LEFT, 4], none, ButtonAction::Back)));
-        assert!(ok(press(&[RIGHT, 2], CMD, ButtonAction::Mute)));
+        assert!(ok(press(&[RIGHT, 2], CMD, ButtonAction::CloseTab)));
         assert!(!ok(wheel(&[LEFT], none, ScrollAction::Zoom)));
         assert!(!ok(wheel(&[RIGHT], CMD, ScrollAction::Zoom)));
         assert!(!ok(press(&[RIGHT], CMD, ButtonAction::Back)));
@@ -625,7 +698,7 @@ mod tests {
         // The same buttons and keys once for the wheel and once for a press: both allowed.
         assert!(with(|s| {
             s.combos.push(wheel(&[3, 4], none, ScrollAction::Zoom));
-            s.combos.push(press(&[3, 4], none, ButtonAction::Mute));
+            s.combos.push(press(&[3, 4], none, ButtonAction::Refresh));
         })
         .valid());
         // But not twice for the same one.
@@ -669,6 +742,57 @@ mod tests {
     }
 
     #[test]
+    fn settings_from_before_beta_4_lose_only_the_retired_actions() {
+        let db = Database::in_memory();
+        // Buttons 3 and 4 set to retired actions, 5 to "last app used" (now Next Application),
+        // 6 to Back; a combination pressed for Mute, another held to zoom.
+        db.set_setting(
+            KEY,
+            r#"{"enabled":true,"reverseVertical":true,"reverseHorizontal":false,"speed":100,"smooth":false,
+               "buttons":[{"button":2,"action":{"kind":"middleClick"}},{"button":3,"action":{"kind":"disabled"}},
+                          {"button":4,"action":{"kind":"lastApp"}},{"button":5,"action":{"kind":"back"}}],
+               "combos":[{"buttons":[3,4],"modifiers":{"command":false,"shift":false,"option":false,"control":false},"does":{"kind":"press","action":{"kind":"mute"}}},
+                         {"buttons":[3],"modifiers":{"command":false,"shift":false,"option":false,"control":false},"does":{"kind":"wheel","wheel":"zoom"}}]}"#,
+        )
+        .expect("stored");
+        let loaded = load(&db);
+        assert_eq!(loaded.source, "saved");
+        assert_eq!(
+            loaded.settings.buttons,
+            vec![
+                ButtonMapping {
+                    button: 4,
+                    action: ButtonAction::NextApp
+                },
+                ButtonMapping {
+                    button: 5,
+                    action: ButtonAction::Back
+                },
+            ]
+        );
+        assert_eq!(
+            loaded.settings.combos,
+            vec![wheel(&[3], Modifiers::default(), ScrollAction::Zoom)]
+        );
+        // Saved again, it is stored under the new names.
+        save(&db, &loaded.settings).expect("saved");
+        let text = db
+            .settings()
+            .expect("read")
+            .into_iter()
+            .find(|(key, _)| key == KEY)
+            .map(|(_, value)| value)
+            .unwrap_or_default();
+        assert!(text.contains(r#""kind":"nextApp""#) && !text.contains("lastApp"));
+    }
+
+    #[test]
+    fn a_retired_action_can_no_longer_be_saved() {
+        let text = r#"{"button":3,"action":{"kind":"playPause"}}"#;
+        assert!(serde_json::from_str::<ButtonMapping>(text).is_err());
+    }
+
+    #[test]
     fn every_offered_key_has_a_distinct_code() {
         let mut codes: Vec<u16> = KEYS.iter().map(|(_, code)| *code).collect();
         let count = codes.len();
@@ -696,7 +820,7 @@ mod tests {
                 Modifiers::default(),
                 ScrollAction::SwitchSpaces,
             ));
-            s.combos.push(press(&[3, 4], CMD, ButtonAction::VolumeUp));
+            s.combos.push(press(&[3, 4], CMD, ButtonAction::ZoomIn));
         });
         save(&db, &chosen).expect("saved");
         assert_eq!(
@@ -730,10 +854,10 @@ mod tests {
             r#"{"buttons":[3,4],"modifiers":{"command":true,"shift":false,"option":false,"control":false},"does":{"kind":"wheel","wheel":"horizontalScroll"}}"#
         );
         let pressed =
-            serde_json::to_string(&press(&[2], CMD, ButtonAction::PlayPause)).unwrap_or_default();
+            serde_json::to_string(&press(&[2], CMD, ButtonAction::NewTab)).unwrap_or_default();
         assert_eq!(
             pressed,
-            r#"{"buttons":[2],"modifiers":{"command":true,"shift":false,"option":false,"control":false},"does":{"kind":"press","action":{"kind":"playPause"}}}"#
+            r#"{"buttons":[2],"modifiers":{"command":true,"shift":false,"option":false,"control":false},"does":{"kind":"press","action":{"kind":"newTab"}}}"#
         );
     }
 }

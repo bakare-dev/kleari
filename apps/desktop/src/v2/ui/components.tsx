@@ -219,13 +219,28 @@ export function Stepper({ value, onDecrease, onIncrease, label, canDecrease, can
 interface SelectProps<T extends string> {
   label: string;
   value: T;
-  options: readonly { value: T; label: string }[];
+  /** Options with a `group` are shown under that heading, in the order the groups first appear. */
+  options: readonly { value: T; label: string; group?: string }[];
   onChange: (value: T) => void;
   disabled?: boolean;
   id?: string;
 }
 
 /** A pop-up menu of fixed choices: the native macOS control, styled like the steppers. */
+/** Options in runs by group: ungrouped ones stay where they are, each group gathers its own. */
+function groupedOptions<O extends { group?: string }>(options: readonly O[]): { group: string | undefined; entries: O[] }[] {
+  const runs: { group: string | undefined; entries: O[] }[] = [];
+  for (const option of options) {
+    const run = option.group === undefined ? undefined : runs.find((candidate) => candidate.group === option.group);
+    if (run) {
+      run.entries.push(option);
+    } else {
+      runs.push({ group: option.group, entries: [option] });
+    }
+  }
+  return runs;
+}
+
 export function Select<T extends string>({ label, value, options, onChange, disabled = false, id }: SelectProps<T>) {
   return (
     <span className="v2-select">
@@ -241,9 +256,15 @@ export function Select<T extends string>({ label, value, options, onChange, disa
           }
         }}
       >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>{option.label}</option>
-        ))}
+        {groupedOptions(options).map(({ group, entries }) =>
+          group === undefined ? (
+            entries.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)
+          ) : (
+            <optgroup key={group} label={group}>
+              {entries.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </optgroup>
+          ),
+        )}
       </select>
       <Glyph name="chevronDown" size={11} strokeWidth={2.4} />
     </span>

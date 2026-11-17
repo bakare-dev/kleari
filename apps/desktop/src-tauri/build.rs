@@ -57,6 +57,8 @@ fn main() {
             "request_mouse_access",
             "listen_mouse_probe",
             "capture_mouse_probe",
+            "start_shortcut_recording",
+            "stop_shortcut_recording",
             "start_apps_scan",
             "cancel_apps_scan",
             "send_app_items_to_review",

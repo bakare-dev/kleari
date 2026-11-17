@@ -56,4 +56,4 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = ["s
 # are already in the tree via Tauri.
 objc2-user-notifications = { version = "0.3.2", default-features = false, features = ["std", "block2", "UNNotification", "UNNotificationContent", "UNNotificationRequest", "UNNotificationResponse", "UNNotificationSettings", "UNNotificationSound", "UNNotificationTrigger", "UNUserNotificationCenter"] }
 block2 = { version = "0.6.2", default-features = false, features = ["std"] }
-objc2-io-kit = { version = "0.3.2", default-features = false, features = ["std", "libc", "ps"] }
+objc2-io-kit = { version = "0.3.2", default-features = false, features = ["std", "libc", "ps", "hid"] }
