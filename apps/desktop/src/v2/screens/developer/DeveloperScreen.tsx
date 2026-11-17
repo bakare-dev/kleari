@@ -5,6 +5,7 @@ import { Button, FloatingBar, IconTile, PageHeader, Pill, Segmented, Spinner, St
 import { formatGb, plural, sum } from "../../ui/format";
 import { headingIdFor } from "../../shell/routes";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
+import { applyFilter, FilterBar, useListFilter, type ListFilterSpec, type TypeChip } from "../../ui/ListFilter";
 import "./developer.css";
 
 /** How careful to be: low and check can be removed; Xcode-managed and active never can.
@@ -15,6 +16,8 @@ export interface DevEntry {
   id: string;
   name: string;
   sub: string;
+  /** For sorting: a project's last commit; `null` for a cache. */
+  dateMs: number | null;
   gb: number;
   /** Something inside couldn't be read or counted, so the size is a minimum. */
   lowerBound?: boolean;
@@ -68,6 +71,21 @@ const riskPill: Record<DevRisk, { label: string; status: Status }> = {
   active: { label: "Active project", status: "muted" },
 };
 
+const riskChips: readonly TypeChip[] = [
+  { value: "low", label: "Low risk", tone: "green" },
+  { value: "check", label: "Check first", tone: "orange" },
+  { value: "xcode", label: "Remove in Xcode", tone: "gray" },
+  { value: "active", label: "Active project", tone: "gray" },
+];
+const toolchainSpec: ListFilterSpec<DevEntry> = {
+  bytes: (entry) => entry.gb,
+  name: (entry) => entry.name,
+  text: (entry) => `${entry.sub} ${entry.path}`,
+  type: (entry) => entry.risk,
+};
+/** Projects also sort by their last commit. */
+const projectSpec: ListFilterSpec<DevEntry> = { ...toolchainSpec, date: (entry) => entry.dateMs };
+
 /** Reclaiming Docker space is Docker's job; Kleari only shows the command (ADR-005). */
 const DOCKER_COMMAND = "docker system prune";
 
@@ -87,7 +105,10 @@ export function DeveloperScreen(props: DeveloperScreenProps) {
   const rows = useRef<HTMLUListElement>(null);
   const toast = useToast();
 
-  const list = view === "projects" ? projects : toolchains;
+  const [filter, setFilter] = useListFilter(view === "projects" ? "developer.projects" : "developer.toolchains");
+  const spec = view === "projects" ? projectSpec : toolchainSpec;
+  const unfiltered = view === "projects" ? projects : toolchains;
+  const list = applyFilter(unfiltered, filter, spec);
   const all = [...toolchains, ...projects];
   const focused = all.find((entry) => entry.id === focus) ?? list[0];
   const scanned = props.developerGb !== null;
@@ -191,8 +212,11 @@ export function DeveloperScreen(props: DeveloperScreenProps) {
                   ? "Only folders a build or install makes again (node_modules, target, build). Your source code is never selected."
                   : "Found by a read-only scan of the usual developer folders. Pick a row to see what it holds."}
               </span>
+              {unfiltered.length > 0 && <FilterBar label={view === "projects" ? "Filter projects" : "Filter toolchains"} className="dev-list-note" state={filter} onChange={setFilter} items={unfiltered} spec={spec} chips={riskChips} />}
               {list.length === 0 ? (
-                <span className="v2-card-note dev-list-note">{view === "projects" ? "No project build folders were found." : "No developer caches were found."}</span>
+                <span className="v2-card-note dev-list-note">
+                  {unfiltered.length > 0 ? "Nothing matches." : view === "projects" ? "No project build folders were found." : "No developer caches were found."}
+                </span>
               ) : (
                 <ul ref={rows} tabIndex={0} aria-label={view === "projects" ? "Project build folder list" : "Toolchain and cache list"} className="dev-rows">
                   {list.map((entry) => {

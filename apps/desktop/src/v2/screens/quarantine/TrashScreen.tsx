@@ -6,20 +6,20 @@ import { deleteTrashItems, listTrash, putBackTrashItems } from "../../../lib/tra
 import { storageErrorText } from "../../../features/storage/format";
 import { errorKind } from "../../../features/cleanup/useCleanupScan";
 import { AccessSteps } from "../../ui/AccessSteps";
-import { Button, FloatingBar, IconTile, Modal, PageHeader, Segmented, Spinner, StatCard, Toast, useToast } from "../../ui/components";
+import { Button, FloatingBar, IconTile, Modal, PageHeader, Spinner, StatCard, Toast, useToast } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
 import { headingIdFor } from "../../shell/routes";
 import { Picture } from "../../ui/Picture";
 import { ImagePreview, type PreviewImage } from "../../ui/ImagePreview";
+import { applyFilter, FilterBar, fileKind, fileKindChips, useListFilter, type ListFilterSpec } from "../../ui/ListFilter";
 import "./trash.css";
 
-type Sort = "largest" | "newest" | "oldest" | "name";
-
-const sorts: Record<Sort, (a: TrashItem, b: TrashItem) => number> = {
-  largest: (a, b) => b.bytes - a.bytes,
-  newest: (a, b) => (b.trashedMs ?? 0) - (a.trashedMs ?? 0),
-  oldest: (a, b) => (a.trashedMs ?? Infinity) - (b.trashedMs ?? Infinity),
-  name: (a, b) => a.name.localeCompare(b.name),
+const filterSpec: ListFilterSpec<TrashItem> = {
+  bytes: (item) => item.bytes,
+  name: (item) => item.name,
+  text: (item) => item.from ?? "",
+  date: (item) => item.trashedMs,
+  type: fileKind,
 };
 
 const failureText: Record<TrashFailure, string> = {
@@ -50,7 +50,7 @@ export function TrashScreen({ tabs }: { tabs: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [sort, setSort] = useState<Sort>("largest");
+  const [filter, setFilter] = useListFilter("trash");
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
   const [confirm, setConfirm] = useState<"delete" | "empty" | null>(null);
   // The images seen large: the Trash's images and the one chosen.
@@ -77,8 +77,9 @@ export function TrashScreen({ tabs }: { tabs: ReactNode }) {
     load();
   }, [load]);
 
-  const items = list?.status === "available" ? [...list.items].sort(sorts[sort]) : [];
-  const picked = items.filter((item) => selection.has(item.id));
+  const all = list?.status === "available" ? list.items : [];
+  const items = applyFilter(all, filter, filterSpec);
+  const picked = all.filter((item) => selection.has(item.id));
   const canPutBack = picked.filter((item) => item.from !== null);
 
   const toggle = (id: string) => {
@@ -144,7 +145,7 @@ export function TrashScreen({ tabs }: { tabs: ReactNode }) {
           <>
             {tabs}
             <Button variant="soft" size="sm" disabled={loading} onClick={load}>{loading ? "Reading…" : "Refresh"}</Button>
-            <Button variant="dangerOutline" size="sm" disabled={busy || items.length === 0} onClick={() => setConfirm("empty")}>Empty Trash…</Button>
+            <Button variant="dangerOutline" size="sm" disabled={busy || all.length === 0} onClick={() => setConfirm("empty")}>Empty Trash…</Button>
           </>
         }
       />
@@ -167,26 +168,14 @@ export function TrashScreen({ tabs }: { tabs: ReactNode }) {
           <>
             <section aria-label="Trash summary" className="v2-grid-3">
               <StatCard tone="red" icon="trash" label="In the Trash" value={total ? size(total) : "—"} sub="Space it frees when emptied" />
-              <StatCard tone="blue" icon="list" label="Items" value={String(items.length + (total?.more ?? 0))} sub={total && total.more > 0 ? `${total.more} more not listed` : "Across all disks"} />
-              <StatCard tone="green" icon="arrowRight" label="Can go back" value={String(items.filter((item) => item.from !== null).length)} sub="Where Finder recorded the place" />
+              <StatCard tone="blue" icon="list" label="Items" value={String(all.length + (total?.more ?? 0))} sub={total && total.more > 0 ? `${total.more} more not listed` : "Across all disks"} />
+              <StatCard tone="green" icon="arrowRight" label="Can go back" value={String(all.filter((item) => item.from !== null).length)} sub="Where Finder recorded the place" />
             </section>
-            <div className="trash-tools">
-              <Segmented
-                label="Sort"
-                value={sort}
-                onChange={setSort}
-                options={[
-                  { value: "largest", label: "Largest" },
-                  { value: "newest", label: "Newest" },
-                  { value: "oldest", label: "Oldest" },
-                  { value: "name", label: "Name" },
-                ]}
-              />
-            </div>
+            <FilterBar label="Filter the Trash" className="trash-tools" state={filter} onChange={setFilter} items={all} spec={filterSpec} chips={fileKindChips} />
             {items.length === 0 ? (
-              <section aria-label="Empty" className="v2-card v2-card-pad trash-access">
-                <IconTile tone="green" icon="check" size={40} />
-                <span className="v2-row-title">The Trash is empty</span>
+              <section aria-label={all.length === 0 ? "Empty" : "Nothing matches"} className="v2-card v2-card-pad trash-access">
+                <IconTile tone={all.length === 0 ? "green" : "gray"} icon={all.length === 0 ? "check" : "search"} size={40} />
+                <span className="v2-row-title">{all.length === 0 ? "The Trash is empty" : "Nothing in the Trash matches"}</span>
               </section>
             ) : (
               <ul className="v2-card trash-list" aria-label="Items in the Trash">

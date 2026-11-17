@@ -25,6 +25,8 @@ export interface AppEntry {
   location: string;
   bytes: number;
   lowerBound: boolean;
+  /** When its bundle last changed (installed or updated), if reported. */
+  modifiedMs: number | null;
   running: boolean;
   /** Part of macOS: never removed. */
   apple: boolean;
@@ -116,6 +118,7 @@ export function parseAppsScan(payload: unknown): AppsScan {
         location: text(app.location, `${field}.location`),
         bytes: nonNegativeInteger(app.bytes, `${field}.bytes`),
         lowerBound: boolean(app.lowerBound, `${field}.lowerBound`),
+        modifiedMs: nullable(app.modifiedMs, (ms) => nonNegativeInteger(ms, `${field}.modifiedMs`)),
         running: boolean(app.running, `${field}.running`),
         apple: boolean(app.apple, `${field}.apple`),
         leftovers: list(app.leftovers, `${field}.leftovers`, MAX_LEFTOVERS).map((left, at) => leftover(left, `${field}.leftovers[${at}]`)),

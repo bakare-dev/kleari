@@ -10,6 +10,7 @@ import { headingIdFor } from "../../shell/routes";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
 import { Picture } from "../../ui/Picture";
 import { ImagePreview, type PreviewImage } from "../../ui/ImagePreview";
+import { applyFilter, FilterBar, fileKind, fileKindChips, useListFilter, type ListFilterSpec } from "../../ui/ListFilter";
 import { StorageExplorer } from "../storage/StorageExplorer";
 import "../storage/storage.css";
 import "./files.css";
@@ -89,6 +90,19 @@ function keeps(group: FileGroup): boolean {
   return group.kind === "copies" || group.kind === "similar";
 }
 
+/** The item a group keeps: its first as found, whatever order it is shown in. */
+function isKept(group: FileGroup, item: FileItem): boolean {
+  return keeps(group) && group.items[0]?.id === item.id;
+}
+
+const filterSpec: ListFilterSpec<FileItem> = {
+  bytes: (item) => item.bytes,
+  name: (item) => item.name,
+  text: (item) => item.location,
+  date: (item) => item.modifiedMs,
+  type: fileKind,
+};
+
 export function FilesScreen({ files, explorer }: { files: Files; explorer: Explorer }) {
   const { state } = files;
   const remove = useRemoval();
@@ -102,11 +116,15 @@ export function FilesScreen({ files, explorer }: { files: Files; explorer: Explo
   const [preview, setPreview] = useState<{ images: PreviewImage[]; start: number } | null>(null);
   const nowMs = Date.now();
 
+  const [filter, setFilter] = useListFilter(`files.${tool}`);
   const result = state.results[tool] ?? null;
   const meta = toolMeta[tool];
   const groups = result?.groups ?? [];
-  const choosable = (group: FileGroup, item: FileItem, index: number) => item.selectable && !(keeps(group) && index === 0);
-  const picked = groups.flatMap((group) => group.items.filter((item, index) => choosable(group, item, index) && selection.has(item.id)));
+  const everything = groups.flatMap((group) => group.items);
+  // Each group shows what matches, in the chosen order; a group with nothing left is hidden.
+  const shownGroups = groups.map((group) => ({ group, items: applyFilter(group.items, filter, filterSpec) })).filter((shown) => shown.items.length > 0);
+  const choosable = (group: FileGroup, item: FileItem) => item.selectable && !isKept(group, item);
+  const picked = groups.flatMap((group) => group.items.filter((item) => choosable(group, item) && selection.has(item.id)));
   const running = state.running === tool;
 
   const toggle = (id: string) => {
@@ -119,8 +137,9 @@ export function FilesScreen({ files, explorer }: { files: Files; explorer: Explo
     setSelection(next);
   };
 
+  /** Chooses everything shown but the copy each group keeps. */
   const chooseAllButKept = () => {
-    const ids = groups.flatMap((group) => group.items.filter((item, index) => choosable(group, item, index)).map((item) => item.id));
+    const ids = shownGroups.flatMap(({ group, items }) => items.filter((item) => choosable(group, item)).map((item) => item.id));
     setSelection(new Set(ids));
   };
 
@@ -218,6 +237,9 @@ export function FilesScreen({ files, explorer }: { files: Files; explorer: Explo
         </section>
         {(state.error || state.stopped) && <span role="status" className="v2-card-note">{state.error ?? "The search was stopped. Showing the last full result."}</span>}
         {folderNote && <span role="status" className="v2-card-note">{folderNote}</span>}
+        {!browsing && groups.length > 0 && (
+          <FilterBar label={`Filter ${meta.label}`} state={filter} onChange={setFilter} items={everything} spec={filterSpec} chips={fileKindChips} />
+        )}
         {/* The tabs and the tool stay in place; only what was found scrolls. */}
         <div className="files-results" tabIndex={0} role="region" aria-label="What was found">
           {browsing ? (
@@ -242,7 +264,14 @@ export function FilesScreen({ files, explorer }: { files: Files; explorer: Explo
               <span className="v2-row-title">Nothing found</span>
             </section>
           )}
-          {groups.map((group) => (
+          {groups.length > 0 && shownGroups.length === 0 && (
+            <section className="v2-card files-empty" aria-label="Nothing matches">
+              <IconTile tone="gray" icon="search" size={36} />
+              <span className="v2-row-title">Nothing found matches</span>
+              <span className="v2-card-note">Clear the search or pick another type.</span>
+            </section>
+          )}
+          {shownGroups.map(({ group, items }) => (
             <section key={group.id} aria-label={meta.group(group)} className="v2-card files-group">
               <div className="files-group-head">
                 <span className="v2-row-text">
@@ -252,9 +281,9 @@ export function FilesScreen({ files, explorer }: { files: Files; explorer: Explo
                 <span className="v2-num v2-muted">{keeps(group) ? `${formatGb(gb(group.reclaimable))} to gain` : formatGb(gb(group.bytes))}</span>
               </div>
               <ul className="files-rows">
-                {group.items.map((item, index) => {
-                  const can = choosable(group, item, index);
-                  const kept = keeps(group) && index === 0;
+                {items.map((item) => {
+                  const can = choosable(group, item);
+                  const kept = isKept(group, item);
                   return (
                     <li key={item.id}>
                       <input type="checkbox" aria-label={`Choose ${item.name}`} checked={can && selection.has(item.id)} disabled={!can} onChange={() => toggle(item.id)} style={{ opacity: can ? 1 : 0.4 }} />
@@ -266,13 +295,13 @@ export function FilesScreen({ files, explorer }: { files: Files; explorer: Explo
                         enabled={item.fileCategory === "image"}
                         fallback={<IconTile tone={meta.tone} icon={item.folder ? "folder" : fileIcon[item.fileCategory ?? "other"]} size={28} />}
                         onOpen={() => {
-                          const images = group.items.filter((entry) => entry.fileCategory === "image");
+                          const images = items.filter((entry) => entry.fileCategory === "image");
                           setPreview({
                             images: images.map((entry) => ({
                               id: entry.id,
                               name: entry.name,
                               detail: `${entry.location} · ${size(entry)}`,
-                              note: keeps(group) && group.items[0]?.id === entry.id ? "Keep" : undefined,
+                              note: isKept(group, entry) ? "Keep" : undefined,
                             })),
                             start: Math.max(0, images.findIndex((entry) => entry.id === item.id)),
                           });

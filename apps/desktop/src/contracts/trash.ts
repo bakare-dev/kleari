@@ -1,6 +1,7 @@
 // IPC contract for the Trash tab. Mirrors src-tauri/src/trash/mod.rs; every response is
 // validated before the UI sees it.
 
+import { fileCategories, type FileCategory } from "./storage";
 import { ContractError, nonNegativeInteger, nullable, oneOf, record } from "./systemMetrics";
 
 export interface TrashItem {
@@ -10,6 +11,8 @@ export interface TrashItem {
   /** Something inside couldn't be read: a minimum. */
   lowerBound: boolean;
   folder: boolean;
+  /** A file's kind, from its name; `null` for a folder. */
+  fileCategory: FileCategory | null;
   /** When it was moved to the Trash (ms since 1970), if known. */
   trashedMs: number | null;
   /** Where it came from, as `~/…`, if Finder recorded it (Put Back is offered only then). */
@@ -75,6 +78,7 @@ export function parseTrashList(payload: unknown): TrashList {
         bytes: nonNegativeInteger(item.bytes, field("bytes")),
         lowerBound: boolean(item.lowerBound, field("lowerBound")),
         folder: boolean(item.folder, field("folder")),
+        fileCategory: nullable(item.fileCategory, (value) => oneOf(fileCategories, value, field("fileCategory"))),
         trashedMs: nullable(item.trashedMs, (value) => nonNegativeInteger(value, field("trashedMs"))),
         from: nullable(item.from, (value) => text(value, field("from"))),
         disk: nullable(item.disk, (value) => text(value, field("disk"))),

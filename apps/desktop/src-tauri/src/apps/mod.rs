@@ -64,6 +64,8 @@ pub struct AppEntry {
     pub location: String,
     pub bytes: u64,
     pub lower_bound: bool,
+    /// When its bundle last changed (installed or updated), if reported.
+    pub modified_ms: Option<u64>,
     pub running: bool,
     /// Part of macOS: Kleari never removes it.
     pub apple: bool,
@@ -767,6 +769,7 @@ impl AppFinder<'_> {
                 .unwrap_or_default(),
             bytes: measured.bytes,
             lower_bound: measured.lower_bound,
+            modified_ms: modified_ms(stat.modified_s),
             running: is_running,
             apple,
             leftovers: Vec::new(),

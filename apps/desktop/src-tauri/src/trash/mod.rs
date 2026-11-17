@@ -38,6 +38,8 @@ pub struct TrashItem {
     /// Something inside couldn't be read: a minimum.
     pub lower_bound: bool,
     pub folder: bool,
+    /// A file's kind, from its name (for filtering); `None` for a folder.
+    pub file_category: Option<crate::storage::category::FileCategory>,
     /// When it was moved to the Trash (ms since 1970), if known.
     pub trashed_ms: Option<u64>,
     /// Where it came from, shown as `~/…` (or the disk's path), if Finder recorded it.
@@ -241,6 +243,8 @@ fn read_folder(
                 bytes: measured.0,
                 lower_bound: measured.1,
                 folder: stat.is_dir(),
+                file_category: (!stat.is_dir())
+                    .then(|| crate::storage::category::category_of(Path::new(text))),
                 trashed_ms,
                 from: origin
                     .as_deref()

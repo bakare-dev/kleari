@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Segmented } from "./ui/components";
 import { TrashScreen } from "./screens/quarantine/TrashScreen";
 import {
-  categoryCounts,
   clock,
   consequences,
   findingView,
@@ -168,7 +167,6 @@ export function ReviewRoute({ review, initialQuery = "" }: { review: CleanupRevi
   return (
     <ReviewScreen
       findings={findings}
-      categoryCounts={categoryCounts(findings)}
       subtitle={reviewSubtitle(review.review, nowMs)}
       selection={review.selection}
       onSelectionChange={review.setSelection}

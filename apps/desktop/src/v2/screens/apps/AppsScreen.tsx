@@ -7,6 +7,7 @@ import { headingIdFor } from "../../shell/routes";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
 import { cacheBytes } from "../../../features/apps/useApps";
 import { Picture } from "../../ui/Picture";
+import { applyFilter, FilterBar, useListFilter, type ListFilterSpec, type ListId, type TypeChip } from "../../ui/ListFilter";
 import "../developer/developer.css";
 import "./apps.css";
 import { AccessSteps } from "../../ui/AccessSteps";
@@ -33,6 +34,27 @@ interface AppsScreenProps {
 
 const gb = (bytes: number) => bytes / 1e9;
 
+const appStatus = (app: AppEntry) => (app.apple ? "macos" : app.running ? "open" : "removable");
+const appChips: readonly TypeChip[] = [
+  { value: "removable", label: "Can remove", tone: "green" },
+  { value: "open", label: "Open", tone: "orange" },
+  { value: "macos", label: "Part of macOS", tone: "gray" },
+];
+const appSpec: ListFilterSpec<AppEntry> = {
+  bytes: (app) => app.bytes + app.leftoverBytes,
+  name: (app) => app.name,
+  text: (app) => `${app.location} ${app.bundleId ?? ""}`,
+  date: (app) => app.modifiedMs,
+  type: appStatus,
+};
+const itemSpec: ListFilterSpec<LeftoverEntry | InstallerEntry> = {
+  bytes: (item) => item.bytes,
+  name: (item) => item.name,
+  text: (item) => ("owner" in item ? `${item.owner} ${item.location}` : item.location),
+  date: (item) => item.modifiedMs,
+};
+const listIds: Record<View, ListId> = { apps: "apps", leftovers: "apps.leftovers", installers: "apps.installers" };
+
 function size(item: { bytes: number; lowerBound?: boolean }): string {
   return `${item.lowerBound ? "≥ " : ""}${formatGb(gb(item.bytes))}`;
 }
@@ -47,6 +69,7 @@ export function AppsScreen(props: AppsScreenProps) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const toast = useToast(6000);
+  const [filter, setFilter] = useListFilter(listIds[view]);
 
   const apps = result?.apps ?? [];
   const orphans = result?.orphans ?? [];
@@ -55,6 +78,8 @@ export function AppsScreen(props: AppsScreenProps) {
   const focused = apps.find((app) => app.id === focus) ?? removable[0] ?? null;
   const sendable = (id: string | null): id is string => id !== null;
   const items: readonly (LeftoverEntry | InstallerEntry)[] = view === "installers" ? installers : orphans;
+  const shownApps = applyFilter(apps, filter, appSpec);
+  const shownItems = applyFilter(items, filter, itemSpec);
   const picked = items.filter((item) => sendable(item.reviewId) && selection.has(item.reviewId ?? ""));
   const pickedBytes = sum(picked, (item) => item.bytes);
 
@@ -161,8 +186,14 @@ export function AppsScreen(props: AppsScreenProps) {
                     : "Disk images and packages in Downloads and on the Desktop. Installed apps run from Applications, not from these files."}
               </span>
               {view === "apps" ? (
+                <FilterBar label="Filter apps" className="dev-list-note" state={filter} onChange={setFilter} items={apps} spec={appSpec} chips={appChips} />
+              ) : (
+                items.length > 0 && <FilterBar label={view === "leftovers" ? "Filter leftovers" : "Filter installers"} className="dev-list-note" state={filter} onChange={setFilter} items={items} spec={itemSpec} />
+              )}
+              {view === "apps" ? (
                 <ul aria-label="Installed app list" className="dev-rows">
-                  {apps.map((app) => (
+                  {shownApps.length === 0 && <li className="v2-muted">No apps match.</li>}
+                  {shownApps.map((app) => (
                     <li key={app.id} className={focused?.id === app.id ? "focused" : ""}>
                       <span className="apps-spacer" aria-hidden="true" />
                       <button type="button" className="dev-row-main" aria-pressed={focused?.id === app.id} onClick={() => setFocus(app.id)}>
@@ -183,7 +214,8 @@ export function AppsScreen(props: AppsScreenProps) {
                 <span className="v2-card-note dev-list-note">{view === "leftovers" ? "No leftovers of removed apps were found." : "No installers were found in Downloads or on the Desktop."}</span>
               ) : (
                 <ul aria-label={view === "leftovers" ? "Leftover list" : "Installer list"} className="dev-rows">
-                  {items.map((item) => {
+                  {shownItems.length === 0 && <li className="v2-muted">Nothing matches.</li>}
+                  {shownItems.map((item) => {
                     const reviewId = item.reviewId;
                     const can = sendable(reviewId);
                     const on = can && selection.has(reviewId);
