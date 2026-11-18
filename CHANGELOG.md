@@ -6,6 +6,14 @@ All notable user-facing changes to Kleari are documented here. This file follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-18
+
+### Changed
+
+- **First stable release.** Kleari 1.0.0 is 0.1.0-beta.6 with no change but the version;
+  the betas below list everything in it. From this release, versions follow
+  [docs/versioning.md](docs/versioning.md), and stable releases are offered to everyone.
+
 ## [0.1.0-beta.6] - 2026-11-18
 
 ### Fixed
@@ -290,7 +298,8 @@ The first release of Kleari.
   **Beta updates** in Settings › About to also get betas.
 - **Uninstall** from Settings › About, moving Kleari and its data to the Trash.
 
-[Unreleased]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.6...HEAD
+[Unreleased]: https://github.com/bakare-dev/kleari/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.6...v1.0.0
 [0.1.0-beta.6]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.5...v0.1.0-beta.6
 [0.1.0-beta.5]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.4...v0.1.0-beta.5
 [0.1.0-beta.4]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.3...v0.1.0-beta.4
