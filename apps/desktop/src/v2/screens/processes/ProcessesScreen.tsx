@@ -381,7 +381,7 @@ function ProcessPanel({ process, slots, onClose, onQuit }: ProcessPanelProps) {
       <div className="proc-panel-spacer" />
       {canQuit(process) ? (
         <Button variant="primary" className="proc-quit-btn" onClick={onQuit}>
-          {`Quit ${process.name}…`}
+          {`Quit ${process.name}`}
         </Button>
       ) : (
         <div className="v2-info-strip proc-protected">

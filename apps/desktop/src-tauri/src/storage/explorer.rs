@@ -147,6 +147,14 @@ impl ExplorerState {
         }
     }
 
+    /// The path of a listed file, for its picture.
+    pub fn file_path(&self, id: &str) -> Option<PathBuf> {
+        lock(&self.nodes)
+            .get(id)
+            .filter(|node| matches!(node.kind, EntryKind::File))
+            .map(|node| node.path.clone())
+    }
+
     /// The chosen entries, by ID, with what their listing measured.
     pub fn chosen(&self, ids: &[String]) -> Vec<Chosen> {
         let nodes = lock(&self.nodes);
@@ -310,6 +318,65 @@ impl ExplorerState {
             listing.entries.push(entry);
         }
         Some(listing)
+    }
+
+    /// Makes the folder `path`, which another page's search found as `found`, known here with
+    /// the way down to it from the home folder, so it can be listed and browsed like any other
+    /// (Files › Downloads). Each step is read again without following symlinks; `None` when it
+    /// isn't a folder inside the home folder on its volume, touches a folder excluded in
+    /// Settings, or is no longer the folder that was found (device and inode).
+    pub fn folder_at(
+        &self,
+        home: &Path,
+        path: &Path,
+        found: &FileStat,
+        excluded: &[PathBuf],
+    ) -> Option<String> {
+        use std::path::Component;
+
+        let relative = path.strip_prefix(home).ok()?;
+        if relative.as_os_str().is_empty()
+            || !found.is_dir()
+            || crate::preferences::touches_excluded(path, excluded)
+        {
+            return None;
+        }
+        let (home_id, home_node) = self.home_node(home)?;
+        let mut current = home.to_path_buf();
+        let mut steps = Vec::new();
+        for component in relative.components() {
+            let Component::Normal(name) = component else {
+                return None;
+            };
+            let (dir, _) = open_absolute(&current)?;
+            let stat = dir.stat_child(&CString::new(name.as_bytes()).ok()?).ok()?;
+            if !stat.is_dir() || stat.dev != home_node.stat.dev {
+                return None;
+            }
+            current.push(name);
+            steps.push((current.clone(), stat));
+        }
+        let (_, last) = steps.last()?;
+        if last.dev != found.dev || last.ino != found.ino {
+            return None;
+        }
+        let mut nodes = lock(&self.nodes);
+        let mut parent = home_id;
+        for (path, stat) in steps {
+            let id = new_id(0);
+            nodes.insert(
+                id.clone(),
+                Node {
+                    path,
+                    stat,
+                    parent: Some(parent),
+                    measured: None,
+                    kind: EntryKind::Folder,
+                },
+            );
+            parent = id;
+        }
+        Some(parent)
     }
 
     /// The home folder's node, made once per session.
@@ -530,6 +597,77 @@ mod tests {
             .list(&home, Some(&site_id), &excluded, &cancel, &mut |_| {})
             .expect("answered");
         assert_eq!(changed.status, ListingStatus::Changed);
+        fs::remove_dir_all(&home).expect("clean up");
+    }
+
+    #[test]
+    fn a_folder_found_elsewhere_opens_with_the_way_down_and_goes_deeper() {
+        let home = home("found");
+        write(&home.join("Downloads/Project/inner/data.bin"), 30_000);
+        write(&home.join("Downloads/notes.txt"), 10);
+        write(&home.join("Downloads/Private/x"), 10);
+        fs::create_dir_all(home.join("Elsewhere")).expect("elsewhere");
+        std::os::unix::fs::symlink(home.join("Elsewhere"), home.join("Downloads/link"))
+            .expect("link");
+        let stat_of = |relative: &str| {
+            let path = home.join(relative);
+            let (dir, _) = open_absolute(path.parent().expect("parent")).expect("parent opens");
+            let name = CString::new(path.file_name().expect("name").as_bytes()).expect("name");
+            dir.stat_child(&name).expect("stat")
+        };
+        let excluded = [home.join("Downloads/Private")];
+        let state = ExplorerState::default();
+        let cancel = AtomicBool::new(false);
+        let project = stat_of("Downloads/Project");
+
+        let id = state
+            .folder_at(&home, &home.join("Downloads/Project"), &project, &excluded)
+            .expect("known");
+        let listing = state
+            .list(&home, Some(&id), &excluded, &cancel, &mut |_| {})
+            .expect("listed");
+        assert_eq!(listing.status, ListingStatus::Completed);
+        assert_eq!(
+            listing
+                .crumbs
+                .iter()
+                .map(|crumb| crumb.name.as_str())
+                .collect::<Vec<_>>(),
+            ["Home", "Downloads", "Project"]
+        );
+        let inner = listing
+            .entries
+            .iter()
+            .find(|entry| entry.name == "inner")
+            .expect("inner listed");
+        assert!(inner.selectable);
+        let deeper = state
+            .list(&home, Some(&inner.id), &excluded, &cancel, &mut |_| {})
+            .expect("listed");
+        assert_eq!(deeper.entries[0].name, "data.bin");
+        assert_eq!(state.chosen(&[deeper.entries[0].id.clone()]).len(), 1);
+
+        // Not a folder, excluded, a symlink, outside the home folder, the home folder itself.
+        let at = |relative: &str, found: &FileStat| {
+            state.folder_at(&home, &home.join(relative), found, &excluded)
+        };
+        assert!(at("Downloads/notes.txt", &stat_of("Downloads/notes.txt")).is_none());
+        assert!(at("Downloads/Private", &stat_of("Downloads/Private")).is_none());
+        assert!(at("Downloads/link", &stat_of("Downloads/link")).is_none());
+        assert!(at("Downloads/link", &stat_of("Elsewhere")).is_none());
+        assert!(state
+            .folder_at(&home, Path::new("/tmp"), &project, &excluded)
+            .is_none());
+        assert!(state.folder_at(&home, &home, &project, &excluded).is_none());
+        // Replaced since it was found.
+        fs::create_dir_all(home.join("Downloads/Project-new")).expect("new");
+        fs::remove_dir_all(home.join("Downloads/Project")).expect("remove");
+        fs::rename(
+            home.join("Downloads/Project-new"),
+            home.join("Downloads/Project"),
+        )
+        .expect("replace");
+        assert!(at("Downloads/Project", &project).is_none());
         fs::remove_dir_all(&home).expect("clean up");
     }
 

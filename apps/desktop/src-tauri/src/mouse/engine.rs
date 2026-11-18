@@ -27,16 +27,20 @@ pub enum Input {
     Dragged(u8),
 }
 
-/// The media keys on a Mac keyboard.
+/// Something done to the focused window, through Accessibility (never by a shortcut, which
+/// differs between apps).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Media {
-    PlayPause,
-    Next,
-    Previous,
-    VolumeUp,
-    VolumeDown,
-    Mute,
+pub enum WindowAction {
+    Minimize,
+    ToggleFullScreen,
+    Close,
+    /// The window fills the left or right half of the screen it is on.
+    TileLeft,
+    TileRight,
 }
+
+/// How far Scroll up / down goes: this many wheel steps.
+pub const SCROLL_ACTION_STEPS: f64 = 3.0;
 
 /// A key press Kleari sends: a macOS key code with its modifiers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,10 +52,12 @@ pub struct Keys {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Effect {
     Keys(Keys),
-    /// Press and release a media key.
-    Media(Media),
     /// Press and release this button where the pointer is (1 is right click).
     Click(u8),
+    /// Done off the event tap's thread, since another app may be slow to answer.
+    Window(WindowAction),
+    /// Hide the frontmost app (also off the tap's thread).
+    HideApp,
     /// Press (`true`) or release ⌘ on its own, for the app switcher.
     Command(bool),
     /// Scroll by points: up (+) / down (−), left (+) / right (−).
@@ -101,18 +107,54 @@ const LEFT_ARROW: u16 = 123;
 const RIGHT_ARROW: u16 = 124;
 const DOWN_ARROW: u16 = 125;
 const UP_ARROW: u16 = 126;
+const SPACE: u16 = 49;
+const F11: u16 = 103;
+const KEY_T: u16 = 17;
+const KEY_W: u16 = 13;
+const KEY_R: u16 = 15;
+const KEY_Q: u16 = 12;
+const KEY_3: u16 = 20;
+const KEY_4: u16 = 21;
+const KEY_5: u16 = 23;
 
 /// What a mapped button does, as effects. Unknown shortcut keys (never saved) do nothing.
 pub fn effects(action: &ButtonAction) -> Vec<Effect> {
+    let scroll = |direction: f64| Effect::Scroll {
+        vertical: direction * SCROLL_ACTION_STEPS * STEP_POINTS,
+        horizontal: 0.0,
+    };
     match action {
         ButtonAction::Back => vec![keys(LEFT_BRACKET, true, false, false, false)],
         ButtonAction::Forward => vec![keys(RIGHT_BRACKET, true, false, false, false)],
         ButtonAction::MissionControl => vec![keys(UP_ARROW, false, false, false, true)],
         ButtonAction::AppWindows => vec![keys(DOWN_ARROW, false, false, false, true)],
+        ButtonAction::ShowDesktop => vec![keys(F11, false, false, false, false)],
+        ButtonAction::Spotlight => vec![keys(SPACE, true, false, false, false)],
         ButtonAction::PreviousSpace => vec![keys(LEFT_ARROW, false, false, false, true)],
         ButtonAction::NextSpace => vec![keys(RIGHT_ARROW, false, false, false, true)],
-        ButtonAction::MiddleClick => vec![Effect::Click(2)],
-        ButtonAction::Disabled => Vec::new(),
+        ButtonAction::NextApp => vec![keys(TAB, true, false, false, false)],
+        ButtonAction::PreviousApp => vec![keys(TAB, true, true, false, false)],
+        ButtonAction::NextWindow => vec![keys(GRAVE, true, false, false, false)],
+        ButtonAction::PreviousWindow => vec![keys(GRAVE, true, true, false, false)],
+        ButtonAction::NewTab => vec![keys(KEY_T, true, false, false, false)],
+        ButtonAction::CloseTab => vec![keys(KEY_W, true, false, false, false)],
+        ButtonAction::NextTab => vec![keys(TAB, false, false, false, true)],
+        ButtonAction::PreviousTab => vec![keys(TAB, false, true, false, true)],
+        ButtonAction::Refresh => vec![keys(KEY_R, true, false, false, false)],
+        ButtonAction::ZoomIn => vec![keys(EQUAL, true, false, false, false)],
+        ButtonAction::ZoomOut => vec![keys(MINUS, true, false, false, false)],
+        ButtonAction::ScrollUp => vec![scroll(1.0)],
+        ButtonAction::ScrollDown => vec![scroll(-1.0)],
+        ButtonAction::Screenshot => vec![keys(KEY_3, true, true, false, false)],
+        ButtonAction::ScreenshotArea => vec![keys(KEY_4, true, true, false, false)],
+        ButtonAction::ScreenRecording => vec![keys(KEY_5, true, true, false, false)],
+        ButtonAction::Minimize => vec![Effect::Window(WindowAction::Minimize)],
+        ButtonAction::ToggleFullScreen => vec![Effect::Window(WindowAction::ToggleFullScreen)],
+        ButtonAction::CloseWindow => vec![Effect::Window(WindowAction::Close)],
+        ButtonAction::TileLeft => vec![Effect::Window(WindowAction::TileLeft)],
+        ButtonAction::TileRight => vec![Effect::Window(WindowAction::TileRight)],
+        ButtonAction::HideApp => vec![Effect::HideApp],
+        ButtonAction::LockScreen => vec![keys(KEY_Q, true, false, false, true)],
         ButtonAction::Shortcut { shortcut } => key_code(&shortcut.key)
             .map(|code| {
                 vec![Effect::Keys(Keys {
@@ -121,14 +163,6 @@ pub fn effects(action: &ButtonAction) -> Vec<Effect> {
                 })]
             })
             .unwrap_or_default(),
-        ButtonAction::PlayPause => vec![Effect::Media(Media::PlayPause)],
-        ButtonAction::NextTrack => vec![Effect::Media(Media::Next)],
-        ButtonAction::PreviousTrack => vec![Effect::Media(Media::Previous)],
-        ButtonAction::VolumeUp => vec![Effect::Media(Media::VolumeUp)],
-        ButtonAction::VolumeDown => vec![Effect::Media(Media::VolumeDown)],
-        ButtonAction::Mute => vec![Effect::Media(Media::Mute)],
-        ButtonAction::LastApp => vec![keys(TAB, true, false, false, false)],
-        ButtonAction::NextWindow => vec![keys(GRAVE, true, false, false, false)],
     }
 }
 
@@ -668,7 +702,7 @@ mod tests {
         };
         assert!(!with_left.valid());
         assert_eq!(
-            effects(&ButtonAction::LastApp),
+            effects(&ButtonAction::NextApp),
             vec![keys(TAB, true, false, false, false)]
         );
         assert_eq!(
@@ -764,13 +798,13 @@ mod tests {
     fn two_buttons_pressed_together_do_their_action_once() {
         let mut engine = Engine::default();
         let settings = MouseSettings {
-            combos: vec![pressed(&[3, 4], NONE, ButtonAction::PlayPause)],
+            combos: vec![pressed(&[3, 4], NONE, ButtonAction::NewTab)],
             ..on()
         };
         assert_eq!(engine.handle(down(3), &settings), Output::Suppress);
         assert_eq!(
             engine.handle(down(4), &settings),
-            Output::Act(vec![Effect::Media(Media::PlayPause)])
+            Output::Act(vec![keys(KEY_T, true, false, false, false)])
         );
         // Neither clicks on release.
         assert_eq!(engine.handle(Input::Up(3), &settings), Output::Suppress);
@@ -849,18 +883,50 @@ mod tests {
     }
 
     #[test]
-    fn media_actions_send_media_keys() {
+    fn each_action_sends_its_shortcut_or_works_on_the_window() {
         assert_eq!(
-            effects(&ButtonAction::VolumeUp),
-            vec![Effect::Media(Media::VolumeUp)]
+            effects(&ButtonAction::PreviousApp),
+            vec![keys(TAB, true, true, false, false)]
         );
         assert_eq!(
-            effects(&ButtonAction::Mute),
-            vec![Effect::Media(Media::Mute)]
+            effects(&ButtonAction::PreviousWindow),
+            vec![keys(GRAVE, true, true, false, false)]
         );
         assert_eq!(
-            effects(&ButtonAction::PreviousTrack),
-            vec![Effect::Media(Media::Previous)]
+            effects(&ButtonAction::ShowDesktop),
+            vec![keys(F11, false, false, false, false)]
+        );
+        assert_eq!(
+            effects(&ButtonAction::Spotlight),
+            vec![keys(SPACE, true, false, false, false)]
+        );
+        assert_eq!(
+            effects(&ButtonAction::ScreenshotArea),
+            vec![keys(KEY_4, true, true, false, false)]
+        );
+        assert_eq!(
+            effects(&ButtonAction::LockScreen),
+            vec![keys(KEY_Q, true, false, false, true)]
+        );
+        assert_eq!(
+            effects(&ButtonAction::TileRight),
+            vec![Effect::Window(WindowAction::TileRight)]
+        );
+        assert_eq!(effects(&ButtonAction::HideApp), vec![Effect::HideApp]);
+        // Scroll up is up, by a few wheel steps.
+        assert_eq!(
+            effects(&ButtonAction::ScrollUp),
+            vec![Effect::Scroll {
+                vertical: SCROLL_ACTION_STEPS * STEP_POINTS,
+                horizontal: 0.0
+            }]
+        );
+        assert_eq!(
+            effects(&ButtonAction::ScrollDown),
+            vec![Effect::Scroll {
+                vertical: -SCROLL_ACTION_STEPS * STEP_POINTS,
+                horizontal: 0.0
+            }]
         );
     }
 
@@ -955,7 +1021,7 @@ mod tests {
         let mut engine = Engine::default();
         let settings = MouseSettings {
             combos: vec![
-                pressed(&[RIGHT, 3], NONE, ButtonAction::Mute),
+                pressed(&[RIGHT, 3], NONE, ButtonAction::Refresh),
                 held(&[RIGHT, 2], NONE, ScrollAction::SwitchTabs),
             ],
             ..on()
@@ -969,7 +1035,7 @@ mod tests {
         );
         assert_eq!(
             engine.handle(down(3), &settings),
-            Output::Act(effects(&ButtonAction::Mute))
+            Output::Act(effects(&ButtonAction::Refresh))
         );
         assert_eq!(engine.handle(Input::Up(3), &settings), Output::Suppress);
         assert_eq!(engine.handle(Input::Up(RIGHT), &settings), Output::Suppress);
@@ -1006,7 +1072,7 @@ mod tests {
                 action: ButtonAction::Forward,
             }],
             combos: vec![
-                pressed(&[RIGHT, 3], NONE, ButtonAction::Mute),
+                pressed(&[RIGHT, 3], NONE, ButtonAction::Refresh),
                 pressed(&[LEFT, 2], NONE, ButtonAction::Back),
             ],
             ..on()
@@ -1041,7 +1107,7 @@ mod tests {
                 button: 4,
                 action: ButtonAction::Forward,
             }],
-            combos: vec![pressed(&[RIGHT, 3], NONE, ButtonAction::Mute)],
+            combos: vec![pressed(&[RIGHT, 3], NONE, ButtonAction::Refresh)],
             ..on()
         };
         assert!(engine.idle());

@@ -3,9 +3,11 @@ import type { ExplorerEntry } from "../../../contracts/storageExplorer";
 import type { FileCategory } from "../../../contracts/storage";
 import type { StorageExplorer as Explorer } from "../../../features/storage/useStorageExplorer";
 import type { IconName } from "../../ui/icons";
-import { Button, IconTile, Pill, Spinner, useToast, Toast, type Tone } from "../../ui/components";
+import { Button, FloatingBar, IconTile, Pill, Spinner, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
-import { hrefFor } from "../../shell/routes";
+import { useRemoval } from "../../../features/removal/RemovalProvider";
+import { Picture } from "../../ui/Picture";
+import { ImagePreview, type PreviewImage } from "../../ui/ImagePreview";
 
 const fileLook: Record<FileCategory, { icon: IconName; tone: Tone }> = {
   video: { icon: "film", tone: "pink" },
@@ -39,17 +41,18 @@ function size(entry: { bytes: number; lowerBound: boolean }): string {
 
 /**
  * Browse the home folder one folder at a time, down to single files: a map of what takes the
- * most space, every entry measured, and a selection to send to Cleanup's review.
+ * most space, every entry measured, and a selection to remove.
  */
-export function StorageExplorer({ explorer }: { explorer: Explorer }) {
-  const { state, sent } = explorer;
+export function StorageExplorer({ explorer, intro }: { explorer: Explorer; intro?: string }) {
+  const { state } = explorer;
   const { listing } = state;
+  const removal = useRemoval();
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
-  const [sending, setSending] = useState(false);
-  const toast = useToast(5000);
+  // The images seen large: this folder's images and the one chosen.
+  const [preview, setPreview] = useState<{ images: PreviewImage[]; start: number } | null>(null);
 
   const entries = listing?.entries ?? [];
-  const can = (entry: ExplorerEntry) => entry.selectable && !sent.has(entry.id);
+  const can = (entry: ExplorerEntry) => entry.selectable;
   const picked = entries.filter((entry) => can(entry) && selection.has(entry.id));
   const total = Math.max(listing?.bytes ?? 0, 1);
   const mapped = entries.filter((entry) => entry.bytes / total >= 0.01).slice(0, 12);
@@ -73,12 +76,15 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
     setSelection(next);
   };
 
-  const send = () => {
-    setSending(true);
-    void explorer.send(picked.map((entry) => entry.id)).then((message) => {
-      setSending(false);
-      setSelection(new Set());
-      toast.show(message);
+  const removePicked = () => {
+    const ids = picked.map((entry) => entry.id);
+    removal({
+      what: plural(ids.length, "item"),
+      prepare: () => explorer.prepare(ids),
+      onDone: () => {
+        setSelection(new Set());
+        explorer.removed();
+      },
     });
   };
 
@@ -86,7 +92,7 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
     <div className="st-browse">
       <div className="st-browse-head">
         <span className="v2-card-note">
-          Open any folder in your home folder, down to single files. What you send to review moves only when you approve it there, into quarantine, where you can restore it.
+          {intro ?? "Open any folder in your home folder, down to single files. Choose what to remove and you'll see it all again first, then delete it or keep it in quarantine."}
         </span>
         <div className="st-browse-actions">
           {state.loading ? (
@@ -163,7 +169,21 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
             return (
               <li key={entry.id}>
                 <input type="checkbox" aria-label={`Choose ${entry.name}`} checked={choosable && selection.has(entry.id)} disabled={!choosable} onChange={() => toggle(entry)} style={{ opacity: choosable ? 1 : 0.4 }} />
-                <IconTile tone={tone} icon={icon} size={28} />
+                <Picture
+                  source="explorer"
+                  id={entry.id}
+                  size={28}
+                  label={entry.name}
+                  enabled={entry.kind === "file" && entry.fileCategory === "image"}
+                  fallback={<IconTile tone={tone} icon={icon} size={28} />}
+                  onOpen={() => {
+                    const images = entries.filter((other) => other.kind === "file" && other.fileCategory === "image");
+                    setPreview({
+                      images: images.map((other) => ({ id: other.id, name: other.name, detail: size(other) })),
+                      start: Math.max(0, images.findIndex((other) => other.id === entry.id)),
+                    });
+                  }}
+                />
                 {entry.kind === "folder" ? (
                   <button type="button" className="st-browse-name v2-link" disabled={state.loading} onClick={() => open(entry.id)}>
                     <span className="v2-ellipsis">{entry.name}</span>
@@ -178,7 +198,7 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
                 <span className="st-browse-bar" aria-hidden="true"><span style={{ width: `${Math.min(100, (entry.bytes / total) * 100).toFixed(1)}%` }} /></span>
                 <span className="v2-num st-browse-size">{entry.kind === "excluded" || entry.kind === "link" ? "—" : size(entry)}</span>
                 <span className="st-browse-pill">
-                  {sent.has(entry.id) ? <Pill status="link">In review</Pill> : !entry.selectable && (entry.kind === "folder" || entry.kind === "file") ? <Pill status="muted">Kept as is</Pill> : null}
+                  {!entry.selectable && (entry.kind === "folder" || entry.kind === "file") ? <Pill status="muted">Kept as is</Pill> : null}
                 </span>
               </li>
             );
@@ -197,20 +217,27 @@ export function StorageExplorer({ explorer }: { explorer: Explorer }) {
         </ul>
       )}
 
-      {listing && (
-        <div className="st-browse-foot">
-          <span role="status" className="v2-card-note">
-            {picked.length > 0 ? `${picked.length} chosen · ${formatGb(gb(sum(picked, (entry) => entry.bytes)))}` : "“Kept as is” items are places Kleari never moves: top-level folders, most of the Library and the inside of app packages."}
-          </span>
-          <Button variant="primary" size="sm" disabled={picked.length === 0 || sending} onClick={send}>
-            {picked.length > 0 ? `Send ${picked.length} to review` : "Send to review"}
-          </Button>
+      {listing && picked.length === 0 && (
+        <span className="v2-card-note">“Kept as is” items are places Kleari never moves: top-level folders, most of the Library and the inside of app packages.</span>
+      )}
+
+      {/* As on Files: once something is chosen, the bar stays in view however far the list scrolls. */}
+      {listing && picked.length > 0 && (
+        <div className="st-browse-float">
+          <FloatingBar>
+            <div className="v2-float-text">
+              <span role="status" className="v2-float-title">{`${picked.length} chosen · ${formatGb(gb(sum(picked, (entry) => entry.bytes)))}`}</span>
+              <span className="v2-float-sub">You'll see exactly what will go before anything moves.</span>
+            </div>
+            <div className="v2-float-actions">
+              <Button variant="secondary" onClick={() => setSelection(new Set())}>Clear</Button>
+              <Button variant="primary" onClick={removePicked}>{`Remove ${plural(picked.length, "item")}`}</Button>
+            </div>
+          </FloatingBar>
         </div>
       )}
 
-      <Toast message={toast.message}>
-        <a className="v2-link" href={hrefFor("review")}>Open review</a>
-      </Toast>
+      {preview && <ImagePreview source="explorer" images={preview.images} start={preview.start} onClose={() => setPreview(null)} />}
     </div>
   );
 }

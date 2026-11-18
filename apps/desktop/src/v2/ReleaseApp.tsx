@@ -7,6 +7,9 @@ import { useMaintenance } from "../features/maintenance/useMaintenance";
 import { MaintenanceScreen } from "./screens/maintenance/MaintenanceScreen";
 import { BrowserScreen } from "./screens/browser/BrowserScreen";
 import { SetupWelcome } from "./shell/SetupWelcome";
+import { DisclaimerNotice } from "./shell/DisclaimerNotice";
+import { IdentityMoveSheet } from "./shell/IdentityMoveSheet";
+import { RemovalProvider } from "../features/removal/RemovalProvider";
 import { openSystemSettings } from "../lib/systemPageIpc";
 import { FilesScreen } from "./screens/files/FilesScreen";
 import { useStorageExplorer } from "../features/storage/useStorageExplorer";
@@ -27,9 +30,14 @@ import { useSystemMonitor } from "../features/system/useSystemPage";
 import { useProcessMonitor } from "../features/processes/useProcessesPage";
 import type { Preferences } from "../contracts/settings";
 import { Sidebar } from "./shell/Sidebar";
-import { mainNav, navigate, useFocusHeadingOnRouteChange, useV2Route, v2Routes, type V2Route } from "./shell/routes";
+import { mainNav, useFocusHeadingOnRouteChange, useV2Route, v2Routes, type V2Route } from "./shell/routes";
 import { ActivityRoute, DashboardRoute, MouseRoute, SettingsRoute } from "./homeRoutes";
 import { AppsRoute, CleanupRoute, DeveloperRoute, PreviewRoute, ProcessesRoute, QuarantineRoute, ReviewRoute, StorageRoute, SystemRoute } from "./liveRoutes";
+import { useKeyboardLock } from "../features/keyboard/useKeyboardLock";
+import { KeyboardLockScreen } from "./shell/KeyboardLockScreen";
+import { searchEverything } from "../features/dashboard/search";
+import { searchSources } from "../features/dashboard/searchSources";
+import { handOverQuery, takeBackQueries } from "./ui/ListFilter";
 import "./v2.css";
 
 /** The destinations release builds ship: every screen, each backed by real data. */
@@ -48,7 +56,15 @@ interface ReleaseAppProps {
 export function ReleaseApp({ footer }: ReleaseAppProps) {
   const route = useV2Route(releaseRoutes, "dashboard");
   const appearance = useAppearance();
-  const [reviewQuery, setReviewQuery] = useState("");
+  // The Dashboard's search: kept while Kleari runs, so results are still there after opening
+  // one; clearing it also empties the list searches it filled in.
+  const [dashboardQuery, setDashboardQuery] = useState("");
+  const changeDashboardQuery = useCallback((next: string) => {
+    if (next.trim() === "") {
+      takeBackQueries();
+    }
+    setDashboardQuery(next);
+  }, []);
   // App-level so running scans, the review selection, an approval or a permanent delete and
   // their results survive switching destinations; System is sampled from launch.
   const storage = useStorageAnalysis();
@@ -66,8 +82,13 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
   const explorer = useStorageExplorer(review.refresh);
   // App-level so a running search and each tool's result survive leaving the page.
   const files = useFiles(review.refresh);
+  // Its own Browse view, for folders opened in Files › Downloads; Storage's stays where it was.
+  const filesExplorer = useStorageExplorer(review.refresh);
   // App-level so a running task's result still shows after leaving the page.
   const maintenance = useMaintenance(review.refresh);
+  // App-level so the lock screen covers every page, whichever started it (Maintenance or the
+  // menu bar).
+  const keyboard = useKeyboardLock();
   // App-level so a Mouse save, and the combination changes waiting their turn, finish after
   // leaving the Mouse page; read and watched only while it is open.
   const mouse = useMouse(route === "mouse");
@@ -100,6 +121,7 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
   const { analyze } = storage;
   const { rerun: rerunFiles } = files;
   const { reload: reloadExplorer } = explorer;
+  const { reload: reloadFilesExplorer } = filesExplorer;
   useEffect(() => {
     if (finishedAt === null || rescanned.current === finishedAt) {
       return;
@@ -116,12 +138,13 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
     if (sources.has("storage")) {
       rerunFiles();
       reloadExplorer();
+      reloadFilesExplorer();
       if (analysisResult) {
         analyze();
       }
     }
     refreshActivity();
-  }, [finishedAt, previewItems, previewStates, developerResult, scanDeveloper, appsResult, scanApps, analysisResult, analyze, rerunFiles, reloadExplorer, refreshActivity]);
+  }, [finishedAt, previewItems, previewStates, developerResult, scanDeveloper, appsResult, scanApps, analysisResult, analyze, rerunFiles, reloadExplorer, reloadFilesExplorer, refreshActivity]);
 
   const settings = useSettings(onPreferences);
   // Checks at launch once the saved choice is known; only an update found is shown.
@@ -137,23 +160,45 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
         review={review}
         quarantine={quarantine}
         settings={settings}
-        onSearch={(query) => {
-          setReviewQuery(query);
-          navigate("review");
+        search={{
+          query: dashboardQuery,
+          onQueryChange: changeDashboardQuery,
+          search: (query) =>
+            searchEverything(
+              query,
+              searchSources({
+                review: review.review,
+                quarantine: quarantine.list,
+                analysis: storage.state.result,
+                apps: apps.state.result,
+                files: files.state.results,
+                maintenanceStartup: maintenance.startup,
+                developer: developer.state,
+                developerFolders: developer.addedFolders,
+                processes: processes.list,
+                activity: activity.list,
+                nowMs: Date.now(),
+              }),
+            ),
+          onOpen: (target, query) => {
+            if (target.list && query !== "") {
+              handOverQuery(target.list, query);
+            }
+          },
         }}
       />
     ),
     cleanup: () => <CleanupRoute cleanup={cleanup} review={review} />,
-    review: () => <ReviewRoute review={review} initialQuery={reviewQuery} />,
+    review: () => <ReviewRoute review={review} />,
     preview: () => <PreviewRoute review={review} quarantine={quarantine} />,
     quarantine: () => <QuarantineRoute quarantine={quarantine} />,
     storage: () => <StorageRoute storage={storage} review={review} cleanup={cleanup} explorer={explorer} />,
     system: () => <SystemRoute monitor={system} />,
     developer: () => <DeveloperRoute developer={developer} review={review} />,
     apps: () => <AppsRoute apps={apps} />,
-    files: () => <FilesScreen files={files} />,
+    files: () => <FilesScreen files={files} explorer={filesExplorer} />,
     browser: () => <BrowserScreen monitor={processes} />,
-    maintenance: () => <MaintenanceScreen maintenance={maintenance} onOpenLoginItems={() => void openSystemSettings("loginItems")} />,
+    maintenance: () => <MaintenanceScreen maintenance={maintenance} apps={apps} keyboard={keyboard} onOpenLoginItems={() => void openSystemSettings("loginItems")} />,
     processes: () => <ProcessesRoute monitor={processes} />,
     mouse: () => <MouseRoute settings={settings} mouse={mouse} combos={mouseCombos} />,
     activity: () => <ActivityRoute activity={activity} />,
@@ -161,14 +206,19 @@ export function ReleaseApp({ footer }: ReleaseAppProps) {
   };
 
   return (
-    <div className="v2-shell">
-      <div className="v2-titlebar" data-tauri-drag-region aria-hidden="true" />
-      <Sidebar route={route} destinations={mainNav} footer={footer?.(route)} />
-      <main className="v2-main" key={route}>
-        {screens[route]()}
-      </main>
-      <SetupWelcome settings={settings} />
-      <UpdateOffer offer={updates.offer} state={updates.state} onInstall={() => void updates.install()} onLater={updates.dismiss} />
-    </div>
+    <RemovalProvider>
+      <div className="v2-shell">
+        <div className="v2-titlebar" data-tauri-drag-region aria-hidden="true" />
+        <Sidebar route={route} destinations={mainNav} footer={footer?.(route)} />
+        <main className="v2-main" key={route}>
+          {screens[route]()}
+        </main>
+        <DisclaimerNotice settings={settings} />
+        <SetupWelcome settings={settings} />
+        <IdentityMoveSheet settings={settings} />
+        <UpdateOffer offer={updates.offer} state={updates.state} onInstall={() => void updates.install()} onLater={updates.dismiss} />
+        <KeyboardLockScreen state={keyboard.state} />
+      </div>
+    </RemovalProvider>
   );
 }

@@ -540,6 +540,30 @@ fn items_are_in_bounds_only_at_the_fixed_places_their_kind_allows() {
 }
 
 #[test]
+fn only_what_ai_tools_made_directly_in_tmp_can_be_chosen_there() {
+    let home = Path::new("/Users/someone");
+    let chosen = |path: &str| {
+        policy::within_bounds(&Kind::UserChosen, Path::new(path), home, None, |_| {
+            Vec::new()
+        })
+    };
+    assert!(chosen("/private/tmp/claude-501"));
+    assert!(chosen("/private/tmp/codex-cache"));
+    // Anything else in /tmp, anything deeper inside, /tmp itself, or through the /tmp link.
+    assert!(!chosen("/private/tmp/com.apple.launchd.abc"));
+    assert!(!chosen("/private/tmp/someone-elses"));
+    assert!(!chosen("/private/tmp/claude-501/scratch/file"));
+    assert!(!chosen("/private/tmp"));
+    assert!(!chosen("/tmp/claude-501"));
+    // Claude Code's own folder in the home folder is chosen like any of your files; its
+    // Application Support stays never-touched.
+    assert!(chosen("/Users/someone/.claude/shell-snapshots"));
+    assert!(!chosen(
+        "/Users/someone/Library/Application Support/Cursor/CachedData"
+    ));
+}
+
+#[test]
 fn a_stored_original_is_restorable_only_at_a_place_its_category_comes_from() {
     let home = Path::new("/Users/someone");
     let temp = Some(Path::new("/private/var/folders/x/T"));
@@ -928,6 +952,86 @@ fn an_approved_preview_moves_items_into_quarantine_and_they_can_be_restored() {
 }
 
 #[test]
+fn a_permanent_delete_removes_items_where_they_are_without_quarantine() {
+    let home = Home::new("delete-now");
+    let cache = home.write("Library/Caches/com.example.App/blob", 2_000_000);
+    let folder = cache.parent().expect("its folder").to_path_buf();
+    let history = home.history();
+    let state = CleanupState::default();
+    let items = scanned(&home, &history, &state);
+    let item = by_name(&items, "com.example.App");
+    let home_path = home.home();
+    let cancel = AtomicBool::new(false);
+    let checks = checks(&home_path, &history, &cancel, &[]);
+    let preview =
+        execute::create_preview(&state, std::slice::from_ref(&item.id), &checks, now_ms());
+    assert_eq!(preview.items[0].state, PlannedState::Planned);
+
+    let mut seen = Vec::new();
+    let outcome = execute::delete_now(
+        &state,
+        &preview.id,
+        &checks,
+        &history,
+        "page",
+        now_ms,
+        |progress| seen.push(progress.state),
+    );
+    let execute::DeleteNowOutcome::Finished { items: done, .. } = outcome else {
+        panic!("finished: {outcome:?}");
+    };
+    assert_eq!(done[0].state, execute::DeleteState::Deleted);
+    assert_eq!(
+        seen,
+        [
+            execute::DeleteState::Deleting,
+            execute::DeleteState::Deleted
+        ]
+    );
+    // Gone from where it was, never held in quarantine, and out of the review.
+    assert!(!folder.exists());
+    assert!(history.db.held_items().expect("held").is_empty());
+    assert!(state
+        .review()
+        .findings
+        .iter()
+        .all(|finding| finding.id != item.id));
+}
+
+#[test]
+fn a_permanent_delete_deletes_nothing_if_an_item_changed_since_its_preview() {
+    let home = Home::new("delete-now-changed");
+    let cache = home.write("Library/Caches/com.example.App/blob", 2_000_000);
+    let history = home.history();
+    let state = CleanupState::default();
+    let items = scanned(&home, &history, &state);
+    let item = by_name(&items, "com.example.App");
+    let home_path = home.home();
+    let cancel = AtomicBool::new(false);
+    let checks = checks(&home_path, &history, &cancel, &[]);
+    let preview =
+        execute::create_preview(&state, std::slice::from_ref(&item.id), &checks, now_ms());
+    // It grows after the user saw it.
+    home.write("Library/Caches/com.example.App/more", 500_000);
+    let outcome = execute::delete_now(
+        &state,
+        &preview.id,
+        &checks,
+        &history,
+        "page",
+        now_ms,
+        |_| {},
+    );
+    assert_eq!(
+        outcome,
+        execute::DeleteNowOutcome::Stale {
+            changed: vec![item.id.clone()]
+        }
+    );
+    assert!(cache.exists());
+}
+
+#[test]
 fn a_moved_item_names_its_quarantine_item_so_it_can_be_deleted_straight_away() {
     let home = Home::new("approve-delete");
     let cache = home.write("Library/Caches/com.example.App/blob", 2_000_000);
@@ -972,6 +1076,73 @@ fn a_moved_item_names_its_quarantine_item_so_it_can_be_deleted_straight_away() {
 }
 
 #[test]
+fn clearing_an_apps_caches_takes_only_its_caches_and_never_while_it_is_open() {
+    let home = Home::new("app-caches");
+    let cache = home.write("Library/Caches/com.example.Notes/cache.db", 3_000_000);
+    let data = home.write(
+        "Library/Application Support/com.example.Notes/notes.db",
+        2_000_000,
+    );
+    let prefs = home.write("Library/Preferences/com.example.Notes.plist", 1_000);
+    let history = home.history();
+    let home_path = home.home();
+    let bundle = crate::apps::Bundle {
+        id: "n1".to_owned(),
+        path: home_path.join("Applications/Notes.app"),
+        stat: stat_path(&data).expect("stat"),
+        name: "Notes".to_owned(),
+        bundle_id: Some("com.example.Notes".to_owned()),
+        apple: false,
+    };
+    let cancel = AtomicBool::new(false);
+    let items = crate::apps::caches_of(&bundle, &home_path, now_ms(), &cancel);
+    // Only the cache folder: the app's data and settings are never offered.
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0].path, cache.parent().expect("folder"));
+    let intake = super::intake::Intake {
+        home: &home_path,
+        running: &[],
+        open: Some(&NOTHING_OPEN),
+        store_dev: history.store.volume(),
+        now_ms: now_ms(),
+        excluded: &[],
+    };
+    let candidates = intake.app_items(items);
+    assert_eq!(candidates[0].category(), policy::Category::Cache);
+    assert_eq!(candidates[0].assessment.eligibility, Eligibility::Eligible);
+    let state = CleanupState::default();
+    let ids = state.add_direct(candidates);
+
+    // While the app is open, its cache isn't planned.
+    let running = [RunningBundle {
+        id: "com.example.Notes".to_owned(),
+        name: "Notes".to_owned(),
+    }];
+    let open = checks(&home_path, &history, &cancel, &running);
+    let preview = execute::create_preview(&state, &ids, &open, now_ms());
+    assert_eq!(preview.items[0].state, PlannedState::NotEligible);
+
+    let checks = checks(&home_path, &history, &cancel, &[]);
+    let preview = execute::create_preview(&state, &ids, &checks, now_ms());
+    assert_eq!(preview.items[0].state, PlannedState::Planned);
+    let outcome = execute::delete_now(
+        &state,
+        &preview.id,
+        &checks,
+        &history,
+        "page",
+        now_ms,
+        |_| {},
+    );
+    assert!(matches!(
+        outcome,
+        execute::DeleteNowOutcome::Finished { .. }
+    ));
+    assert!(!cache.exists());
+    assert!(data.exists() && prefs.exists());
+}
+
+#[test]
 fn a_removed_apps_leftover_moves_through_preview_into_quarantine_and_restores() {
     let home = Home::new("app-leftover");
     let data = home.write(
@@ -1007,7 +1178,7 @@ fn a_removed_apps_leftover_moves_through_preview_into_quarantine_and_restores() 
             && item.assessment.eligibility == Eligibility::Eligible
             && item.assessment.risk == Risk::Low));
     let state = CleanupState::default();
-    let ids = state.add_sent(candidates);
+    let ids = state.add_direct(candidates);
 
     // While the app is open again, its data isn't planned.
     let running = [RunningBundle {
@@ -1108,7 +1279,7 @@ fn something_you_chose_moves_only_while_nothing_in_it_is_open_and_restores() {
     assert_eq!(candidates[0].assessment.eligibility, Eligibility::Eligible);
 
     let review = CleanupState::default();
-    let ids = review.add_sent(candidates);
+    let ids = review.add_direct(candidates);
     // Opened in an app since it was sent: approval reads that again and leaves it.
     let now_open = Checks {
         open: Some(leaked),
@@ -1933,25 +2104,45 @@ fn full_disk_access_covers_every_protected_folder_without_asking() {
 }
 
 #[test]
-fn sent_items_join_the_review_and_replace_the_scans_copy() {
-    let home = Home::new("sent");
+fn a_pages_items_stay_out_of_the_review_and_leave_it_whole_until_they_move() {
+    let home = Home::new("direct");
     home.write("Library/Caches/com.example.App/blob", 2_000_000);
+    home.write("Library/Caches/com.example.Other/blob", 1_000_000);
     let history = home.history();
     let state = CleanupState::default();
     let items = scanned(&home, &history, &state);
-    let mut sent = by_name(&items, "com.example.App").clone();
-    sent.id = new_id(now_ms());
-    sent.source = Source::Developer;
-    let ids = state.add_sent(vec![sent.clone()]);
-    assert_eq!(ids, [sent.id.clone()]);
+    let before = state.review().findings.len();
+    // The Developer page prepares the same cache for removal where it shows it.
+    let mut direct = by_name(&items, "com.example.App").clone();
+    direct.id = new_id(now_ms());
+    direct.source = Source::Developer;
+    let ids = state.add_direct(vec![direct.clone()]);
+    assert_eq!(ids, [direct.id.clone()]);
+    // Never listed in the review, which keeps the scan's own copy (nothing is lost if the
+    // page's sheet is cancelled), yet it can be previewed and moved by its ID.
     let review = state.review();
-    let same: Vec<&Finding> = review
+    assert_eq!(review.findings.len(), before);
+    assert!(review
         .findings
         .iter()
-        .filter(|finding| finding.name == "com.example.App")
-        .collect();
-    assert_eq!(same.len(), 1);
-    assert_eq!(same[0].source, Source::Developer);
+        .all(|finding| finding.source != Source::Developer));
+    assert_eq!(
+        state.item(&direct.id).map(|item| item.source),
+        Some(Source::Developer)
+    );
+    // Another page's items replace the first page's.
+    let mut other = by_name(&items, "com.example.Other").clone();
+    other.id = new_id(now_ms());
+    state.add_direct(vec![other.clone()]);
+    assert!(state.item(&direct.id).is_none());
+    // Once it moves, the scan's copy of the same folder goes too.
+    state.remove(std::slice::from_ref(&other.id));
+    let after = state.review();
+    assert_eq!(after.findings.len(), before - 1);
+    assert!(after
+        .findings
+        .iter()
+        .all(|finding| finding.name != "com.example.Other"));
 }
 
 #[test]

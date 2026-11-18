@@ -65,6 +65,10 @@ pub struct Preferences {
     /// The first-launch setup (Full Disk Access, Open at login, menu bar) was seen.
     #[serde(default)]
     pub setup_done: bool,
+    /// Which version of the "use at your own risk" notice (DISCLAIMER.md) was acknowledged; 0
+    /// is none. Shown again when the notice's version goes up.
+    #[serde(default)]
+    pub disclaimer_seen: u32,
 }
 
 const fn on() -> bool {
@@ -146,6 +150,7 @@ impl Default for Preferences {
             notify_login_items: Some(false),
             notify_reminders: Some(false),
             setup_done: false,
+            disclaimer_seen: 0,
         }
     }
 }

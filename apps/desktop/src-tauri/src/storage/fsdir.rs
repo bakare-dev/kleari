@@ -28,6 +28,9 @@ pub struct FileStat {
     pub modified_s: i64,
     /// Last access, in seconds since the Unix epoch (updated lazily by macOS).
     pub accessed_s: i64,
+    /// Last status change (a rename, such as being moved to the Trash), in seconds since the
+    /// Unix epoch.
+    pub changed_s: i64,
 }
 
 // `stat` field and `S_IF*` widths differ by platform (for example `mode_t` is u16 on macOS
@@ -45,6 +48,7 @@ impl FileStat {
             blocks: u64::try_from(stat.st_blocks).unwrap_or(0),
             modified_s: stat.st_mtime as i64,
             accessed_s: stat.st_atime as i64,
+            changed_s: stat.st_ctime as i64,
         }
     }
 

@@ -16,7 +16,7 @@ const guides: Record<AccessKind, { title: string; why: string; steps: readonly s
   },
   accessibility: {
     title: "Turn on Accessibility for Kleari",
-    why: "Lets the Mouse module change how your mouse wheel and buttons work. It never sees what you type.",
+    why: "Lets the Mouse module change how your mouse wheel and buttons work, and keyboard cleaning hold every key while you wipe. Kleari never keeps or sends what you type.",
     steps: [
       "Click Open System Settings below. It opens Privacy & Security › Accessibility.",
       "Find Kleari in the list. If it isn’t there, click +, open Applications, choose Kleari and click Open.",

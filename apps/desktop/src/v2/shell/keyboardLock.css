@@ -1,0 +1,40 @@
+/* The keyboard lock screen: over the whole window, opaque so nothing under it looks usable.
+   No animation; only the countdown's figures change, once a second. */
+.kl-screen {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--mp-bg);
+}
+
+.kl-card {
+  display: flex;
+  max-width: 420px;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.kl-title {
+  margin: 4px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.kl-time {
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.kl-text {
+  margin: 0;
+  color: var(--mp-text-2);
+  font-size: 13px;
+  line-height: 1.5;
+}

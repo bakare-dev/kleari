@@ -21,3 +21,5 @@ coverage/
 .turbo/
 .vite/
 *.d.tsbuildinfo
+.claude/
+/promo-video

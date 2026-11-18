@@ -63,8 +63,8 @@
        after the rename fails, the move is `unconfirmed`: the record stays `moving` and the
        item is never reported or recorded as left in place. Partial results are shown as
        partial.
-  - **The quarantine folder** is `~/Library/Application Support/dev.bakare.kleari/
-    Quarantine`, created owner-only (0700) and opened without following symlinks. Kleari
+  - **The quarantine folder** is `~/Library/Application Support/dev.kleari.app/Quarantine`
+    (`dev.bakare.kleari` before beta 4; ADR-024 moves it over), created owner-only (0700) and opened without following symlinks. Kleari
     never empties it on its own. There is no retention period or size cap.
   - **Restore** first records the item as `restoring` (if that can't be written, nothing
     moves), then moves it back with the same exclusive rename into its original folder,

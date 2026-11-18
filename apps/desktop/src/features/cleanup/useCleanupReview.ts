@@ -1,38 +1,38 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ApproveOutcome, CleanupPreview, DeleteProgress, DeleteSummary, MoveFailure, MoveProgress, ReviewFinding, ReviewList } from "../../contracts/cleanup";
+import type { ApproveOutcome, CleanupPreview, DeleteNowOutcome, DeleteNowProgress, MoveFailure, MoveProgress, ReviewFinding, ReviewList } from "../../contracts/cleanup";
 import {
-  addStorageFileToReview,
   approveCleanupPreview,
   createCleanupPreview,
-  deleteQuarantineItems,
+  deleteCleanupPreview,
   getCleanupReview,
+  prepareDeveloperItemsRemoval,
+  prepareStorageFileRemoval,
   revealReviewItem,
-  sendDeveloperItemsToReview,
 } from "../../lib/cleanupIpc";
 import type { PreviewItemState, PreviewStage } from "../../v2/screens/cleanup/PreviewScreen";
-import { plural } from "../../v2/ui/format";
 import { storageErrorText } from "../storage/format";
 import { errorKind } from "./useCleanupScan";
 
 export interface ReviewLoaders {
   review: () => Promise<ReviewList>;
-  sendDeveloper: (ids: readonly string[]) => Promise<string[]>;
-  addStorageFile: (reviewId: string) => Promise<boolean>;
+  prepareDeveloper: (ids: readonly string[]) => Promise<CleanupPreview>;
+  prepareStorageFile: (reviewId: string) => Promise<CleanupPreview>;
   reveal: (id: string) => Promise<void>;
   createPreview: (ids: readonly string[]) => Promise<CleanupPreview>;
   approve: (previewId: string, onProgress: (progress: MoveProgress) => void) => Promise<ApproveOutcome>;
   /** Quarantine's permanent delete, for "Delete permanently": what an approval just moved. */
-  remove: (heldIds: readonly string[], onProgress: (progress: DeleteProgress) => void) => Promise<DeleteSummary>;
+  /** "Delete permanently": the preview's items, deleted where they are (no quarantine). */
+  deleteNow: (previewId: string, onProgress: (progress: DeleteNowProgress) => void) => Promise<DeleteNowOutcome>;
 }
 
 const defaultLoaders: ReviewLoaders = {
   review: getCleanupReview,
-  sendDeveloper: sendDeveloperItemsToReview,
-  addStorageFile: addStorageFileToReview,
+  prepareDeveloper: prepareDeveloperItemsRemoval,
+  prepareStorageFile: prepareStorageFileRemoval,
   reveal: revealReviewItem,
   createPreview: createCleanupPreview,
   approve: approveCleanupPreview,
-  remove: deleteQuarantineItems,
+  deleteNow: deleteCleanupPreview,
 };
 
 /** Quarantine (restorable), or delete permanently straight after the move into quarantine. */
@@ -71,8 +71,6 @@ export function useCleanupReview(loaders: ReviewLoaders = defaultLoaders) {
   const [review, setReview] = useState<ReviewList | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [selection, setSelectionState] = useState<ReadonlySet<string>>(new Set());
-  const [developerSent, setDeveloperSent] = useState<ReadonlySet<string>>(new Set());
-  const [storageSent, setStorageSent] = useState<ReadonlySet<string>>(new Set());
   const [preview, setPreview] = useState<PreviewState>(idlePreview);
   const mounted = useRef(true);
   const approving = useRef(false);
@@ -113,38 +111,11 @@ export function useCleanupReview(loaders: ReviewLoaders = defaultLoaders) {
   }, []);
 
   /** Sends Developer items (by their review IDs) to the review. Resolves to a message. */
-  const sendDeveloper = useCallback(
-    async (ids: readonly string[]): Promise<string> => {
-      try {
-        const sent = await loaders.sendDeveloper(ids);
-        setDeveloperSent((current) => new Set([...current, ...sent]));
-        refresh();
-        return sent.length === ids.length
-          ? `Sent ${plural(sent.length, "item")} to review. Nothing has moved.`
-          : `Sent ${sent.length} of ${ids.length} to review. Scan again to send the rest. Nothing has moved.`;
-      } catch (error) {
-        return storageErrorText[errorKind(error)];
-      }
-    },
-    [loaders, refresh],
-  );
+  /** Prepares Developer caches or build folders for removal on that page: their preview. */
+  const prepareDeveloper = useCallback((ids: readonly string[]) => loaders.prepareDeveloper(ids), [loaders]);
 
-  const addStorageFile = useCallback(
-    async (reviewId: string, name: string): Promise<string> => {
-      try {
-        const added = await loaders.addStorageFile(reviewId);
-        if (!added) {
-          return "That file is no longer in the last analysis. Analyze again.";
-        }
-        setStorageSent((current) => new Set([...current, reviewId]));
-        refresh();
-        return `Added ${name} to Cleanup review. Nothing has moved.`;
-      } catch (error) {
-        return storageErrorText[errorKind(error)];
-      }
-    },
-    [loaders, refresh],
-  );
+  /** Prepares a large file from Storage for removal on that page: its preview. */
+  const prepareStorageFile = useCallback((reviewId: string) => loaders.prepareStorageFile(reviewId), [loaders]);
 
   /** Resolves to a message when Finder couldn't show it. */
   const reveal = useCallback(
@@ -192,76 +163,71 @@ export function useCleanupReview(loaders: ReviewLoaders = defaultLoaders) {
   );
 
   /**
-   * Deletes, through Quarantine's permanent delete, exactly what an approval just moved
-   * (`held`: quarantine item → finding). Whatever isn't deleted stays in Quarantine.
+   * Deletes the preview's planned items for good, where they are, without quarantine (Rust
+   * checks each again first). Whatever isn't deleted stays where it was.
    */
-  const deleteMoved = useCallback(
-    (held: ReadonlyMap<string, string>, finishedAtMs: number) => {
+  const deleteNow = useCallback(
+    (previewId: string, planned: readonly string[]) => {
       const done = (patch: Partial<PreviewState>) => {
         approving.current = false;
         if (mounted.current) {
-          setPreview((state) => ({ ...state, status: "result", finishedAtMs, ...patch }));
+          setPreview((state) => ({ ...state, ...patch }));
         }
       };
-      if (held.size === 0) {
-        done({});
-        return;
-      }
       setPreview((state) => {
         const states: Record<string, PreviewItemState> = { ...state.states };
-        for (const id of held.values()) {
+        for (const id of planned) {
           states[id] = "deleting";
         }
-        return { ...state, status: "deleting", states };
+        return { ...state, status: "deleting", mode: "delete", states, deleteError: null };
       });
       loaders
-        .remove([...held.keys()], (progress) => {
-          const id = held.get(progress.id);
-          if (mounted.current && id !== undefined && progress.state !== "deleting") {
-            setPreview((state) => ({ ...state, states: { ...state.states, [id]: progress.state === "deleted" ? "deleted" : "notDeleted" } }));
+        .deleteNow(previewId, (progress) => {
+          if (mounted.current && progress.state !== "deleting") {
+            setPreview((state) => ({ ...state, states: { ...state.states, [progress.id]: progress.state === "deleted" ? "deleted" : "notDeleted" } }));
           }
         })
         .then(
-          (summary) => {
-            if (!mounted.current) {
-              approving.current = false;
+          (outcome) => {
+            if (outcome.status === "finished") {
+              setSelectionState(new Set());
+              refresh();
+              setPreview((state) => {
+                const states: Record<string, PreviewItemState> = { ...state.states };
+                for (const item of outcome.items) {
+                  states[item.id] = item.state === "deleted" ? "deleted" : "notDeleted";
+                }
+                return { ...state, states };
+              });
+              done({ status: "result", finishedAtMs: outcome.finishedAtMs });
               return;
             }
+            // Something changed since the preview: nothing was deleted.
+            const changed = outcome.status === "stale" ? outcome.changed : [];
             setPreview((state) => {
               const states: Record<string, PreviewItemState> = { ...state.states };
-              for (const heldId of summary.deleted) {
-                const id = held.get(heldId);
-                if (id !== undefined) {
-                  states[id] = "deleted";
-                }
+              for (const id of planned) {
+                states[id] = changed.includes(id) ? "changed" : "planned";
               }
-              for (const heldId of [...summary.failed, ...summary.kept]) {
-                const id = held.get(heldId);
-                if (id !== undefined) {
+              return { ...state, states };
+            });
+            done({ status: "stale", changed });
+          },
+          (error: unknown) => {
+            setPreview((state) => {
+              const states: Record<string, PreviewItemState> = { ...state.states };
+              for (const id of planned) {
+                if (states[id] === "deleting") {
                   states[id] = "notDeleted";
                 }
               }
               return { ...state, states };
             });
-            done({});
-          },
-          (error: unknown) => {
-            if (mounted.current) {
-              setPreview((state) => {
-                const states: Record<string, PreviewItemState> = { ...state.states };
-                for (const id of held.values()) {
-                  if (states[id] === "deleting") {
-                    states[id] = "notDeleted";
-                  }
-                }
-                return { ...state, states };
-              });
-            }
-            done({ deleteError: storageErrorText[errorKind(error)] });
+            done({ status: "result", deleteError: storageErrorText[errorKind(error)] });
           },
         );
     },
-    [loaders],
+    [loaders, refresh],
   );
 
   const approve = useCallback((mode: ApproveMode = "quarantine") => {
@@ -271,6 +237,11 @@ export function useCleanupReview(loaders: ReviewLoaders = defaultLoaders) {
     }
     approving.current = true;
     const planned = current.items.filter((item) => item.state === "planned").map((item) => item.id);
+    // Delete permanently: removed where they are, never through quarantine.
+    if (mode === "delete") {
+      deleteNow(current.id, planned);
+      return;
+    }
     const waiting: Record<string, PreviewItemState> = { ...preview.states };
     for (const id of planned) {
       waiting[id] = "waiting";
@@ -289,34 +260,22 @@ export function useCleanupReview(loaders: ReviewLoaders = defaultLoaders) {
       })
       .then(
         (outcome) => {
-          // A delete after the move keeps the approval going until it finishes.
-          const deleting = mode === "delete" && outcome.status === "finished";
-          if (!deleting) {
-            approving.current = false;
-          }
+          approving.current = false;
           if (!mounted.current) {
-            approving.current = false;
             return;
           }
           if (outcome.status === "finished") {
             const states: Record<string, PreviewItemState> = { ...preview.states };
             const failures: Record<string, MoveFailure> = {};
-            const held = new Map<string, string>();
             for (const item of outcome.items) {
               states[item.id] = item.state === "checking" ? "failed" : item.state;
               if (item.state === "failed") {
                 failures[item.id] = item.reason;
               }
-              if (item.state === "moved" && item.heldId !== undefined) {
-                held.set(item.heldId, item.id);
-              }
             }
-            setPreview((state) => ({ ...state, status: deleting ? "deleting" : "result", states, failures, finishedAtMs: outcome.finishedAtMs }));
+            setPreview((state) => ({ ...state, status: "result", states, failures, finishedAtMs: outcome.finishedAtMs }));
             setSelectionState(new Set());
             refresh();
-            if (deleting) {
-              deleteMoved(held, outcome.finishedAtMs);
-            }
           } else if (outcome.status === "stale" || outcome.status === "noPreview") {
             const changed = outcome.status === "stale" ? outcome.changed : [];
             const states: Record<string, PreviewItemState> = { ...preview.states };
@@ -335,7 +294,7 @@ export function useCleanupReview(loaders: ReviewLoaders = defaultLoaders) {
           }
         },
       );
-  }, [loaders, preview, refresh, deleteMoved]);
+  }, [loaders, preview, refresh, deleteNow]);
 
   /** Makes a new preview of the same selection after one went out of date. */
   const rebuild = useCallback(() => {
@@ -355,10 +314,8 @@ export function useCleanupReview(loaders: ReviewLoaders = defaultLoaders) {
     refresh,
     selection,
     setSelection,
-    developerSent,
-    storageSent,
-    sendDeveloper,
-    addStorageFile,
+    prepareDeveloper,
+    prepareStorageFile,
     reveal,
     preview,
     createPreview,

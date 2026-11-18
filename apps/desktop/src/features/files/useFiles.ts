@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FilesOptions, FilesScan, Tool } from "../../contracts/files";
-import { cancelFilesScan, sendFilesToReview, startFilesScan } from "../../lib/filesIpc";
+import { cancelFilesScan, openFoundFolder, prepareFilesRemoval, startFilesScan } from "../../lib/filesIpc";
+import type { CleanupPreview } from "../../contracts/cleanup";
 import { StorageError, type StorageErrorKind } from "../../lib/storageIpc";
-import { plural } from "../../v2/ui/format";
 import { storageErrorText } from "../storage/format";
 
 export interface FilesLoaders {
   start: (tool: Tool, options: FilesOptions) => Promise<FilesScan>;
   cancel: () => Promise<void>;
-  send: (ids: readonly string[]) => Promise<string[]>;
+  prepare: (ids: readonly string[]) => Promise<CleanupPreview>;
+  openFolder: (id: string) => Promise<string | null>;
 }
 
-const defaultLoaders: FilesLoaders = { start: startFilesScan, cancel: cancelFilesScan, send: sendFilesToReview };
+const defaultLoaders: FilesLoaders = { start: startFilesScan, cancel: cancelFilesScan, prepare: prepareFilesRemoval, openFolder: openFoundFolder };
 
 function errorText(error: unknown): string {
   const kind: StorageErrorKind = error instanceof StorageError ? error.kind : "unknown";
@@ -28,11 +29,11 @@ export interface FilesState {
 
 /**
  * The Files page's tools: one runs at a time, each keeps its last result, and what you choose
- * goes to Cleanup's review. Held at the app level so a search survives leaving the page.
+ * is removed on the page (its confirm sheet). Held at the app level so a search survives
+ * leaving the page.
  */
 export function useFiles(onReviewChanged: () => void, loaders: FilesLoaders = defaultLoaders) {
   const [state, setState] = useState<FilesState>({ results: {}, running: null, error: null, stopped: false });
-  const [sent, setSent] = useState<ReadonlySet<string>>(new Set());
   const running = useRef(false);
   const mounted = useRef(true);
   /** The last search asked for, so it can be run again after its files moved. */
@@ -88,33 +89,22 @@ export function useFiles(onReviewChanged: () => void, loaders: FilesLoaders = de
     });
   }, [loaders]);
 
-  const send = useCallback(
-    async (ids: readonly string[]): Promise<string> => {
-      try {
-        const done = await loaders.send(ids);
-        if (done.length === ids.length) {
-          setSent((current) => new Set([...current, ...ids]));
-        }
-        onReviewChanged();
-        return done.length === ids.length
-          ? `Sent ${plural(done.length, "item")} to review. Nothing has moved.`
-          : `Sent ${done.length} of ${ids.length} to review; one copy of each group stays, and changed items were left out. Nothing has moved.`;
-      } catch (error) {
-        return errorText(error);
-      }
-    },
-    [loaders, onReviewChanged],
-  );
+  /** Prepares what you chose for removal on this page (the confirm sheet shows it). */
+  const prepare = useCallback((ids: readonly string[]) => loaders.prepare(ids), [loaders]);
 
-  /** Runs the last search again (after what it found was moved), if there was one. */
+  /** Runs the last search again (after what it found was moved), if there was one, and lets
+   * Cleanup's review know files are gone. */
   const rerun = useCallback(() => {
+    onReviewChanged();
     if (last.current) {
-      setSent(new Set());
       run(last.current.tool, last.current.options);
     }
-  }, [run]);
+  }, [run, onReviewChanged]);
 
-  return { state, sent, run, rerun, cancel, send };
+  /** A found folder's ID in the Browse view (`null`: search again). */
+  const openFolder = useCallback((id: string) => loaders.openFolder(id), [loaders]);
+
+  return { state, run, rerun, cancel, prepare, openFolder };
 }
 
 export type Files = ReturnType<typeof useFiles>;

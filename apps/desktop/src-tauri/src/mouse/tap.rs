@@ -24,10 +24,12 @@ use objc2_core_graphics::{
 };
 
 use super::config::{Clicks, Modifiers, MouseSettings, LEFT, RIGHT};
-use super::engine::{glide_step, Effect, Engine, Input, Keys, Media, Output};
+use super::engine::{glide_step, Effect, Engine, Input, Keys, Output};
 
 /// Marks events Kleari posts ("MPMS"), in the field macOS keeps for the poster's own use.
 const OURS: i64 = 0x4D50_4D53;
+/// `kCGEventMouseSubtypeTouch` (`NSEventSubtypeTouch`): a click from a trackpad.
+const TOUCH: i64 = 3;
 /// How often a glide moves: about 120 frames a second.
 const FRAME: Duration = Duration::from_millis(8);
 /// How often the tap's thread checks whether it should stop.
@@ -226,6 +228,11 @@ fn run(
             unsafe { &*context }.port.replace(Some(port.clone()));
             CGEvent::tap_enable(&port, true);
             alive.store(true, Ordering::Relaxed);
+            crate::log::note_number(
+                "mouse",
+                "event tap started; clicks seen (0 none, 1 left, 2 right, 3 both)",
+                i64::from(clicks.left) + 2 * i64::from(clicks.right),
+            );
             // `start` may have stopped waiting; then there is no one to tell.
             let _ = ready.send(());
             while wanted.load(Ordering::Relaxed) {
@@ -237,12 +244,16 @@ fn run(
                 if allowed() {
                     reported = false;
                 } else if !reported {
+                    crate::log::note("mouse", "Accessibility withdrawn while the tap ran");
                     reported = revoked();
                 }
             }
             CGEvent::tap_enable(&port, false);
+            crate::log::note("mouse", "event tap stopped");
         }
         port.invalidate();
+    } else {
+        crate::log::note("mouse", "macOS refused the event tap");
     }
     // Refused or stopped: `start` stops waiting at once.
     let _ = ready.send(());
@@ -272,6 +283,10 @@ unsafe extern "C-unwind" fn callback(
         if let Some(port) = context.port.borrow().as_ref() {
             CGEvent::tap_enable(port, true);
         }
+        crate::log::note(
+            "mouse",
+            "macOS turned the slow event tap off; turned back on",
+        );
         return pass;
     }
     // SAFETY: macOS passes a valid event for the duration of the call.
@@ -350,6 +365,25 @@ fn handle(context: &Context, kind: CGEventType, event: &CGEvent) -> bool {
         return true;
     };
     let pressed = button_event(kind, event);
+    // A trackpad's clicks are never Kleari's: the Mouse settings are for external mice. Its
+    // press and release both come marked, so each goes through untouched and stays paired.
+    if matches!(pressed, Some((LEFT | RIGHT, _)))
+        && field(event, CGEventField::MouseEventSubtype) == TOUCH
+    {
+        return true;
+    }
+    // A shortcut is being recorded, or the keyboard is locked (its first click unlocks): the
+    // mouse does nothing of Kleari's meanwhile (presses already held still pair with their
+    // release, as when the settings are turned off).
+    if super::recorder::active() || super::keylock::active() {
+        let input = match pressed {
+            Some((button, Phase::Up)) => Input::Up(button),
+            Some((button, Phase::Dragged)) => Input::Dragged(button),
+            _ => return true,
+        };
+        let off = MouseSettings::default();
+        return !matches!(engine.handle(input, &off), Output::Suppress);
+    }
     // Buttons are being tested in the Mouse page's finder: the real buttons go through
     // untouched (Kleari's window then only lights them up, dropping them). A release ends its
     // own button's pairing; other buttons keep theirs.
@@ -566,11 +600,8 @@ fn perform(effect: Effect, at: CGPoint, held: CGEventFlags) {
             vertical,
             horizontal,
         } => scroll_points(vertical, horizontal),
-        Effect::Media(media) => {
-            for down in [true, false] {
-                media_key(media, down);
-            }
-        }
+        Effect::Window(action) => super::window::window(action),
+        Effect::HideApp => super::window::hide_app(),
         Effect::Command(down) => {
             // kVK_Command: held for the app switcher, released when the buttons are.
             if let Some(event) = CGEvent::new_keyboard_event(None, 55, down) {
@@ -583,45 +614,6 @@ fn perform(effect: Effect, at: CGPoint, held: CGEventFlags) {
                 post(&event);
             }
         }
-    }
-}
-
-/// The key type macOS gives each media key (`NX_KEYTYPE_*` in IOKit's `ev_keymap.h`).
-const fn media_type(media: Media) -> isize {
-    match media {
-        Media::VolumeUp => 0,
-        Media::VolumeDown => 1,
-        Media::Mute => 7,
-        Media::PlayPause => 16,
-        Media::Next => 17,
-        Media::Previous => 18,
-    }
-}
-
-/// Posts a media key press or release, as a Mac keyboard's media keys send it: a
-/// system-defined event of subtype 8 whose data carries the key type and the key state.
-fn media_key(media: Media, down: bool) {
-    use objc2_app_kit::{NSEvent, NSEventModifierFlags, NSEventType};
-    use objc2_foundation::NSPoint;
-    // 0xa is "key down", 0xb "key up", in both the flags and the data.
-    let state: isize = if down { 0xa } else { 0xb };
-    let Some(event) =
-        NSEvent::otherEventWithType_location_modifierFlags_timestamp_windowNumber_context_subtype_data1_data2(
-            NSEventType::SystemDefined,
-            NSPoint::new(0.0, 0.0),
-            NSEventModifierFlags(state.unsigned_abs() << 8),
-            0.0,
-            0,
-            None,
-            8,
-            (media_type(media) << 16) | (state << 8),
-            -1,
-        )
-    else {
-        return;
-    };
-    if let Some(event) = event.CGEvent() {
-        post(&event);
     }
 }
 

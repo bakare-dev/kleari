@@ -1,6 +1,25 @@
 import type { UpdateState } from "../../../features/settings/useUpdates";
 import type { UpdateCheck } from "../../../contracts/updates";
+import { openReleasePage } from "../../../lib/updatesIpc";
 import { Button, IconTile, Modal } from "../../ui/components";
+
+/** The release page's address as the update feed writes it into the notes. */
+const RELEASE_LINK = /\s*(?:See\s+)?https:\/\/github\.com\/bakare-dev\/kleari\/releases\/tag\/\S+/g;
+
+/** The notes without the release page's address, which is offered as a link instead; `null`
+ * when nothing else is left. */
+export function notesText(notes: string | null): string | null {
+  const text = (notes ?? "").replace(RELEASE_LINK, "").trim();
+  return text === "" ? null : text;
+}
+
+/** Opens the release notes on GitHub in the browser (a plain link would open inside Kleari). */
+export function showReleaseNotes(version: string): void {
+  openReleasePage(version).catch(() => {
+    // Deliberate: if macOS couldn't open the browser there is nothing more Kleari can do, and
+    // the update itself is unaffected.
+  });
+}
 
 /** One line on where updates stand. */
 export function updateStatus(state: UpdateState): string {
@@ -48,7 +67,10 @@ export function UpdateOffer({ offer, state, onInstall, onLater }: { offer: Updat
           <IconTile tone="blue" icon="info" size={52} glow />
           <h2 id="update-title" className="v2-dialog-title">Kleari {offer.version} is available</h2>
           <p className="v2-dialog-text">You have {offer.current}. Installing replaces the app and restarts it; your settings, history and quarantine stay as they are.</p>
-          {offer.notes && <p className="v2-dialog-text set-update-notes">{offer.notes}</p>}
+          {notesText(offer.notes) && <p className="v2-dialog-text set-update-notes">{notesText(offer.notes)}</p>}
+          <button type="button" className="v2-link" onClick={() => showReleaseNotes(offer.version)}>
+            See what’s new in {offer.version}
+          </button>
           {state.phase === "failed" && <p role="alert" className="v2-dialog-text">{state.message}</p>}
           <div className="v2-dialog-actions">
             <Button variant="secondary" disabled={installing} onClick={onLater}>Later</Button>

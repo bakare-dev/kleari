@@ -244,3 +244,20 @@
   border-color: var(--mp-link);
   color: var(--mp-link);
 }
+
+/* Recording a shortcut: the keys pressed, then Use or Cancel. */
+.mouse-recorder {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.mouse-recorder-note {
+  flex-basis: 100%;
+  color: var(--mp-text-2);
+  font-size: 11.5px;
+  text-align: right;
+}

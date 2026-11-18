@@ -10,16 +10,21 @@ use serde::Deserialize;
 use tauri::image::Image;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::window::{Effect, EffectState, EffectsBuilder};
-use tauri::{AppHandle, LogicalPosition, Manager, Rect, WebviewUrl, WebviewWindowBuilder};
+use tauri::{
+    AppHandle, LogicalPosition, LogicalSize, Manager, Rect, WebviewUrl, WebviewWindowBuilder,
+};
 
 use crate::commands::{CommandError, CommandErrorCode};
 
 const TRAY_ID: &str = "kleari";
 pub const POPOVER: &str = "popover";
 const MAIN: &str = "main";
-/// The popover's size in points; its page fits itself to this.
+/// The popover's width in points, and its height until its page asks for its own
+/// (`fit_popover`): the room it has before it first opens under the icon.
 const POPOVER_WIDTH: f64 = 340.0;
 const POPOVER_HEIGHT: f64 = 726.0;
+/// Never shorter than this, whatever the page asks: the header and the buttons stay usable.
+const POPOVER_MIN_HEIGHT: f64 = 160.0;
 /// Matches the panel's corner radius in popover.css.
 const POPOVER_RADIUS: f64 = 14.0;
 /// Space kept between the popover and the screen edges, in points.
@@ -32,6 +37,55 @@ const REOPEN_GUARD: Duration = Duration::from_millis(300);
 #[derive(Default)]
 pub struct PopoverState {
     closed_on_blur: Mutex<Option<Instant>>,
+    fit: Mutex<Fit>,
+}
+
+/// What the popover's height is fitted from.
+#[derive(Debug, Default, Clone, Copy)]
+struct Fit {
+    /// The height the page last asked for: its content's.
+    wanted: Option<f64>,
+    /// Where it last opened (its top-left corner, in points) and the height there is room for
+    /// below the icon; `None` before it first opens.
+    placed: Option<(LogicalPosition<f64>, f64)>,
+}
+
+/// The height the popover gets: what its page wants, no less than the minimum, and no more
+/// than the room below the icon (taller content scrolls in the page).
+fn fitted_height(wanted: f64, room: f64) -> f64 {
+    wanted.clamp(POPOVER_MIN_HEIGHT, room.max(POPOVER_MIN_HEIGHT))
+}
+
+/// Applies the fitted height, keeping the top-left corner under the icon (macOS keeps the
+/// bottom-left one when a window's size changes).
+fn apply_fit(window: &tauri::WebviewWindow, fit: Fit) -> f64 {
+    let room = fit.placed.map_or(POPOVER_HEIGHT, |(_, room)| room);
+    let height = fitted_height(fit.wanted.unwrap_or(POPOVER_HEIGHT), room);
+    // Best effort: if macOS refuses, the popover keeps its size and its page scrolls.
+    let _ = window.set_size(LogicalSize::new(POPOVER_WIDTH, height));
+    if let Some((at, _)) = fit.placed {
+        let _ = window.set_position(at);
+    }
+    height
+}
+
+/// Fits the popover to its page's content (`height`, in points), as far as the screen below
+/// the icon allows; returns the height it got. Only the popover's own page can call it.
+#[tauri::command]
+pub fn fit_popover(app: AppHandle, height: f64) -> Result<f64, CommandError> {
+    if !height.is_finite() || height <= 0.0 {
+        return Err(CommandErrorCode::InvalidRequest.into());
+    }
+    let window = app
+        .get_webview_window(POPOVER)
+        .ok_or_else(|| CommandError::from(CommandErrorCode::MenuBarUnavailable))?;
+    let state = app.state::<PopoverState>();
+    let mut fit = state
+        .fit
+        .lock()
+        .map_err(|_| CommandError::from(CommandErrorCode::MenuBarUnavailable))?;
+    fit.wanted = Some(height);
+    Ok(apply_fit(&window, *fit))
 }
 
 /// Closes the popover because it lost focus (a click elsewhere, or on the icon).
@@ -159,11 +213,33 @@ fn toggle_popover(app: &AppHandle, icon: Rect) {
     }
     let (icon, screen) = icon_on_screen(app, icon, window.scale_factor().unwrap_or(1.0));
     let centre = icon.x + icon.width / 2.0;
-    let x = popover_x(centre, POPOVER_WIDTH, SCREEN_MARGIN, screen);
+    let x = popover_x(
+        centre,
+        POPOVER_WIDTH,
+        SCREEN_MARGIN,
+        screen.map(|area| (area.x, area.x + area.width)),
+    );
     let y = icon.y + icon.height + 4.0;
+    let at = LogicalPosition::new(x, y);
     // Opening the popover is best effort: if macOS refuses to place or show it, the icon
-    // stays and the next click tries again.
-    let _ = window.set_position(LogicalPosition::new(x, y));
+    // stays and the next click tries again. It opens at its content's height, as far as this
+    // screen has room below the icon.
+    let room = screen.map_or(POPOVER_HEIGHT, |area| {
+        area.y + area.height - y - SCREEN_MARGIN
+    });
+    let state = app.state::<PopoverState>();
+    let placed = state.fit.lock().map(|mut fit| {
+        fit.placed = Some((at, room));
+        *fit
+    });
+    match placed {
+        Ok(fit) => {
+            apply_fit(&window, fit);
+        }
+        Err(_) => {
+            let _ = window.set_position(at);
+        }
+    }
     let _ = window.show();
     let _ = window.set_focus();
 }
@@ -183,10 +259,10 @@ impl Area {
     }
 }
 
-/// The icon in points, and the `(left, right)` edges of the screen it is on. The icon's
-/// pixels are in its own screen's scale, so each screen is tried in its own scale; with no
-/// match, `fallback` (the popover's scale) is used and the edges are unknown.
-fn icon_on_screen(app: &AppHandle, icon: Rect, fallback: f64) -> (Area, Option<(f64, f64)>) {
+/// The icon in points, and the screen it is on (down to the Dock). The icon's pixels are in its own screen's
+/// scale, so each screen is tried in its own scale; with no match, `fallback` (the popover's
+/// scale) is used and the screen is unknown.
+fn icon_on_screen(app: &AppHandle, icon: Rect, fallback: f64) -> (Area, Option<Area>) {
     let in_points = |scale: f64| {
         let position = icon.position.to_logical::<f64>(scale);
         let size = icon.size.to_logical::<f64>(scale);
@@ -210,7 +286,16 @@ fn icon_on_screen(app: &AppHandle, icon: Rect, fallback: f64) -> (Area, Option<(
         };
         let area = in_points(scale);
         if screen.contains(area.x + area.width / 2.0, area.y) {
-            return (area, Some((screen.x, screen.x + screen.width)));
+            // Its bottom is the work area's, above the Dock, so the popover never goes under it.
+            let work = monitor.work_area();
+            let work_bottom = work.position.to_logical::<f64>(scale).y
+                + work.size.to_logical::<f64>(scale).height;
+            let height = if work_bottom > screen.y {
+                work_bottom - screen.y
+            } else {
+                screen.height
+            };
+            return (area, Some(Area { height, ..screen }));
         }
     }
     (in_points(fallback), None)
@@ -318,6 +403,16 @@ mod tests {
         assert_eq!(Destination::Review.route(), "review");
         assert!(serde_json::from_str::<Destination>(r#""'; alert(1); '""#).is_err());
         assert!(serde_json::from_str::<Destination>(r#""preview""#).is_err());
+    }
+
+    #[test]
+    fn the_popover_is_as_tall_as_its_content_within_the_room_below_the_icon() {
+        assert_eq!(fitted_height(480.0, 900.0), 480.0);
+        // Taller content than the screen has room for: the room, and the page scrolls.
+        assert_eq!(fitted_height(1_200.0, 700.0), 700.0);
+        // Never shorter than the minimum, even with less room than that.
+        assert_eq!(fitted_height(40.0, 900.0), POPOVER_MIN_HEIGHT);
+        assert_eq!(fitted_height(480.0, 50.0), POPOVER_MIN_HEIGHT);
     }
 
     #[test]

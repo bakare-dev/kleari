@@ -51,17 +51,28 @@ downloads come from the versioned release.
    [CONTRIBUTING.md](../CONTRIBUTING.md#4-checks), plus a manual pass on Apple silicon with
    macOS 14 or later (permissions, Cleanup move and restore, an update from the previous
    version).
-4. **Build and sign**, from `apps/desktop`, typing the key's password without echo:
+4. **Build and sign** from a clean worktree of the branch, so no local change gets in:
    ```sh
-   read -s TAURI_SIGNING_PRIVATE_KEY_PASSWORD && export TAURI_SIGNING_PRIVATE_KEY_PASSWORD TAURI_SIGNING_PRIVATE_KEY="$HOME/.tauri/kleari-updater.key"
-   APPLE_SIGNING_IDENTITY="Kleari Self-Signed" pnpm tauri build --config src-tauri/tauri.release.conf.json
-   unset TAURI_SIGNING_PRIVATE_KEY_PASSWORD TAURI_SIGNING_PRIVATE_KEY
+   git fetch origin && git worktree add ~/kleari-release origin/<branch>
+   cd ~/kleari-release && pnpm install --frozen-lockfile && cd apps/desktop
+   ```
+   Then, typing the key's password without echo:
+   ```sh
+   read -s TAURI_SIGNING_PRIVATE_KEY_PASSWORD && export TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+   TAURI_SIGNING_PRIVATE_KEY="$HOME/.tauri/kleari-updater.key" APPLE_SIGNING_IDENTITY="Kleari Self-Signed" pnpm tauri build --config src-tauri/tauri.release.conf.json
    pnpm tauri signer sign --app-version <version> -f ~/.tauri/kleari-updater.key src-tauri/target/release/bundle/macos/Kleari.app.tar.gz
+   unset TAURI_SIGNING_PRIVATE_KEY_PASSWORD
    ```
    The second signature binds the version (`requireSignedVersion`); an update signed without
-   `--app-version` is refused by every installed copy.
+   `--app-version` is refused by every installed copy. It replaces the `.sig` the build wrote.
+   - Give the build the key path in `TAURI_SIGNING_PRIVATE_KEY` for that command only. Left
+     exported, `signer sign` rejects it next to `-f` ("cannot be used with
+     '--private-key'"), and on its own it is read as the key's contents, not a path
+     ("failed to decode base64 secret key").
+   - Check the version is in the signature before publishing: `base64 -d <
+     src-tauri/target/release/bundle/macos/Kleari.app.tar.gz.sig | grep version:`.
 5. **Verify**: `codesign --verify --deep --strict` on `Kleari.app` and the DMG, signed by
-   `Kleari Self-Signed`, identifier `dev.bakare.kleari`, and the version in `Info.plist`; the
+   `Kleari Self-Signed`, identifier `dev.kleari.app`, and the version in `Info.plist`; the
    update signature's key ID matches `kleari-updater.key.pub`; the build commit is the
    branch's head.
 6. **Publish** `latest.json` (version, notes, `pub_date`, and under `platforms.darwin-aarch64`
@@ -69,15 +80,22 @@ downloads come from the versioned release.
    `url`):
    - create the release `v<version>` on that commit, with the DMG, `Kleari.app.tar.gz` and
      `latest.json`: a **pre-release** for a beta, or a regular release marked **Latest** for
-     stable;
-   - replace `latest.json` on the `beta-channel` release with the same file
-     (`gh release upload beta-channel latest.json --clobber`), creating `beta-channel` as a
-     pre-release the first time.
+     stable. `--target` takes the **full** commit ID (`git rev-parse origin/<branch>`); a short
+     one is refused ("target_commitish is invalid"). The notes are
+     `docs/releases/<version>.md` with its relative links (`../install.md`,
+     `../../CHANGELOG.md`) made into full GitHub links, since a release page can't follow them;
+   - **only once that release exists**, replace `latest.json` on the `beta-channel` release
+     with the same file (`gh release upload beta-channel latest.json --clobber`), creating
+     `beta-channel` as a pre-release the first time. Run it as a separate step, never chained
+     after the release command: if the release failed, the feed would announce an update
+     whose download doesn't exist.
 7. **After a stable release** (or a `hotfix/…` into `release`), merge `release` back into
    `main` with a pull request from `release`, so the version change and any fix aren't lost;
    `beta` gets them with the next promotion from `main`.
-8. **Confirm**: download the assets back and compare them; check that an installed copy finds
-   the update on its channel.
+8. **Confirm**: download the assets back and compare them (`shasum -a 256` against the build);
+   check that the feed names the new version and its URL downloads; check that an installed
+   copy finds the update on its channel. Then remove the build worktree
+   (`git worktree remove --force ~/kleari-release`).
 
 ## Downloads
 

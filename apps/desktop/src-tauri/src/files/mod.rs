@@ -44,6 +44,8 @@ const MIN_OLD_BYTES: u64 = 50_000_000;
 const HEAD_BYTES: usize = 64 * 1024;
 /// A model download unused this long is "not used lately".
 const MODEL_IDLE_DAYS: u64 = 60;
+/// Found items kept for acting on and pictures, at most (see `FilesState::finish`).
+const MAX_FOUND: usize = 200_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -143,6 +145,9 @@ struct Found {
     chosen: Chosen,
     /// Its group, when one member must be kept, and whether it is the one kept by default.
     keep_group: Option<(String, bool)>,
+    /// It may be removed (`FileItem::selectable`). Every item is kept so the page can ask for
+    /// its picture; only these are ever handed to removal.
+    selectable: bool,
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -182,17 +187,35 @@ impl FilesState {
         *lock(&self.active) = None;
     }
 
-    /// Ends the scan; a completed one replaces what the last scan of the same items found.
+    /// Ends the scan; a completed one adds what it found to what earlier scans found, so each
+    /// tool's last result can still be acted on.
     fn finish(&self, found: Option<HashMap<String, Found>>) {
         if let Some(found) = found {
             let mut kept = lock(&self.found);
-            kept.extend(found);
-            // Bounded: keep the newest scan's items when it grows too large.
-            if kept.len() > 200_000 {
-                kept.clear();
+            // Bounded: when it would grow too large, only the newest scan's items are kept (never
+            // none of them, so what is on screen can still be removed).
+            if kept.len().saturating_add(found.len()) > MAX_FOUND {
+                *kept = found;
+            } else {
+                kept.extend(found);
             }
         }
         *lock(&self.active) = None;
+    }
+
+    /// The path of a found item, for its picture (any item, removable or not).
+    pub fn path(&self, id: &str) -> Option<PathBuf> {
+        lock(&self.found)
+            .get(id)
+            .map(|item| item.chosen.path.clone())
+    }
+
+    /// A found folder's path and identity, to open it in the Browse view.
+    pub fn folder(&self, id: &str) -> Option<(PathBuf, FileStat)> {
+        lock(&self.found)
+            .get(id)
+            .filter(|item| item.chosen.stat.is_dir())
+            .map(|item| (item.chosen.path.clone(), item.chosen.stat))
     }
 
     /// What `ids` stand for, ready for the review. In a group where one copy must be kept, if
@@ -220,6 +243,7 @@ impl FilesState {
         ids.iter()
             .filter(|id| !held.contains(id.as_str()))
             .filter_map(|id| found.get(id))
+            .filter(|item| item.selectable)
             .map(|item| item.chosen.clone())
             .collect()
     }
@@ -301,20 +325,19 @@ impl Ctx<'_> {
             file_category: (!folder).then(|| category_of(path)),
             selectable,
         };
-        if selectable {
-            self.found.insert(
-                id,
-                Found {
-                    chosen: Chosen {
-                        name: item.name.clone(),
-                        path: path.to_path_buf(),
-                        stat: *stat,
-                        measured,
-                    },
-                    keep_group: keep_group.map(|(group, keeper)| (group.to_owned(), keeper)),
+        self.found.insert(
+            id,
+            Found {
+                chosen: Chosen {
+                    name: item.name.clone(),
+                    path: path.to_path_buf(),
+                    stat: *stat,
+                    measured,
                 },
-            );
-        }
+                keep_group: keep_group.map(|(group, keeper)| (group.to_owned(), keeper)),
+                selectable,
+            },
+        );
         item
     }
 
@@ -547,6 +570,10 @@ pub fn download_agent(path: &Path) -> Option<String> {
     (!agent.is_empty() && agent.len() <= 128 && !agent.contains('/')).then(|| agent.to_owned())
 }
 
+/// The Downloads group of items no app is recorded for.
+const UNTAGGED_DOWNLOADS: &str = "Saved or copied here";
+const UNTAGGED_DETAIL: &str = "macOS didn’t record an app for these: folders, unzipped files, AirDrop, and files saved or copied into Downloads";
+
 /// What is directly in Downloads, by the app that downloaded it.
 fn downloads(ctx: &mut Ctx<'_>, excluded: &[PathBuf], cancel: &AtomicBool, result: &mut FilesScan) {
     let folder = ctx.home.join("Downloads");
@@ -558,7 +585,8 @@ fn downloads(ctx: &mut Ctx<'_>, excluded: &[PathBuf], cancel: &AtomicBool, resul
         return;
     };
     let mut links = Links::default();
-    let mut by_agent: HashMap<String, Vec<FileItem>> = HashMap::new();
+    // `None`: no app is recorded for the item.
+    let mut by_agent: HashMap<Option<String>, Vec<FileItem>> = HashMap::new();
     while let Some(Ok(name)) = dir.next_name() {
         if cancel.load(Ordering::Relaxed) {
             return;
@@ -587,13 +615,23 @@ fn downloads(ctx: &mut Ctx<'_>, excluded: &[PathBuf], cancel: &AtomicBool, resul
             file_measured(&stat)
         };
         result.files_seen += 1;
-        let agent = download_agent(&path).unwrap_or_else(|| "Unknown".to_owned());
+        let agent = download_agent(&path);
         let item = ctx.item(&path, &stat, measured, None);
         by_agent.entry(agent).or_default().push(item);
     }
     let mut groups: Vec<Group> = by_agent
         .into_iter()
-        .map(|(agent, items)| group(GroupKind::Source, agent, None, items, 0))
+        .map(|(agent, items)| match agent {
+            Some(agent) => group(GroupKind::Source, agent, None, items, 0),
+            // macOS tags only what an app downloaded; the rest says nothing of where it came from.
+            None => group(
+                GroupKind::Source,
+                UNTAGGED_DOWNLOADS.to_owned(),
+                Some(UNTAGGED_DETAIL.to_owned()),
+                items,
+                0,
+            ),
+        })
         .collect();
     groups.sort_by_key(|group| std::cmp::Reverse(group.bytes));
     result.groups.extend(groups);
@@ -694,6 +732,62 @@ const AI_PLACES: &[AiPlace] = &[
         relative: "Library/Caches/com.microsoft.copilot-mac",
         per_entry: false,
     },
+    // Claude Code keeps its settings, CLAUDE.md files, memory, agents, skills and plugins in
+    // ~/.claude too: only these parts, which it recreates or which are old history, are listed.
+    AiPlace {
+        label: "Claude Code",
+        detail: "Saved chat sessions, one folder per project. Removing one forgets that project’s old chats; your settings and memory are elsewhere",
+        relative: ".claude/projects",
+        per_entry: true,
+    },
+    AiPlace {
+        label: "Claude Code",
+        detail: "Shell snapshots, recreated as needed",
+        relative: ".claude/shell-snapshots",
+        per_entry: false,
+    },
+    AiPlace {
+        label: "Claude Code",
+        detail: "Old task lists",
+        relative: ".claude/todos",
+        per_entry: false,
+    },
+    AiPlace {
+        label: "Claude Code",
+        detail: "Feature-flag cache, recreated as needed",
+        relative: ".claude/statsig",
+        per_entry: false,
+    },
+    AiPlace {
+        label: "Claude Code",
+        detail: "Debug logs",
+        relative: ".claude/debug",
+        per_entry: false,
+    },
+    AiPlace {
+        label: "Codex",
+        detail: "Saved sessions",
+        relative: ".codex/sessions",
+        per_entry: true,
+    },
+    AiPlace {
+        label: "Codex",
+        detail: "Logs",
+        relative: ".codex/log",
+        per_entry: false,
+    },
+    AiPlace {
+        label: "Gemini CLI",
+        detail: "Temporary files",
+        relative: ".gemini/tmp",
+        per_entry: false,
+    },
+    AiPlace {
+        label: "AI tools in /tmp",
+        detail: "Temporary folders AI coding tools made in /tmp. One a tool is using right now comes back when it next needs it",
+        relative: policy::SHARED_TMP,
+        per_entry: true,
+    },
 ];
 
 /// AI models, caches and logs in known places. A model not used for 60 days is noted.
@@ -703,7 +797,14 @@ fn ai(ctx: &mut Ctx<'_>, excluded: &[PathBuf], cancel: &AtomicBool, result: &mut
         if cancel.load(Ordering::Relaxed) {
             return;
         }
-        let path = ctx.home.join(place.relative);
+        // A place is in the home folder, except the shared temporary folder (absolute).
+        let path = if place.relative.starts_with('/') {
+            PathBuf::from(place.relative)
+        } else {
+            ctx.home.join(place.relative)
+        };
+        // In the shared temporary folder only what AI tools named as theirs is listed.
+        let in_tmp = path == Path::new(policy::SHARED_TMP);
         if crate::preferences::touches_excluded(&path, excluded) {
             continue;
         }
@@ -732,6 +833,13 @@ fn ai(ctx: &mut Ctx<'_>, excluded: &[PathBuf], cancel: &AtomicBool, result: &mut
             };
             while let Some(Ok(entry)) = dir.next_name() {
                 if entry.to_bytes().starts_with(b".") {
+                    continue;
+                }
+                if in_tmp
+                    && !policy::AI_TMP_PREFIXES
+                        .iter()
+                        .any(|prefix| entry.to_bytes().starts_with(prefix.as_bytes()))
+                {
                     continue;
                 }
                 let Ok(child_stat) = dir.stat_child(&entry) else {

@@ -4,6 +4,7 @@ import { openSystemSettings } from "../../lib/systemPageIpc";
 import { AccessSteps } from "../ui/AccessSteps";
 import { Button, IconTile, Modal, Pill, Switch } from "../ui/components";
 import { NavigatorIcon } from "./brand";
+import { DISCLAIMER_VERSION } from "../../features/legal/legal";
 
 /**
  * The first-launch setup: Full Disk Access (with the steps to turn it on), Open at login and
@@ -18,7 +19,8 @@ export function SetupWelcome({ settings }: { settings: Settings }) {
   const { refresh } = settings;
 
   useEffect(() => {
-    if (preferences && !preferences.setupDone) {
+    // After the "use at your own risk" notice, never on top of it.
+    if (preferences && !preferences.setupDone && preferences.disclaimerSeen >= DISCLAIMER_VERSION) {
       setOpen(true);
     }
   }, [preferences]);

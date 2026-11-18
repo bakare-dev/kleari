@@ -21,7 +21,7 @@ pub(crate) mod registry;
 pub mod running_apps;
 mod sensors;
 mod startup;
-mod sysctl;
+pub(crate) mod sysctl;
 
 pub use activity::{ActivitySampler, SystemActivity};
 

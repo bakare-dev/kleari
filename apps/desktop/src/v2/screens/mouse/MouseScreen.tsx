@@ -16,8 +16,8 @@ import {
   formatShortcut,
   keepRunningNotes,
   mouseState,
+  miceNote,
   plannedRows,
-  shortcutFrom,
   speedOptions,
   unseenButtons,
   withButton,
@@ -45,6 +45,7 @@ export function MouseStatusCard({ status, menuBar, openAtLogin, unseen }: { stat
         <h2 id="mouse-status-title" className="v2-visually-hidden">Status</h2>
         <span className="v2-muted">{state.detail}</span>
       </div>
+      {status && <span className="set-row-sub">{miceNote(status.mice)}</span>}
       {notes.length > 0 && (
         <div className="mouse-status-notes">
           {notes.map((note) => (
@@ -187,7 +188,7 @@ export function MouseScreen({ status, finder, lit, finderUnavailable, error, onS
       <PageHeader
         title="Mouse"
         headingId={headingIdFor("mouse")}
-        subtitle="Make a mouse work your way: scrolling, buttons and shortcuts. Your trackpad stays as it is."
+        subtitle="Make an external mouse work your way: scrolling, buttons and shortcuts. Your trackpad is never changed."
         actions={
           <Switch
             label="Use these mouse settings"
@@ -214,7 +215,7 @@ export function MouseScreen({ status, finder, lit, finderUnavailable, error, onS
               <strong>Allow Kleari under Accessibility</strong>
               <span>
                 macOS asks before an app can change how your mouse scrolls and what its buttons do. Once allowed, the mouse settings see only the wheel and extra buttons (and left or
-                right clicks only while a combination uses one), never your keystrokes or where the pointer goes, and keep none of them. (The button finder below sees only clicks and scrolls inside Kleari’s own
+                right clicks only while a combination uses one), never your keystrokes (except while you record a shortcut, when only that shortcut is kept) or where the pointer goes. (The button finder below sees only clicks and scrolls inside Kleari’s own
                 window, while this page is open.) Turn Kleari on in Privacy &amp; Security › Accessibility; this page notices by itself.
               </span>
               <AccessSteps kind="accessibility" compact />
@@ -274,9 +275,8 @@ export function MouseScreen({ status, finder, lit, finderUnavailable, error, onS
                         key={recording ? "new" : shortcut}
                         current={recording ? null : shortcut}
                         onCancel={() => setRecordingFor(null)}
-                        onRecord={(event) => {
-                          const recorded = shortcutFrom(event);
-                          if (recorded === null || !settings) {
+                        onRecord={(recorded) => {
+                          if (!settings) {
                             return;
                           }
                           setRecordingFor(null);

@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { Glyph, StatusMark, type IconName } from "../../ui/icons";
-import { Button, Dot, IconTile, LinkButton, Modal, PageHeader, ScrollBody, Spinner, type Tone } from "../../ui/components";
+import { Button, Dot, IconTile, LinkButton, PageHeader, ScrollBody, Spinner, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
 import { headingIdFor, hrefFor } from "../../shell/routes";
 import { CleanupSteps } from "./CleanupSteps";
@@ -8,11 +7,11 @@ import { categoryMeta } from "./findingMeta";
 import type { Finding, FindingCategory } from "./types";
 import "./preview.css";
 
-/** `deleting`: moved into quarantine and now being deleted permanently ("Delete permanently"). */
+/** `deleting`: being deleted permanently where it is ("Delete permanently", no quarantine). */
 export type PreviewStage = "review" | "stale" | "running" | "deleting" | "result";
 /** `excluded`: left out when the preview was made (it changed since the scan, or isn't eligible now). */
 /** `unconfirmed`: moved, but the move couldn't be checked; it is listed in Quarantine. */
-/** `deleted` / `notDeleted`: after "Delete permanently"; one not deleted stays in Quarantine. */
+/** `deleted` / `notDeleted`: after "Delete permanently"; one not deleted stays where it was. */
 export type PreviewItemState =
   | "planned"
   | "changed"
@@ -26,7 +25,7 @@ export type PreviewItemState =
   | "deleted"
   | "notDeleted";
 
-/** Quarantine (restorable), or delete permanently straight after the move. */
+/** Quarantine (restorable), or delete permanently where they are. */
 export type PreviewMode = "quarantine" | "delete";
 
 interface PreviewScreenProps {
@@ -48,14 +47,14 @@ interface PreviewScreenProps {
   consequences: string;
   /** What the approval was (or is) for. */
   mode: PreviewMode;
-  /** Why the permanent delete didn't run after the move; the items stay in Quarantine. */
+  /** Why the permanent delete couldn't finish; what wasn't deleted stays where it was. */
   deleteError?: string | null;
   onApprove: (mode: PreviewMode) => void;
   onRebuild: () => void;
 }
 
 const effects: Record<PreviewItemState, { text: string; icon: IconName | "spin"; className: string }> = {
-  planned: { text: "Move to quarantine", icon: "arrowRight", className: "pv-effect-planned" },
+  planned: { text: "Ready", icon: "arrowRight", className: "pv-effect-planned" },
   changed: { text: "Changed after preview", icon: "warning", className: "pv-effect-danger" },
   checking: { text: "Checking…", icon: "spin", className: "pv-effect-muted" },
   waiting: { text: "Waiting", icon: "arrowRight", className: "pv-effect-muted" },
@@ -65,13 +64,13 @@ const effects: Record<PreviewItemState, { text: string; icon: IconName | "spin";
   excluded: { text: "Left out, changed or not eligible now", icon: "blocked", className: "pv-effect-muted" },
   deleting: { text: "Deleting…", icon: "spin", className: "pv-effect-muted" },
   deleted: { text: "Deleted permanently", icon: "check", className: "pv-effect-ok" },
-  notDeleted: { text: "Not deleted, still in Quarantine", icon: "warning", className: "pv-effect-warn" },
+  notDeleted: { text: "Not deleted, left where it was", icon: "warning", className: "pv-effect-warn" },
 };
 
 const steps: readonly { title: string; sub: string; tone: Tone }[] = [
-  { title: "Kleari checks each item again", sub: "Same file, same size, still allowed, access still granted. If anything changed, nothing moves and you review again.", tone: "blue" },
-  { title: "Items move to quarantine", sub: "They leave their current place but stay on this Mac, in Kleari’s quarantine folder.", tone: "violet" },
-  { title: "The result is saved on this Mac", sub: "What moved, anything left in place and why, so each item can be restored from Quarantine.", tone: "green" },
+  { title: "Kleari checks each item again", sub: "Same file, same size, still allowed, access still granted. If anything changed, nothing is touched and you review again.", tone: "blue" },
+  { title: "They go the way you choose", sub: "Delete permanently removes them for good. Move to quarantine keeps them in Kleari’s quarantine folder, so you can put them back.", tone: "violet" },
+  { title: "The result is saved on this Mac", sub: "What went, anything left in place and why, in Activity.", tone: "green" },
 ];
 
 function SummaryRing({ fraction, tone, heroTone, heroIcon }: { fraction: number; tone: Tone; heroTone: Tone; heroIcon: IconName }) {
@@ -105,20 +104,17 @@ function SummaryRing({ fraction, tone, heroTone, heroIcon }: { fraction: number;
 
 export function PreviewScreen(props: PreviewScreenProps) {
   const { items: all, stage, states, staleItem, failedItem, mode } = props;
-  const [acknowledged, setAcknowledged] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleteAcknowledged, setDeleteAcknowledged] = useState(false);
   const result = stage === "result";
   const deleteMode = mode === "delete";
   const excluded = all.filter((item) => states[item.id] === "excluded");
   // Items left out when the preview was made are listed but never move.
   const items = all.filter((item) => states[item.id] !== "excluded");
-  // An unconfirmed move did happen, so it counts as moved, never as left in place; so does an
-  // item deleted afterwards, or one whose delete didn't go ahead (it is in Quarantine).
-  const movedStates: ReadonlySet<PreviewItemState | undefined> = new Set(["moved", "unconfirmed", "deleting", "deleted", "notDeleted"]);
+  // An unconfirmed move did happen, so it counts as moved, never as left in place. A permanent
+  // delete moves nothing: what it couldn't delete stays where it was.
+  const movedStates: ReadonlySet<PreviewItemState | undefined> = new Set(["moved", "unconfirmed"]);
   const movedItems = items.filter((item) => movedStates.has(states[item.id]));
   const deletedItems = items.filter((item) => states[item.id] === "deleted");
-  const keptItems = items.filter((item) => states[item.id] === "notDeleted" || (deleteMode && states[item.id] === "moved"));
+  const keptItems = items.filter((item) => states[item.id] === "notDeleted");
   const unconfirmed = items.filter((item) => states[item.id] === "unconfirmed");
   const totalGb = sum(items, (item) => item.gb);
   const movedGb = sum(movedItems, (item) => item.gb);
@@ -174,7 +170,7 @@ export function PreviewScreen(props: PreviewScreenProps) {
   const heroTone: Tone = result ? "green" : stage === "stale" ? "red" : deleteMode && stage !== "review" ? "red" : "blue";
   const heroIcon: IconName = result ? "check" : stage === "stale" ? "warning" : deleteMode && stage !== "review" ? "trashLines" : "quarantine";
   const fraction = result ? doneCount / Math.max(items.length, 1) : 1;
-  const failedCount = items.length - movedItems.length;
+  const failedCount = items.length - (deleteMode ? deletedItems.length : movedItems.length);
 
   return (
     <>
@@ -233,14 +229,14 @@ export function PreviewScreen(props: PreviewScreenProps) {
           <div role="status" className="v2-banner v2-banner-warn">
             <IconTile tone="orange" icon="warning" size={32} />
             <div className="v2-banner-text">
-              <strong>{plural(keptItems.length, "item")} moved to quarantine but not deleted</strong>
+              <strong>{plural(keptItems.length, "item")} not deleted</strong>
               <span>
-                {props.deleteError ?? "Kleari couldn’t delete them."} {keptItems.length === 1 ? "It is" : "They are"} still in Quarantine, where you can restore or delete {keptItems.length === 1 ? "it" : "them"}.
+                {props.deleteError ?? "Kleari couldn’t delete them."} {keptItems.length === 1 ? "It was" : "They were"} left where {keptItems.length === 1 ? "it was" : "they were"}.
               </span>
             </div>
           </div>
         )}
-        {partial && failedItem && (
+        {partial && failedItem && !deleteMode && (
           <div role="status" className="v2-banner v2-banner-warn">
             <IconTile tone="orange" icon="warning" size={32} />
             <div className="v2-banner-text">
@@ -355,40 +351,26 @@ export function PreviewScreen(props: PreviewScreenProps) {
             </div>
 
             {stage === "review" && (
-              <>
-                <label className={`v2-ack${acknowledged ? " on" : ""}`}>
-                  <input type="checkbox" checked={acknowledged} onChange={() => setAcknowledged(!acknowledged)} />
-                  <span>I reviewed these {plural(items.length, "item")}.</span>
-                </label>
-                <div className="pv-actions">
-                  <LinkButton href={hrefFor("review")} size="lg" className="pv-back">Back</LinkButton>
-                  <Button variant="primary" size="lg" className="pv-approve" disabled={!acknowledged} onClick={() => props.onApprove("quarantine")}>
-                    Quarantine {plural(items.length, "item")}
-                  </Button>
-                </div>
-                <Button
-                  variant="dangerOutline"
-                  className="pv-delete"
-                  disabled={!acknowledged}
-                  onClick={() => {
-                    setDeleteAcknowledged(false);
-                    setConfirmDelete(true);
-                  }}
-                >
-                  Delete permanently instead…
+              <div className="pv-actions pv-actions-choose">
+                <LinkButton href={hrefFor("review")} size="lg" className="pv-back">Back</LinkButton>
+                <Button variant="soft" size="lg" onClick={() => props.onApprove("quarantine")}>
+                  Move to quarantine
                 </Button>
-              </>
+                <Button variant="danger" size="lg" className="pv-approve" onClick={() => props.onApprove("delete")}>
+                  Delete {formatGb(totalGb)} permanently
+                </Button>
+              </div>
             )}
             {stage === "running" && (
               <div role="status" className="pv-running">
                 <Spinner size={16} />
-                {deleteMode ? "Checking each item, then moving it before deleting…" : "Checking each item, then moving it…"}
+                Checking each item, then moving it…
               </div>
             )}
             {stage === "deleting" && (
               <div role="status" className="pv-running pv-running-danger">
                 <Spinner size={16} tone="danger" />
-                Deleting permanently…
+                Checking each item, then deleting it…
               </div>
             )}
             {(stage === "stale" || stage === "error") && (
@@ -399,7 +381,7 @@ export function PreviewScreen(props: PreviewScreenProps) {
             )}
             {result && (
               <div className="pv-actions">
-                <LinkButton href={hrefFor("quarantine")} size="lg" className="pv-back">Open Quarantine</LinkButton>
+                {!deleteMode && <LinkButton href={hrefFor("quarantine")} size="lg" className="pv-back">Open Quarantine</LinkButton>}
                 <LinkButton href={hrefFor("cleanup")} variant="primary" size="lg" className="pv-back">Done</LinkButton>
               </div>
             )}
@@ -407,37 +389,6 @@ export function PreviewScreen(props: PreviewScreenProps) {
         </div>
       </ScrollBody>
 
-      <Modal open={confirmDelete} onClose={() => setConfirmDelete(false)} labelledBy="pv-delete-title" role="alertdialog">
-        <div className="v2-dialog-body">
-          <div className="v2-dialog-head">
-            <IconTile tone="red" icon="trashLines" size={48} glow />
-            <div className="v2-row-text">
-              <h2 id="pv-delete-title" className="v2-dialog-title">Delete {plural(items.length, "item")} permanently?</h2>
-              <span className="pv-danger-text">This can’t be undone. They skip the Trash and can’t be restored.</span>
-            </div>
-          </div>
-          <p className="v2-dialog-text">
-            Kleari checks each item again as for quarantine, moves it into quarantine, then deletes it from there straight away ({formatGb(totalGb)}). Anything that can’t be deleted stays in Quarantine.
-          </p>
-          <label className={`v2-ack v2-ack-danger${deleteAcknowledged ? " on" : ""}`}>
-            <input type="checkbox" checked={deleteAcknowledged} onChange={() => setDeleteAcknowledged(!deleteAcknowledged)} />
-            <span>I understand these {plural(items.length, "item")} will be deleted for good.</span>
-          </label>
-          <div className="v2-dialog-actions">
-            <Button variant="secondary" onClick={() => setConfirmDelete(false)}>Cancel</Button>
-            <Button
-              variant="danger"
-              disabled={!deleteAcknowledged}
-              onClick={() => {
-                setConfirmDelete(false);
-                props.onApprove("delete");
-              }}
-            >
-              Delete permanently
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </>
   );
 }

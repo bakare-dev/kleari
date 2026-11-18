@@ -1159,6 +1159,8 @@ input[type="checkbox"]:disabled {
   z-index: 4;
   display: flex;
   flex-shrink: 0;
+  /* In a narrow window the buttons move under the text rather than being squeezed. */
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   margin: 0 28px 22px;
@@ -1179,6 +1181,7 @@ input[type="checkbox"]:disabled {
 .v2-float-text {
   display: flex;
   min-width: 0;
+  flex: 1 1 220px;
   flex-direction: column;
   line-height: 1.3;
 }
@@ -1195,6 +1198,8 @@ input[type="checkbox"]:disabled {
 
 .v2-float-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
   margin-left: auto;
 }
@@ -1262,13 +1267,24 @@ input[type="checkbox"]:disabled {
   background: var(--mp-scrim);
 }
 
+/* Centred dialogs and sheets stay inside the window with room around them; taller content
+   scrolls inside the dialog instead of stretching past the window. */
+.v2-modal-center,
+.v2-modal-sheet {
+  max-width: calc(100vw - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .v2-modal-center {
   width: 440px;
+  max-height: calc(100vh - 48px);
   border-radius: 16px;
 }
 
 .v2-modal-sheet {
   width: 580px;
+  max-height: calc(100vh - 24px);
   margin-top: 0;
   border-top: 0;
   border-radius: 0 0 14px 14px;
@@ -1610,4 +1626,145 @@ input[type="checkbox"]:disabled {
 
 .setup-step .v2-row-text {
   gap: 6px;
+}
+
+/* The sidebar's ⓘ: the "use at your own risk" notice on hover or focus; a click opens About. */
+.v2-disclaimer-info {
+  position: relative;
+  display: inline-flex;
+  margin-left: auto;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--mp-text-2);
+  cursor: pointer;
+}
+
+.v2-disclaimer-info:hover,
+.v2-disclaimer-info:focus-visible {
+  color: var(--mp-text);
+}
+
+.v2-disclaimer-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: -150px;
+  z-index: 20;
+  width: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--mp-border);
+  border-radius: 10px;
+  background: var(--mp-card);
+  box-shadow: var(--mp-card-shadow);
+  color: var(--mp-text);
+  font-size: 11.5px;
+  line-height: 1.45;
+  text-align: left;
+  visibility: hidden;
+  opacity: 0;
+}
+
+.v2-disclaimer-info:hover .v2-disclaimer-tip,
+.v2-disclaimer-info:focus-visible .v2-disclaimer-tip {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* A row's picture: a thumbnail or an app icon, in the space of its icon tile. */
+.v2-picture {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.v2-picture-img {
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.v2-picture-open {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  cursor: zoom-in;
+}
+
+.v2-picture-open:focus-visible {
+  outline: 2px solid var(--mp-link);
+  outline-offset: 2px;
+}
+
+/* The large preview: the image as big as the window allows, and its group below. */
+.v2-preview {
+  width: min(960px, calc(100vw - 32px));
+}
+
+.v2-preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.v2-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.v2-preview-head .v2-row-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.v2-preview-large {
+  display: flex;
+  min-height: 240px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--mp-glass-chip);
+}
+
+.v2-preview-large img {
+  max-width: 100%;
+  max-height: min(62vh, 720px);
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.v2-preview-strip {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 2px 0 4px;
+  overflow-x: auto;
+  list-style: none;
+}
+
+.v2-preview-strip li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.v2-preview-strip button {
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
+.v2-preview-strip li.on button {
+  border-color: var(--mp-link);
+}
+
+.v2-preview-note {
+  color: var(--mp-text-2);
+  font-size: 11px;
 }

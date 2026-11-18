@@ -197,12 +197,12 @@ mod tests {
         assert!(ok("https://github.com/bakare-dev/kleari/releases/download/v0.1.0-beta.3/Kleari.app.tar.gz"));
         for url in [
             "http://github.com/bakare-dev/kleari/releases/download/v1/Kleari.app.tar.gz",
-            "https://github.com:8443/bakare-dev/kleari/releases/download/v1/Kleari.app.tar.gz",
-            "https://github.com/someone/kleari/releases/download/v1/Kleari.app.tar.gz",
+            "https://github.com:8443/bakare-dev/kleari/releases/download/v1/Kleari.app.tar.gz", // never requested: must be refused
+            "https://github.com/someone/kleari/releases/download/v1/Kleari.app.tar.gz", // never requested: must be refused
             "https://github.com.evil.example/bakare-dev/kleari/releases/download/v1/x.tar.gz",
             "https://evil.example/bakare-dev/kleari/releases/download/v1/x.tar.gz",
             "https://github.com/bakare-dev/kleari/archive/v1.tar.gz",
-            "https://github.com/bakare-dev/kleari-fork/releases/download/v1/x.tar.gz",
+            "https://github.com/bakare-dev/kleari-fork/releases/download/v1/x.tar.gz", // never requested: must be refused
         ] {
             assert!(!ok(url), "{url}");
         }

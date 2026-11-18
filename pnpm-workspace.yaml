@@ -1,2 +1,9 @@
 packages:
   - apps/desktop
+
+auditConfig:
+  ignoreGhsas:
+    # picomatch <=4.0.7 ReDoS through repeated extglobs, no patched version yet (2026-11-18).
+    # Reached only through build and lint tools (vite, typescript-eslint > tinyglobby), on our
+    # own glob patterns; not in the app. Remove once picomatch ships a fix.
+    - GHSA-fc5q-39xc-vjpf

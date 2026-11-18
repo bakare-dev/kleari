@@ -70,6 +70,24 @@
   padding: 12px 14px 8px;
 }
 
+.files-browse {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+/* A folder in Downloads: its name opens it in place. */
+.files-open {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .files-group-head {
   display: flex;
   align-items: center;
