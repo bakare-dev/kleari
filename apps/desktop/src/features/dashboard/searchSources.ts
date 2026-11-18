@@ -30,7 +30,7 @@ const pageWords: Record<V2Route, string> = {
   files: "duplicates similar images photos large old downloads ai clutter",
   maintenance: "ram memory dns spotlight snapshots purgeable login items caches",
   browser: "tabs chrome safari firefox edge brave",
-  system: "cpu memory battery temperature fans health specs",
+  system: "cpu memory battery temperature fans health specs network internet download upload speed",
   developer: "xcode node_modules docker caches projects simulators",
   processes: "quit running apps cpu memory",
   mouse: "buttons scroll wheel shortcuts",
@@ -62,21 +62,14 @@ function pages(): SearchSource {
     icon: "dashboard",
     tone: "gray",
     target: { route: "dashboard" },
-    items: [...mainNav, { route: "settings" as const, label: "Settings", icon: "sliders" as const }].map((page): SearchItem => ({
+    items: [...mainNav, { route: "settings" as const, label: "Settings", icon: "sliders" as const }].map((page) => ({
       id: page.route,
       title: page.label,
       sub: "Open the page",
       text: pageWords[page.route],
       icon: page.icon,
       target: { route: page.route },
-    })).concat({
-      id: "network",
-      title: "Network",
-      sub: "Activity › Network: download and upload now",
-      text: "internet traffic download upload speed",
-      icon: "network",
-      target: { route: "activity", detail: "network" },
-    }),
+    })),
   };
 }
 

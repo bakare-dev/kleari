@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { IconName } from "../../ui/icons";
-import { LiveChart } from "./LiveChart";
 import {
   Button,
+  chartSegments,
   GaugeRing,
   IconTile,
   LiveBadge,
@@ -109,9 +109,7 @@ interface SystemScreenProps {
   onOpenSettings: (pane: SettingsPane) => Promise<boolean>;
 }
 
-/** Network has its own tab on the Activity page. */
-type SystemChartTab = Exclude<ChartTab, "network">;
-const tabLabels: Record<SystemChartTab, string> = { cpu: "CPU", memory: "Memory", disk: "Disk" };
+const tabLabels: Record<ChartTab, string> = { cpu: "CPU", memory: "Memory", network: "Network", disk: "Disk" };
 
 function BackgroundRow({ item, wide = false }: { item: StartupRow; wide?: boolean }) {
   return (
@@ -127,9 +125,11 @@ function BackgroundRow({ item, wide = false }: { item: StartupRow; wide?: boolea
 }
 
 export function SystemScreen({ view, paused, onTogglePause, onOpenSettings }: SystemScreenProps) {
-  const [tab, setTab] = useState<SystemChartTab>("cpu");
+  const [tab, setTab] = useState<ChartTab>("cpu");
   const [allItemsOpen, setAllItemsOpen] = useState(false);
   const toast = useToast();
+  const chart = view.charts[tab];
+  const sampleCount = Math.max(0, ...chart.series.map((entry) => entry.values.filter((value) => value !== null).length));
   const shown = view.startup.rows.slice(0, 5);
 
   const open = (pane: SettingsPane) => {
@@ -190,10 +190,62 @@ export function SystemScreen({ view, paused, onTogglePause, onOpenSettings }: Sy
                 label="Chart"
                 value={tab}
                 onChange={setTab}
-                options={(Object.keys(tabLabels) as SystemChartTab[]).map((key) => ({ value: key, label: tabLabels[key] }))}
+                options={(Object.keys(tabLabels) as ChartTab[]).map((key) => ({ value: key, label: tabLabels[key] }))}
               />
             </div>
-            <LiveChart chart={view.charts[tab]} name={tabLabels[tab]} id={`sys-${tab}`} slots={view.slots} span={view.span} live={view.live} />
+            <div className="sys-chart-legend">
+              {chart.series.map((entry) => (
+                <span key={entry.name} className={`tone-${entry.tone}`}>
+                  <span className="sys-legend-dot" aria-hidden="true" />
+                  <span className="v2-muted">{entry.name}</span>
+                  <strong className="v2-num">{entry.now}</strong>
+                </span>
+              ))}
+              <span className="sys-chart-note">{chart.note}</span>
+            </div>
+            <div className="sys-chart-frame">
+              <svg
+                role="img"
+                aria-label={`${tabLabels[tab]}${view.span ? ` over the last ${view.span}` : ""}, ${sampleCount} ${sampleCount === 1 ? "reading" : "readings"}${chart.series.map((entry) => `, ${entry.name} now ${entry.now}`).join("")}`}
+                width="100%"
+                height="150"
+                viewBox="0 0 480 150"
+                preserveAspectRatio="none"
+                className="sys-chart-svg"
+              >
+                <defs>
+                  {chart.series.map((entry, index) => (
+                    <g key={entry.name} className={`tone-${entry.tone}`}>
+                      <linearGradient id={`sys-area-${tab}-${index}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" className="v2-stop-2" stopOpacity="0.32" />
+                        <stop offset="1" className="v2-stop-2" stopOpacity="0" />
+                      </linearGradient>
+                      <linearGradient id={`sys-line-${tab}-${index}`} x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0" className="v2-stop-1" />
+                        <stop offset="1" className="v2-stop-2" />
+                      </linearGradient>
+                    </g>
+                  ))}
+                </defs>
+                {[14, 82, 149].map((y) => <line key={y} x1="0" x2="480" y1={y} y2={y} className="sys-grid" strokeWidth="1" vectorEffect="non-scaling-stroke" />)}
+                {chart.series.map((entry, index) => (
+                  <g key={entry.name} className={`tone-${entry.tone}`}>
+                    {chartSegments(entry.values, view.slots, chart.max).map((segment) => (
+                      <g key={segment.firstX}>
+                        <polygon points={`${segment.firstX},150 ${segment.points} ${segment.lastX},150`} fill={`url(#sys-area-${tab}-${index})`} />
+                        <polyline points={segment.points} fill="none" stroke={`url(#sys-line-${tab}-${index})`} strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+                      </g>
+                    ))}
+                  </g>
+                ))}
+              </svg>
+              {sampleCount < 2 && (
+                <span className="sys-chart-empty">
+                  {view.live === "unavailable" ? "No readings" : view.live === "paused" ? "Paused. Resume to take readings." : "Readings appear here in a few seconds."}
+                </span>
+              )}
+            </div>
+            <div className="sys-chart-axis"><span>{view.span ? `${view.span} ago` : ""}</span><span>{chart.scale}</span><span>Now</span></div>
           </section>
 
           <section aria-labelledby="sys-mac" className="v2-card sys-mac">

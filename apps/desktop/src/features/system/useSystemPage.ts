@@ -64,8 +64,7 @@ function useReloadable<T>(load: () => Promise<T>): [Loadable<T>, () => void] {
 
 /**
  * The System page's data, held at the app level so its charts survive leaving the page.
- * Activity is sampled every `foregroundMs` while the System page or Activity's Network tab is
- * on screen and every
+ * Activity is sampled every `foregroundMs` while the System page is on screen and every
  * `backgroundMs` while the Dashboard is (`watch`), only while Kleari is open to look at and
  * not paused; other pages sample nothing, to keep Kleari light.
  * Details and startup items are read at launch and again each time the page opens. History
@@ -118,16 +117,13 @@ export function useSystemMonitor(loaders: SystemLoaders = defaultLoaders, foregr
     reloadDetails();
     reloadStartup();
   }, [reloadDetails, reloadStartup]);
-  /** Called by Activity's Network tab while it is on screen: samples at `foregroundMs`, and
-   * reads nothing else. */
-  const enterLive = useCallback(() => setOnScreen(true), []);
   const leave = useCallback(() => setOnScreen(false), []);
   /** Called by the Dashboard while it is on screen: samples at `backgroundMs`. */
   const watch = useCallback(() => setWatched(true), []);
   const unwatch = useCallback(() => setWatched(false), []);
   const togglePause = useCallback(() => setPaused((current) => !current), []);
 
-  return { activity: live.activity, history: live.history, details, startup, paused, togglePause, enter, enterLive, leave, watch, unwatch, openSettings: loaders.openSettings };
+  return { activity: live.activity, history: live.history, details, startup, paused, togglePause, enter, leave, watch, unwatch, openSettings: loaders.openSettings };
 }
 
 export type SystemMonitor = ReturnType<typeof useSystemMonitor>;

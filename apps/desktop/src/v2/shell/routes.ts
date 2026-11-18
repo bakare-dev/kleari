@@ -90,11 +90,6 @@ export function useV2Route(allowed: readonly V2Route[] = v2Routes, fallback: V2R
   return useSyncExternalStore(subscribe, () => routeFromHash(window.location.hash, allowed, fallback), () => fallback);
 }
 
-/** The current hash's detail (`network` in `#activity/network`), following changes. */
-export function useHashDetail(): string | null {
-  return useSyncExternalStore(subscribe, () => detailFromHash(window.location.hash), () => null);
-}
-
 /** Focus the new page heading after navigation (not on first load). */
 export function useFocusHeadingOnRouteChange(route: V2Route) {
   const previous = useRef(route);

@@ -1,7 +1,7 @@
 import type { Issue } from "../../../contracts/issues";
 import { issueLook, issueText, sortedIssues } from "../../../features/issues/issueView";
 import { IconTile, Pill } from "../../ui/components";
-import { menuBarHref } from "../../../lib/menubarIpc";
+import { hrefFor } from "../../shell/routes";
 
 /** Issue alerts on the Dashboard: what is worth attention now, each with where to deal with it. */
 export function IssuesCard({ issues, failed }: { issues: Issue[] | null; failed: boolean }) {
@@ -23,7 +23,7 @@ export function IssuesCard({ issues, failed }: { issues: Issue[] | null; failed:
                 <span className="v2-row-sub v2-ellipsis">{sub}</span>
               </span>
               {issue.severity === "warning" && <Pill status="warn">Warning</Pill>}
-              <a className="v2-link" href={menuBarHref(meta.route)}>{meta.action}</a>
+              <a className="v2-link" href={hrefFor(meta.route)}>{meta.action}</a>
             </li>
           );
         })}

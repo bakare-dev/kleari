@@ -1,9 +1,6 @@
 import { useIssues } from "../features/issues/useIssues";
 import { IssuesCard } from "./screens/dashboard/IssuesCard";
-import { useEffect, type ComponentProps, type ReactNode } from "react";
-import { buildNetworkView } from "../features/system/networkView";
-import { NetworkScreen } from "./screens/activity/NetworkScreen";
-import { Segmented } from "./ui/components";
+import { useEffect, type ComponentProps } from "react";
 import { activityDays, activityStats } from "../features/activity/activityView";
 import type { Activity } from "../features/activity/useActivity";
 import { historyReasonText } from "../features/cleanup/cleanupView";
@@ -17,7 +14,7 @@ import { DashboardScreen } from "./screens/dashboard/DashboardScreen";
 import type { Settings } from "../features/settings/useSettings";
 import type { Updates } from "../features/settings/useUpdates";
 import { openSystemSettings } from "../lib/systemPageIpc";
-import { navigate, useHashDetail } from "./shell/routes";
+import { navigate } from "./shell/routes";
 import { ActivityScreen } from "./screens/activity/ActivityScreen";
 import { SettingsScreen } from "./screens/settings/SettingsScreen";
 import { MouseScreen } from "./screens/mouse/MouseScreen";
@@ -31,45 +28,16 @@ import { useMouseFinder } from "../features/mouse/useMouseFinder";
 type CleanupReview = ReturnType<typeof useCleanupReview>;
 type Quarantine = ReturnType<typeof useQuarantine>;
 
-/** Network readings every second, only while the tab is on screen (the System monitor's fast
- * rate); nothing else is read. */
-function NetworkTab({ monitor, tabs }: { monitor: SystemMonitor; tabs: ReactNode }) {
-  const { enterLive, leave } = monitor;
-  useEffect(() => {
-    enterLive();
-    return leave;
-  }, [enterLive, leave]);
-  const view = buildNetworkView({ activity: monitor.activity, history: monitor.history, paused: monitor.paused });
-  return <NetworkScreen view={view} paused={monitor.paused} onTogglePause={monitor.togglePause} tabs={tabs} />;
-}
-
-/** The log is read again on each visit (the last list shows meanwhile); the Network tab
- * (`#activity/network`) shows live rates. */
-export function ActivityRoute({ activity, monitor }: { activity: Activity; monitor: SystemMonitor }) {
+/** Read again on each visit; the last list shows meanwhile. */
+export function ActivityRoute({ activity }: { activity: Activity }) {
   const { refresh, list } = activity;
-  const tab = useHashDetail() === "network" ? "network" : "log";
   useEffect(() => {
     refresh();
   }, [refresh]);
-  const tabs = (
-    <Segmented
-      label="Show"
-      value={tab}
-      onChange={(next) => navigate("activity", next === "network" ? "network" : undefined)}
-      options={[
-        { value: "log", label: "Log" },
-        { value: "network", label: "Network" },
-      ]}
-    />
-  );
-  if (tab === "network") {
-    return <NetworkTab monitor={monitor} tabs={tabs} />;
-  }
   const nowMs = Date.now();
   const events = list?.status === "available" ? list.events : [];
   return (
     <ActivityScreen
-      tabs={tabs}
       days={activityDays(events, nowMs)}
       stats={activityStats(events, nowMs)}
       retentionDays={list?.status === "available" ? list.retentionDays : 90}
