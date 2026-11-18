@@ -6,7 +6,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, test } from "node:test";
-import { checkNetworkBoundary } from "./check-network-boundary.mjs";
+import { RELAUNCH_SCRIPT, checkNetworkBoundary } from "./check-network-boundary.mjs";
 
 const CSP =
   "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'";
@@ -137,6 +137,25 @@ test("an unlisted program fails, except in a module compiled only for tests", ()
   for (const parent of ["// #[cfg(test)]\nmod tests;\n", "/* #[cfg(test)] */\nmod tests;\n", 'const S: &str = "\n#[cfg(test)]\nmod tests;";\nmod tests;\n']) {
     fails({ "src-tauri/src/quarantine/mod.rs": parent }, /quarantine\/tests\.rs:1: runs "\/usr\/bin\/chflags"/);
   }
+});
+
+test("an unlisted program in an inline test module never ships, so it passes", () => {
+  const inline = 'fn f() {}\n#[cfg(test)]\nmod tests {\n    fn t() { Command::new("/bin/sleep"); Command::new("/bin/sh"); }\n}\n';
+  assert.deepEqual(problems({ "src-tauri/src/extra.rs": inline }), []);
+  // The same code outside the module ships.
+  fails({ "src-tauri/src/extra.rs": 'fn t() { Command::new("/bin/sleep"); }\n' }, /runs "\/bin\/sleep"/);
+});
+
+test("the shell runs only in updates.rs, with exactly the reviewed relaunch script", () => {
+  const updates = (script, extra = "") =>
+    `const SH: &str = "/bin/sh";\nconst RELAUNCH_SCRIPT: &str = r#"${script}"#;\n` +
+    `fn r() { Command::new(SH).args(vec!["-c".into(), RELAUNCH_SCRIPT.into()]); }\n${extra}`;
+  assert.deepEqual(problems({ "src-tauri/src/updates.rs": updates(RELAUNCH_SCRIPT) }), []);
+  fails({ "src-tauri/src/updates.rs": updates(`${RELAUNCH_SCRIPT}; /usr/bin/curl x`) }, /updates\.rs:3: runs SH other than with the reviewed relaunch script/);
+  // A second script given to the shell, even with the reviewed one present.
+  fails({ "src-tauri/src/updates.rs": updates(RELAUNCH_SCRIPT, 'fn s() { Command::new(SH).args(["-c", "curl x"]); }\n') }, /updates\.rs:4: runs SH other than/);
+  // The reviewed script in any other file.
+  fails({ "src-tauri/src/extra.rs": updates(RELAUNCH_SCRIPT) }, /extra\.rs:3: runs SH other than with the reviewed relaunch script/);
 });
 
 test("braces in a test module's strings and comments can't hide the shipped code after it", () => {
