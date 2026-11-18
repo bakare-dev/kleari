@@ -214,6 +214,11 @@ impl AppsState {
             .cloned()
     }
 
+    /// Every app bundle the last scan found (less any removed since).
+    pub fn bundles(&self) -> Vec<Bundle> {
+        lock(&self.bundles).clone()
+    }
+
     pub fn review_items(&self, ids: &[String]) -> Vec<ReviewItem> {
         let review = lock(&self.review);
         ids.iter()
@@ -353,7 +358,7 @@ pub fn scan(
         if bundle.apple || bundle.apple_made() {
             continue;
         }
-        for (path, stat, owner) in leftovers_of(bundle, &library) {
+        for (path, stat, owner) in leftovers_of(bundle, &bundles, running, &library) {
             let measured = measure(&path, &stat, &mut links, cancel);
             app.leftover_bytes = app.leftover_bytes.saturating_add(measured.bytes);
             app.leftovers
@@ -443,9 +448,12 @@ pub fn scan(
 }
 
 /// The leftovers of the app `bundle`, read again now, ready for the review: used right after
-/// the app is moved to the Trash.
+/// the app is moved to the Trash. `installed` and `running` are the other apps, whose names
+/// keep entries named for them out (`leftovers_of`).
 pub fn leftovers_for_removed(
     bundle: &Bundle,
+    installed: &[Bundle],
+    running: &[RunningBundle],
     home: &Path,
     now_ms: u64,
     cancel: &AtomicBool,
@@ -455,7 +463,7 @@ pub fn leftovers_for_removed(
     }
     let library = read_library(home, LEFTOVER_FOLDERS);
     let mut links = Links::default();
-    leftovers_of(bundle, &library)
+    leftovers_of(bundle, installed, running, &library)
         .into_iter()
         .map(|(path, stat, owner)| {
             let measured = measure(&path, &stat, &mut links, cancel);
@@ -475,9 +483,12 @@ pub fn leftovers_for_removed(
 /// The caches of the installed app `bundle`: its folders directly in `~/Library/Caches`
 /// (matched by bundle ID or name, as leftovers are), read again now, as Cleanup's app caches,
 /// so Cleanup's rules for caches apply (never Apple's, never while the app is open). Only
-/// caches: its settings and data are never included.
+/// caches: its settings and data are never included. `installed` and `running` are as for
+/// `leftovers_for_removed`.
 pub fn caches_of(
     bundle: &Bundle,
+    installed: &[Bundle],
+    running: &[RunningBundle],
     home: &Path,
     now_ms: u64,
     cancel: &AtomicBool,
@@ -487,7 +498,7 @@ pub fn caches_of(
     }
     let library = read_library(home, &["Library/Caches"]);
     let mut links = Links::default();
-    leftovers_of(bundle, &library)
+    leftovers_of(bundle, installed, running, &library)
         .into_iter()
         .filter(|(_, stat, _)| stat.is_dir())
         .map(|(path, stat, _)| {
@@ -625,13 +636,38 @@ fn read_library(home: &Path, folders: &[&str]) -> Vec<FolderEntries> {
         .collect()
 }
 
-/// The entries of `library` belonging to `bundle`, matched by bundle ID or by its name.
-fn leftovers_of(bundle: &Bundle, library: &[FolderEntries]) -> Vec<(PathBuf, FileStat, String)> {
+/// Whether `bundle`'s name is also the name or bundle ID of another app in `installed` or of
+/// an app in `running` (other than `bundle` itself): entries named for it may be that app's.
+fn name_shared(bundle: &Bundle, installed: &[Bundle], running: &[RunningBundle]) -> bool {
+    let name = bundle.name.trim();
+    let same = |other: &str| other.trim().eq_ignore_ascii_case(name);
+    let itself = |id: &str| {
+        bundle
+            .bundle_id
+            .as_deref()
+            .is_some_and(|own| own.eq_ignore_ascii_case(id))
+    };
+    installed.iter().any(|other| {
+        other.id != bundle.id && (same(&other.name) || other.bundle_id.as_deref().is_some_and(same))
+    }) || running
+        .iter()
+        .any(|app| !itself(&app.id) && (same(&app.name) || same(&app.id)))
+}
+
+/// The entries of `library` belonging to `bundle`, matched by bundle ID or by its name. The
+/// name is left out when another installed or running app shares it (`name_shared`).
+fn leftovers_of(
+    bundle: &Bundle,
+    installed: &[Bundle],
+    running: &[RunningBundle],
+    library: &[FolderEntries],
+) -> Vec<(PathBuf, FileStat, String)> {
+    let by_name = (!name_shared(bundle, installed, running)).then_some(bundle.name.as_str());
     let owners: Vec<&str> = bundle
         .bundle_id
         .as_deref()
         .into_iter()
-        .chain(std::iter::once(bundle.name.as_str()))
+        .chain(by_name)
         .collect();
     let mut found = Vec::new();
     for folder in library {

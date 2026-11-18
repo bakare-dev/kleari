@@ -6,4 +6,5 @@ auditConfig:
     # picomatch <=4.0.7 ReDoS through repeated extglobs, no patched version yet (2026-11-18).
     # Reached only through build and lint tools (vite, typescript-eslint > tinyglobby), on our
     # own glob patterns; not in the app. Remove once picomatch ships a fix.
+    # Review by 2027-01-18; every release rechecks it (docs/release-checklist.md, step 1).
     - GHSA-fc5q-39xc-vjpf

@@ -109,10 +109,20 @@ pub async fn prepare_app_caches_removal(
         let excluded = history.exclusions()?;
         let state = app.state::<AppsState>();
         let cancel = AtomicBool::new(false);
+        let installed = state.bundles();
         let items: Vec<_> = ids
             .iter()
             .filter_map(|id| state.bundle(id))
-            .flat_map(|bundle| apps::caches_of(&bundle, &home, unix_time_ms(), &cancel))
+            .flat_map(|bundle| {
+                apps::caches_of(
+                    &bundle,
+                    &installed,
+                    &running,
+                    &home,
+                    unix_time_ms(),
+                    &cancel,
+                )
+            })
             .collect();
         let open = open_paths::read().ok();
         let intake = Intake {
@@ -189,7 +199,16 @@ pub async fn remove_app(app: AppHandle, id: String) -> Result<RemoveOutcome, Com
         history.note(&event);
 
         let cancel = AtomicBool::new(false);
-        let items = apps::leftovers_for_removed(&bundle, &home, unix_time_ms(), &cancel);
+        // The apps still installed: `forget` above took this one out.
+        let installed = state.bundles();
+        let items = apps::leftovers_for_removed(
+            &bundle,
+            &installed,
+            &running,
+            &home,
+            unix_time_ms(),
+            &cancel,
+        );
         let excluded = history.exclusions()?;
         // The app is gone, but a helper it installed may still run from its data.
         let open = open_paths::read().ok();

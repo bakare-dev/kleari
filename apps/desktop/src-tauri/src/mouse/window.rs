@@ -134,6 +134,8 @@ mod macos {
         fn AXUIElementPerformAction(element: &CFType, action: &CFString) -> i32;
         fn AXUIElementSetMessagingTimeout(element: &CFType, seconds: f32) -> i32;
         fn AXValueCreate(kind: u32, value: *const c_void) -> Option<NonNull<CFType>>;
+        fn AXValueGetTypeID() -> usize;
+        fn AXValueGetType(value: &CFType) -> u32;
         fn AXValueGetValue(value: &CFType, kind: u32, out: *mut c_void) -> bool;
     }
 
@@ -246,6 +248,63 @@ mod macos {
         Some(value)
     }
 
+    /// `value` if it is an AXUIElement. The app being read decides what an attribute holds,
+    /// so an element is checked before it is used as one.
+    pub(super) fn as_element(value: CFRetained<CFType>) -> Option<CFRetained<CFType>> {
+        // SAFETY: takes no arguments.
+        (CFGetTypeID(Some(&value)) == unsafe { AXUIElementGetTypeID() }).then_some(value)
+    }
+
+    /// `value` if it is an AXValue holding a `kind` (`AX_POINT`, `AX_SIZE`), so reading it
+    /// into that struct is sound.
+    pub(super) fn as_value(value: CFRetained<CFType>, kind: u32) -> Option<CFRetained<CFType>> {
+        // SAFETY: takes no arguments.
+        if CFGetTypeID(Some(&value)) != unsafe { AXValueGetTypeID() } {
+            return None;
+        }
+        // SAFETY: `value` was just checked to be an AXValue.
+        (unsafe { AXValueGetType(&value) } == kind).then_some(value)
+    }
+
+    /// Attribute `name` of `element`, if it is an element (a window, a button).
+    fn element_attribute(element: &CFType, name: &'static str) -> Option<CFRetained<CFType>> {
+        let value = attribute(element, name)?;
+        let checked = as_element(value);
+        if checked.is_none() {
+            crate::log::note_detail("window", "not an element", name, 0);
+        }
+        checked
+    }
+
+    /// Attribute `name` of `element`, if it is an AXValue holding a `kind`.
+    fn value_attribute(
+        element: &CFType,
+        name: &'static str,
+        kind: u32,
+    ) -> Option<CFRetained<CFType>> {
+        let checked = attribute(element, name).and_then(|value| as_value(value, kind));
+        if checked.is_none() {
+            crate::log::note_detail("window", "not a value of its kind", name, i64::from(kind));
+        }
+        checked
+    }
+
+    /// The window's position.
+    fn position(window: &CFType) -> Option<CGPoint> {
+        let value = value_attribute(window, "AXPosition", AX_POINT)?;
+        let mut at = CGPoint::new(0.0, 0.0);
+        // SAFETY: `value` is an AXValue holding a point (checked); `at` is a CGPoint.
+        unsafe { AXValueGetValue(&value, AX_POINT, (&raw mut at).cast()) }.then_some(at)
+    }
+
+    /// The window's size.
+    fn size(window: &CFType) -> Option<CGSize> {
+        let value = value_attribute(window, "AXSize", AX_SIZE)?;
+        let mut extent = CGSize::new(0.0, 0.0);
+        // SAFETY: `value` is an AXValue holding a size (checked); `extent` is a CGSize.
+        unsafe { AXValueGetValue(&value, AX_SIZE, (&raw mut extent).cast()) }.then_some(extent)
+    }
+
     fn set(element: &CFType, name: &'static str, value: &CFType) -> bool {
         // SAFETY: both are live CF objects.
         let error =
@@ -261,7 +320,7 @@ mod macos {
         // SAFETY: any pid is accepted; a gone process just answers nothing.
         let app = owned(unsafe { AXUIElementCreateApplication(pid) })?;
         limit(&app);
-        attribute(&app, "AXFocusedWindow")
+        element_attribute(&app, "AXFocusedWindow")
     }
 
     fn act(window: &CFType, action: WindowAction) {
@@ -276,8 +335,8 @@ mod macos {
                 set(window, "AXFullScreen", CFBoolean::new(!on));
             }
             WindowAction::Close => {
-                if let Some(button) = attribute(window, "AXCloseButton") {
-                    // SAFETY: `button` is a live AXUIElement.
+                if let Some(button) = element_attribute(window, "AXCloseButton") {
+                    // SAFETY: `button` is a live AXUIElement (checked).
                     let error = unsafe {
                         AXUIElementPerformAction(&button, &CFString::from_str("AXPress"))
                     };
@@ -293,26 +352,13 @@ mod macos {
     }
 
     fn tile(window: &CFType, left: bool) {
-        let (Some(position), Some(size)) =
-            (attribute(window, "AXPosition"), attribute(window, "AXSize"))
-        else {
-            return;
-        };
-        let mut at = CGPoint::new(0.0, 0.0);
-        let mut extent = CGSize::new(0.0, 0.0);
-        // SAFETY: the values are AXValues of these types; the out pointers are to matching
-        // structs.
-        let read = unsafe {
-            AXValueGetValue(&position, AX_POINT, (&raw mut at).cast())
-                && AXValueGetValue(&size, AX_SIZE, (&raw mut extent).cast())
-        };
-        if !read {
+        let (Some(at), Some(extent)) = (position(window), size(window)) else {
             crate::log::note(
                 "window",
                 "tile: the window's position or size was unreadable",
             );
             return;
-        }
+        };
         let current = Rect {
             x: at.x,
             y: at.y,
@@ -439,5 +485,46 @@ mod tests {
             Some(rect(500.0, 0.0, 501.0, 800.0))
         );
         assert_eq!(tiled(window, &[], true), None);
+    }
+
+    /// An app decides what its attributes hold: anything not of the type an action reads it
+    /// as is refused before it reaches Accessibility. Needs no Accessibility permission.
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn attribute_values_of_the_wrong_type_are_refused() {
+        use std::ffi::c_void;
+        use std::ptr::NonNull;
+
+        use objc2_core_foundation::{CFRetained, CFString, CFType, CGPoint};
+
+        use super::macos::{as_element, as_value};
+
+        #[link(name = "ApplicationServices", kind = "framework")]
+        extern "C" {
+            fn AXUIElementCreateSystemWide() -> Option<NonNull<CFType>>;
+            fn AXValueCreate(kind: u32, value: *const c_void) -> Option<NonNull<CFType>>;
+        }
+        const AX_POINT: u32 = 1;
+        const AX_SIZE: u32 = 2;
+
+        let owned = |value: Option<NonNull<CFType>>| {
+            // SAFETY: both functions follow the Create rule: an owned object.
+            unsafe { CFRetained::from_raw(value.expect("created")) }
+        };
+        // SAFETY: takes no arguments.
+        let element = owned(unsafe { AXUIElementCreateSystemWide() });
+        let at = CGPoint::new(1.0, 2.0);
+        // SAFETY: the pointer is to a CGPoint, as `AX_POINT` says.
+        let point = owned(unsafe { AXValueCreate(AX_POINT, (&raw const at).cast()) });
+        let text: CFRetained<CFType> = CFString::from_str("AXWindow").into();
+
+        assert!(as_element(element.clone()).is_some());
+        assert!(as_element(point.clone()).is_none());
+        assert!(as_element(text.clone()).is_none());
+
+        assert!(as_value(point.clone(), AX_POINT).is_some());
+        assert!(as_value(point, AX_SIZE).is_none(), "a point isn't a size");
+        assert!(as_value(element, AX_POINT).is_none());
+        assert!(as_value(text, AX_POINT).is_none());
     }
 }
