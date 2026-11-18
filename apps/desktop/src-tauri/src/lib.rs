@@ -13,6 +13,7 @@ mod finder;
 mod history;
 mod identity;
 mod ids;
+mod instance;
 mod issues;
 mod log;
 mod login_item;
@@ -65,6 +66,16 @@ pub fn run() {
         log::start(&log::folder(&home), env!("CARGO_PKG_VERSION"));
     }
     let migration = migrate(&context.config().identifier);
+    // One Kleari at a time (`instance`); the lock is held until this process ends.
+    let _instance = match &migration {
+        Some(migration) => instance::claim(&migration.data_folder),
+        None => instance::Claim::Unknown,
+    };
+    if matches!(_instance, instance::Claim::Taken) {
+        log::note("instance", "already running; asked it to show and quit");
+        instance::ask_first_to_show(&context.config().identifier);
+        return;
+    }
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(updates::UpdateState::default())
@@ -101,6 +112,8 @@ pub fn run() {
             // Without the item Kleari still opens, and closing the window quits as usual;
             // Settings › Show in menu bar tries again and reports a failure.
             let _ = menubar::apply(app.handle(), menu_bar);
+            // A later launch asks this one to show its window, then quits.
+            instance::show_when_asked(app.handle());
             // Clicking a scan's notification opens the review.
             notifications::open_review_on_click(app.handle().clone());
             schedule::start(app.handle().clone());
