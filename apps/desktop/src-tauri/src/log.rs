@@ -107,6 +107,7 @@ pub fn note_number(area: &'static str, what: &'static str, number: i64) {
 
 /// Records `what` about `detail` (both fixed text, such as an Accessibility attribute's
 /// name) with a number.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn note_detail(area: &'static str, what: &'static str, detail: &'static str, number: i64) {
     write_line(area, &format!("{what}: {detail} ({number})"));
 }

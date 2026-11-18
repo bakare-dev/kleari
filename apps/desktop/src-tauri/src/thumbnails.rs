@@ -15,6 +15,7 @@ pub enum Kind {
 }
 
 /// The longest side asked for, at most: a large preview, not the full photo.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub const MAX_PIXELS: u32 = 1600;
 
 /// A picture of `path` at most `max` pixels on its long side, as bytes and their media type;

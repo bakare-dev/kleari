@@ -12,6 +12,7 @@ use serde::Serialize;
 /// How a mouse is connected, as the page names it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub enum Connection {
     Usb,
     /// A USB receiver (2.4 GHz or similar) the mouse talks to wirelessly.
@@ -29,6 +30,7 @@ pub struct Mouse {
 
 /// What a connected pointing device is, from its IOKit properties: an external mouse (and how
 /// it connects), or `None` for the built-in trackpad, a Magic Trackpad or a tablet-like device.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn classify(product: &str, transport: &str, built_in: bool) -> Option<Connection> {
     let name = product.to_lowercase();
     // The MacBook's own keyboard and trackpad come over SPI or FIFO, marked built in.

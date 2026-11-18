@@ -102,9 +102,11 @@ fn bound_as_expected(number: i32, key_code: u16, modifiers: u32) -> bool {
 /// thread sees it has been replaced and lets the keyboard go.
 static CURRENT: AtomicU64 = AtomicU64::new(0);
 /// The recording whose keyboard tap is installed, or 0.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 static RUNNING: AtomicU64 = AtomicU64::new(0);
 
 /// A shortcut is being recorded: the mouse settings pass every event untouched meanwhile.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn active() -> bool {
     let running = RUNNING.load(Ordering::Relaxed);
     running != 0 && running == CURRENT.load(Ordering::Relaxed)
@@ -122,6 +124,7 @@ pub fn stop(number: u64) {
     rename_all = "camelCase",
     rename_all_fields = "camelCase"
 )]
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub enum Recorded {
     /// A press that makes this shortcut.
     Shortcut { shortcut: Shortcut },
@@ -146,6 +149,7 @@ pub fn recorded(code: u16, modifiers: Modifiers) -> Recorded {
 
 /// Why recording couldn't start.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub enum StartError {
     /// Accessibility isn't allowed, or macOS refused the tap.
     NotAllowed,

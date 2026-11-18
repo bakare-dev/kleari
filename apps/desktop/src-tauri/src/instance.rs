@@ -53,6 +53,7 @@ pub fn claim(data_folder: &Path) -> Claim {
 }
 
 /// The notification's name, per bundle identifier, so another app's can't be mistaken for it.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 fn notification_name(identifier: &str) -> String {
     format!("{identifier}.show")
 }

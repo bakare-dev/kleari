@@ -90,6 +90,7 @@ pub fn state() -> LockState {
 /// Why the lock ended.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub enum Unlock {
     Click,
     Time,
@@ -103,6 +104,7 @@ pub enum Unlock {
     rename_all = "camelCase",
     rename_all_fields = "camelCase"
 )]
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub enum LockEvent {
     Locked { ends_at_ms: u64 },
     Unlocked { reason: Unlock },
@@ -115,6 +117,7 @@ pub enum LockEvent {
     rename_all = "camelCase",
     rename_all_fields = "camelCase"
 )]
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub enum LockStart {
     Locked {
         ends_at_ms: u64,

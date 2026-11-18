@@ -6,10 +6,12 @@
 //! They run on a worker thread, never the event tap's: another app may take a while to answer,
 //! and a slow tap is turned off by macOS. Each call to an app is limited to `AX_TIMEOUT`.
 
+#[cfg_attr(not(target_os = "macos"), allow(unused_imports))]
 use super::engine::WindowAction;
 
 /// A rectangle in Accessibility's coordinates: from the top left of the main screen, y down.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub struct Rect {
     pub x: f64,
     pub y: f64,
@@ -18,6 +20,7 @@ pub struct Rect {
 }
 
 impl Rect {
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     fn contains(&self, x: f64, y: f64) -> bool {
         x >= self.x && x < self.x + self.width && y >= self.y && y < self.y + self.height
     }
@@ -26,12 +29,14 @@ impl Rect {
 /// A screen as AppKit gives it: its whole frame and the part not under the menu bar or Dock,
 /// both from the bottom left of the main screen, y up.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub struct Screen {
     pub frame: Rect,
     pub visible: Rect,
 }
 
 /// An AppKit rectangle (y up from the main screen's bottom) in Accessibility's coordinates.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 fn flipped(rect: Rect, main_height: f64) -> Rect {
     Rect {
         y: main_height - rect.y - rect.height,
@@ -42,6 +47,7 @@ fn flipped(rect: Rect, main_height: f64) -> Rect {
 /// Where a window tiled to the left or right half of its screen goes: the half of the usable
 /// area of the screen its centre is on (or the first screen, if it is off all of them).
 /// `screens[0]` is the main screen, whose height sets the flip. `None` without screens.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn tiled(window: Rect, screens: &[Screen], left: bool) -> Option<Rect> {
     let main_height = screens.first()?.frame.height;
     let (centre_x, centre_y) = (
