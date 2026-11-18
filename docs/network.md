@@ -44,7 +44,9 @@ runs in CI on every change and fails if any of these stops being true:
    capability file the check can't read counts as a failure.
 3. The updater's addresses are Kleari's own GitHub releases, over HTTPS.
 4. The Rust code opens no internet sockets, uses no native networking API, and shows no web
-   page but Kleari's own. It runs only a fixed few Apple programs. AppleScript appears only
+   page but Kleari's own. It runs only a fixed few Apple programs, and the shell only in
+   `updates.rs` with one reviewed script, exactly as written: after Install and restart it waits
+   for the old Kleari to quit, then opens Kleari's own app. AppleScript appears only
    in the two files reviewed for it (browser tabs and maintenance tasks). It may run only the
    reviewed shell commands, exactly as written, and may never reach Cocoa, other scripts or
    JavaScript for Automation, or send a browser to an address. Every web address in it

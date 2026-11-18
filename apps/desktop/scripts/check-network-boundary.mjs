@@ -16,7 +16,8 @@
 // 3. The updater's endpoints are Kleari's own GitHub releases, over HTTPS.
 // 4. Rust source: no internet sockets, native networking API or web view showing anything
 //    but the app's own pages (`WebviewUrl::External`, `navigate`); every program it runs is one
-//    of a fixed few (outside modules compiled only for tests); AppleScript only in the files
+//    of a fixed few (outside modules compiled only for tests), and the shell only in updates.rs
+//    with the one relaunch script reviewed (exactly); AppleScript only in the files
 //    reviewed for it, running only the shell commands reviewed (exactly), never Cocoa, other
 //    scripts or JavaScript for Automation, and never sending a browser anywhere; every web address written in it is
 //    Kleari's own GitHub, Apple's plist identifier (never fetched) or a reserved test domain.
@@ -50,6 +51,13 @@ const PROGRAMS = new Set([
   // Registers and unregisters the stub that lets tccutil reset Kleari's old identifier.
   "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister",
 ]);
+/** The one shell script Rust may run, and the one file that may run it: Install and restart's
+ * relaunch, which waits for the old Kleari ("$1") to end and then opens its bundle ("$2", a
+ * local path). Exactly as written, so a change to it gets reviewed (docs/network.md). */
+const SHELL = "/bin/sh";
+const RELAUNCH_FILE = "src-tauri/src/updates.rs";
+export const RELAUNCH_SCRIPT =
+  'i=0; while kill -0 "$1" 2>/dev/null && [ "$i" -lt 100 ]; do sleep 0.1; i=$((i + 1)); done; exec /usr/bin/open "$2"';
 /** The only files that may run AppleScript: each script in them was reviewed (docs/network.md). */
 const APPLESCRIPT_FILES = new Set(["src-tauri/src/browser.rs", "src-tauri/src/maintenance.rs"]);
 const RUST_NETWORK =
@@ -185,6 +193,14 @@ function withoutInlineTests(text) {
     }
   }
   return lines.join("\n");
+}
+
+/** Whether shipped Rust `code` gives the shell only the reviewed relaunch script: it holds
+ * `RELAUNCH_SCRIPT` exactly as reviewed, and its one `"-c"` is followed by that script. */
+function runsOnlyTheRelaunchScript(code) {
+  const reviewed = code.includes(`const RELAUNCH_SCRIPT: &str = r#"${RELAUNCH_SCRIPT}"#;`);
+  const flags = code.match(/"-c"/g) ?? [];
+  return reviewed && flags.length === 1 && /"-c"\.into\(\),\s*RELAUNCH_SCRIPT\.into\(\)/.test(code);
 }
 
 /** Whether the Rust file `name` (under src-tauri/src) is a module its parent declares only for
@@ -408,12 +424,18 @@ export function checkNetworkBoundary(desktop, metadata = (target) => cargoMetada
     }
     // A module its parent compiles only for tests may run other programs (to set up files):
     // it never ships. Decided by that declaration, never by the file's name.
+    // Inline `#[cfg(test)]` modules never ship either.
     if (!testOnlyModule(join(tauriDir, "src"), name, read)) {
-      for (const found of matches(text, /Command::new\(([^)]*)\)/g)) {
+      const shippedCode = withoutInlineTests(text);
+      for (const found of matches(shippedCode, /Command::new\(([^)]*)\)/g)) {
         const argument = found.text.slice("Command::new(".length, -1).trim();
         const constant = new RegExp(String.raw`const ${argument}: &str = "([^"]+)"`).exec(text)?.[1];
         const program = constant ?? /^"([^"]+)"$/.exec(argument)?.[1];
-        if (program === undefined || !PROGRAMS.has(program)) {
+        if (program === SHELL) {
+          if (name !== RELAUNCH_FILE || !runsOnlyTheRelaunchScript(shippedCode)) {
+            fail(`${name}:${found.line}: runs ${argument} other than with the reviewed relaunch script in ${RELAUNCH_FILE}.`);
+          }
+        } else if (program === undefined || !PROGRAMS.has(program)) {
           fail(`${name}:${found.line}: runs ${argument}, which isn't one of the programs this check allows.`);
         }
       }
