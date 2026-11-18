@@ -6,8 +6,54 @@ All notable user-facing changes to Kleari are documented here. This file follows
 
 ## [Unreleased]
 
+## [0.1.0-beta.4] - 2026-11-18
+
 ### Added
 
+- **Remove items where you see them.** Apps, Files, Storage, Developer and Maintenance's login
+  items no longer send items to Cleanup's review: one confirm sheet lists what will go, with
+  app icons and Show in Finder for each, and offers **Delete permanently** (deleted where it
+  is, after a fresh check) or **Move to quarantine** (with Undo). Removing an app offers what
+  it left behind straight after.
+- **Trash in Kleari:** a Trash tab on the Quarantine page lists your Trash and each connected
+  drive's, with where each item came from. **Put Back** returns an item to where Finder
+  says it was (only to a plain place in your home folder or on the same disk, never over
+  anything); **Delete permanently** and **Empty Trash** too. Needs Full Disk Access.
+- **App caches:** a Clear caches button on each app in Apps, and an App caches tab in
+  Maintenance listing apps by cache size. Never Apple's, never while the app is open, and
+  never its settings or data.
+- **More AI clutter:** Claude Code's saved sessions, shell snapshots, task lists, feature-flag
+  cache and debug logs (never its settings, CLAUDE.md or memory), Codex sessions and logs,
+  Gemini CLI temporary files, and what AI coding tools made directly in `/tmp`.
+- **Pictures:** thumbnails and a large preview (with the rest of a group in a strip, arrow
+  keys to move) in Duplicates, Similar Images, Large & Old, Downloads, Storage Browse and the
+  Trash; real app icons in Apps, Browser care and Maintenance.
+- **One filter bar on every list** (Cleanup Review, Trash, Files, Apps, Developer, App
+  caches): largest, smallest, newest, oldest or name order, type chips with counts and a name
+  search. Each list remembers its order and type; the search lasts until Kleari quits.
+- **Files › Downloads:** open a folder in the results and keep going deeper, with pictures and
+  removal as in Storage.
+- **Storage:** Reveal in Finder for a large file from the last analysis, and the action bar
+  in Browse stays in view once something is chosen.
+- **Dashboard search** looks through everything Kleari already holds this session (pages,
+  Settings, the last scans' results, quarantine, processes and the activity log), grouped by
+  page; a result opens its page and tab with that list's search filled in. It never starts a
+  scan; a page not scanned yet says so. Clearing the search brings the Dashboard back.
+- **Clean the keyboard** (Maintenance › Tasks, or the menu-bar panel for a minute): locks the
+  keyboard, media and brightness keys and macOS's shortcuts for 30 seconds to 5 minutes so you
+  can wipe it. Any mouse or trackpad click unlocks it, and so do the time running out and
+  quitting Kleari. Needs Accessibility; nothing about the keys is read or kept.
+- **Mouse:** new actions (Show Desktop, Spotlight, next/previous app and window, tabs, Refresh,
+  Zoom, scroll, screenshots and recording, minimise, full screen, close, tile left/right, hide
+  app, Lock Mac); shortcuts are recorded with macOS's own shortcuts such as ⌘⇥ captured, with
+  Use and Cancel; the Mouse page lists the external mice connected.
+- **A local log and Report a problem.** Kleari keeps `~/Library/Logs/Kleari/kleari.log` on
+  your Mac (what it did and what went wrong, never keys, file names, paths, window titles or
+  addresses; at most about 2 MB). Settings › About › Help › **Report a problem** opens a new
+  GitHub issue filled in with Kleari's version, the macOS version and the kind of chip, and
+  shows the log in Finder so you can choose to attach it. Nothing is sent unless you submit it.
+- **Install steps in the disk image window:** drag to Applications, then how to open Kleari
+  the first time.
 - **Legal documents and a "use at your own risk" notice.** Kleari is free, open-source software
   provided as is, and only acts on what you approve: [DISCLAIMER.md](DISCLAIMER.md) says so
   plainly, and a short notice is shown once at first launch (and to existing users once, after
@@ -27,6 +73,33 @@ All notable user-facing changes to Kleari are documented here. This file follows
 
 ### Changed
 
+- **Kleari's identifier on your Mac is now `dev.kleari.app`** (was `dev.bakare.kleari`). At the
+  first launch after updating, Kleari moves your history, settings and quarantine to the new
+  name on its own, and macOS forgets the old name's permissions. A one-time window lists the
+  permissions you used (Accessibility for Mouse, Full Disk Access, notifications, Open at
+  login) with a button for each, so you can allow them again.
+- **Uninstall** asks macOS to forget Kleari's permissions itself (`tccutil reset All
+  dev.kleari.app`) before moving anything; it gives you the command only if that failed. It
+  also moves Kleari's log to the Trash.
+- **One Kleari at a time:** opening Kleari while it runs brings the running one forward
+  instead of starting a second copy (two copies handled every mouse event twice).
+- **Apps** finds apps in folders inside Applications (two levels down, never inside an app)
+  and lists macOS's own apps as part of macOS, never removed. Apple apps from the App Store,
+  such as Xcode and Logic Pro, can now be removed; their Library data is still never offered.
+  A rescan keeps the page usable and keeps what you chose.
+- **Leftovers in use are never offered:** anything a running process has open, works in or
+  runs from is skipped, and a launch agent is offered only when its program is gone.
+- **The menu-bar panel** sizes itself to what it shows, up to the room above the Dock.
+- **Mouse** leaves trackpad clicks alone (it's for external mice), and a system shortcut is
+  turned off while recording only if it still has its usual key.
+- Buttons say what they do in full ("Remove 3 items", "Quit Safari"), and dialogs fit inside
+  the window and scroll when taller.
+- Downloads' untagged items are "Saved or copied here", with why, instead of "Unknown".
+- Similar Images decodes photos at a small size: much faster and lighter on large and RAW
+  photos.
+- Space freed by removing duplicates now reads "up to", since copies sharing storage on APFS
+  may free less.
+- Maintenance, Storage and Trash pages are laid out again; the window opens wider.
 - **Clearer download and install notes.** The README now says before the download link that
   Kleari isn't notarized by Apple and that macOS asks once, with no Gatekeeper changes or
   Terminal commands needed. The install guide no longer asks you to sign in to GitHub (the
@@ -37,6 +110,15 @@ All notable user-facing changes to Kleari are documented here. This file follows
 
 - **Settings › About › What's new** showed the release page's address as text you couldn't
   click; it now opens the release notes in your browser, as does the update offer.
+- **Files:** a type filter showed everything in a group that had none of that type.
+- **Apps:** an app removed during a scan could come back from that scan's results.
+
+### Removed
+
+- **Mouse:** the Do nothing, Middle click and media-key actions. A button set to one goes back
+  to its usual click and a combination set to one is removed; everything else you set stays.
+  "Last app used" becomes Next Application.
+- **Maintenance:** the "Not offered" tab.
 
 ## [0.1.0-beta.3] - 2026-11-14
 

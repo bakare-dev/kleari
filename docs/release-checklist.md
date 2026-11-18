@@ -72,7 +72,7 @@ downloads come from the versioned release.
    - Check the version is in the signature before publishing: `base64 -d <
      src-tauri/target/release/bundle/macos/Kleari.app.tar.gz.sig | grep version:`.
 5. **Verify**: `codesign --verify --deep --strict` on `Kleari.app` and the DMG, signed by
-   `Kleari Self-Signed`, identifier `dev.bakare.kleari`, and the version in `Info.plist`; the
+   `Kleari Self-Signed`, identifier `dev.kleari.app`, and the version in `Info.plist`; the
    update signature's key ID matches `kleari-updater.key.pub`; the build commit is the
    branch's head.
 6. **Publish** `latest.json` (version, notes, `pub_date`, and under `platforms.darwin-aarch64`
