@@ -296,7 +296,15 @@
 
 .pv-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+/* Back, Move to quarantine and Delete permanently: on a narrow window they wrap onto their own
+   lines instead of squeezing or running off the edge. */
+.pv-actions-choose > * {
+  flex: 1 1 auto;
+  min-width: 140px;
 }
 
 .pv-back {

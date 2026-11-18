@@ -17,6 +17,12 @@ export async function hidePopover(): Promise<void> {
   await call("hide_popover", {}, () => undefined);
 }
 
+/** Asks for the popover window to be `height` points tall (its content's height); the app
+ * keeps it within the screen. */
+export async function fitPopover(height: number): Promise<void> {
+  await call("fit_popover", { height }, () => undefined);
+}
+
 /** Quits Kleari, menu-bar icon included. */
 export async function quitKleari(): Promise<void> {
   await call("quit_kleari", {}, () => undefined);

@@ -18,6 +18,8 @@ export interface Finding {
   gb: number;
   files: string;
   modified: string;
+  /** When it last changed, for sorting; `null` when not reported. */
+  modifiedMs: number | null;
   reason: string;
   certainty: "High" | "Medium" | "Unknown";
   risk: Level;

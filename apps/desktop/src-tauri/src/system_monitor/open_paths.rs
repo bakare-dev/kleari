@@ -1,5 +1,5 @@
-//! What your apps have open right now: every file open in, and the working folder of, each
-//! of your processes. A project is "in use" (active) while any of it is open, in an editor,
+//! What your apps have open right now: every file open in, the working folder of, and the
+//! program run by each of your processes. A project is "in use" (active) while any of it is open, in an editor,
 //! a terminal, a dev server or anything else, and only then.
 //!
 //! Read through `proc_pidinfo` and `proc_pidfdinfo`, like the process sampler: no shell and
@@ -68,6 +68,11 @@ pub fn read() -> Result<OpenPaths, Unavailable> {
     for pid in all_pids()? {
         if let Some(cwd) = working_folder(pid) {
             paths.push(cwd);
+        }
+        // A program running from inside a folder (a helper in Application Support) uses it,
+        // even with none of its files open.
+        if let Some(program) = executable(pid) {
+            paths.push(program);
         }
         open_files(pid, &mut paths);
     }
@@ -165,6 +170,20 @@ fn working_folder(pid: libc::pid_t) -> Option<PathBuf> {
     // SAFETY: proc_pidinfo filled all `size` bytes.
     let info = unsafe { info.assume_init() };
     path_of(&info.pvi_cdir)
+}
+
+/// The path of the program process `pid` runs.
+#[cfg(target_os = "macos")]
+fn executable(pid: libc::pid_t) -> Option<PathBuf> {
+    use std::os::unix::ffi::OsStrExt;
+    let capacity = usize::try_from(libc::PROC_PIDPATHINFO_MAXSIZE).ok()?;
+    let mut buffer = vec![0_u8; capacity];
+    let size = u32::try_from(buffer.len()).ok()?;
+    // SAFETY: `buffer` is writable storage of exactly `size` bytes.
+    let written = unsafe { libc::proc_pidpath(pid, buffer.as_mut_ptr().cast(), size) };
+    let written = usize::try_from(written).ok().filter(|&n| n > 0)?;
+    buffer.truncate(written);
+    (buffer.first() == Some(&b'/')).then(|| PathBuf::from(std::ffi::OsStr::from_bytes(&buffer)))
 }
 
 #[cfg(target_os = "macos")]
@@ -317,6 +336,19 @@ mod tests {
         // sizeof(struct vnode_fdinfowithpath) and offsetof(pvip) in the macOS SDK.
         assert_eq!(std::mem::size_of::<VnodeFdInfoWithPath>(), 1200);
         assert_eq!(std::mem::offset_of!(VnodeFdInfoWithPath, pvip), 24);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn the_folder_a_running_program_lives_in_reads_as_in_use() {
+        let program = std::env::current_exe().expect("test binary");
+        let folder = program.parent().expect("its folder");
+        let pid = libc::pid_t::try_from(std::process::id()).expect("pid fits");
+        assert_eq!(
+            executable(pid).as_deref(),
+            std::fs::canonicalize(&program).ok().as_deref()
+        );
+        assert!(read().expect("processes listed").touches(folder));
     }
 
     #[cfg(target_os = "macos")]

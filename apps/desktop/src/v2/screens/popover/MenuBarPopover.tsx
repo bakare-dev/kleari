@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import { Glyph, type IconName } from "../../ui/icons";
 import { Button, IconTile, type Tone } from "../../ui/components";
 import { NavigatorIcon, Wordmark } from "../../shell/brand";
@@ -68,13 +69,45 @@ interface MenuBarPopoverProps {
   /** Opens the main window at `route` (and closes the popover). */
   onGo: (route: MenuBarDestination) => void;
   onQuit: () => void;
+  /** Locks the keyboard for cleaning (a minute; any click unlocks). */
+  onLockKeyboard?: () => void;
+  /** Given the panel's full height whenever it changes, to fit the window to it. */
+  onFit?: (height: number) => void;
+}
+
+/**
+ * Reports the panel's full height (its cards' own height, even while they scroll) when it
+ * changes. A ResizeObserver only runs when a size changes, so nothing is polled.
+ */
+function usePopoverFit(onFit: ((height: number) => void) | undefined) {
+  const panel = useRef<HTMLElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const cards = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const [outer, scroller, inner] = [panel.current, body.current, cards.current];
+    if (!onFit || !outer || !scroller || !inner || typeof ResizeObserver === "undefined") {
+      return;
+    }
+    let sent = 0;
+    const observer = new ResizeObserver(() => {
+      const height = Math.ceil(outer.offsetHeight - scroller.clientHeight + inner.offsetHeight);
+      if (height !== sent) {
+        sent = height;
+        onFit(height);
+      }
+    });
+    observer.observe(outer);
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, [onFit]);
+  return { panel, body, cards };
 }
 
 /**
  * The menu-bar popover from the v2 design, shown below Kleari's menu-bar icon. It only
  * reads: links open the matching screen in the main window, and nothing here starts a scan.
  */
-export function MenuBarPopover({ gauges, network, alerts, startup = null, summary, links, failed = false, onGo, onQuit }: MenuBarPopoverProps) {
+export function MenuBarPopover({ gauges, network, alerts, startup = null, summary, links, failed = false, onGo, onQuit, onLockKeyboard, onFit }: MenuBarPopoverProps) {
   const shownAlerts = alerts.slice(0, MAX_ALERTS);
   const moreAlerts = alerts.length - shownAlerts.length;
   const link = (route: MenuBarDestination) => ({
@@ -84,8 +117,9 @@ export function MenuBarPopover({ gauges, network, alerts, startup = null, summar
       onGo(route);
     },
   });
+  const fit = usePopoverFit(onFit);
   return (
-    <section className="pop pop-window" aria-labelledby="pop-title">
+    <section ref={fit.panel} className="pop pop-window" aria-labelledby="pop-title">
       <div className="pop-head">
         <NavigatorIcon size={34} />
         <span className="v2-row-text">
@@ -94,7 +128,8 @@ export function MenuBarPopover({ gauges, network, alerts, startup = null, summar
         </span>
         <button type="button" className="pop-icon-btn" aria-label="Settings" onClick={() => onGo("settings")}><Glyph name="sliders" size={15} /></button>
       </div>
-      <div className="pop-body">
+      <div ref={fit.body} className="pop-body">
+        <div ref={fit.cards} className="pop-cards">
         <div className="pop-gauges">
           {gauges.map((gauge) => (
             <a key={gauge.label} className={`pop-tile pop-gauge tone-${gauge.tone}`} {...link(gauge.route)}>
@@ -165,6 +200,16 @@ export function MenuBarPopover({ gauges, network, alerts, startup = null, summar
               <span className="v2-chevron"><Glyph name="chevronRight" size={12} strokeWidth={2.2} /></span>
             </a>
           ))}
+          {onLockKeyboard && (
+            <button type="button" className="pop-link pop-link-button" onClick={onLockKeyboard}>
+              <IconTile tone="blue" icon="key" size={26} />
+              <span className="v2-row-text">
+                <span className="v2-row-title">Clean the keyboard</span>
+                <span className="v2-row-sub">Locks every key for a minute. Click to unlock.</span>
+              </span>
+            </button>
+          )}
+        </div>
         </div>
       </div>
       {failed && (

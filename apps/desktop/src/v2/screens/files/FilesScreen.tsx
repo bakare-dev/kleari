@@ -1,14 +1,21 @@
 import { useState } from "react";
-import type { FileGroup, FileItem, FilesOptions, Tool } from "../../../contracts/files";
+import { tools, type FileGroup, type FileItem, type FilesOptions, type Tool } from "../../../contracts/files";
 import type { FileCategory } from "../../../contracts/storage";
 import type { Files } from "../../../features/files/useFiles";
+import type { StorageExplorer as Explorer } from "../../../features/storage/useStorageExplorer";
 import type { IconName } from "../../ui/icons";
-import { Button, FloatingBar, IconTile, LinkButton, PageHeader, Pill, Segmented, Select, Spinner, Toast, useToast, type Tone } from "../../ui/components";
+import { Button, FloatingBar, IconTile, PageHeader, Pill, Segmented, Select, Spinner, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
-import { headingIdFor, hrefFor } from "../../shell/routes";
+import { headingIdFor, tabFromHash } from "../../shell/routes";
+import { useRemoval } from "../../../features/removal/RemovalProvider";
+import { Picture } from "../../ui/Picture";
+import { ImagePreview, type PreviewImage } from "../../ui/ImagePreview";
+import { applyFilter, FilterBar, fileKind, fileKindChips, useListFilter, type ListFilterSpec } from "../../ui/ListFilter";
+import { StorageExplorer } from "../storage/StorageExplorer";
+import "../storage/storage.css";
 import "./files.css";
 
-const toolMeta: Record<Tool, { label: string; tone: Tone; icon: IconName; what: string; group: (group: FileGroup) => string }> = {
+export const toolMeta: Record<Tool, { label: string; tone: Tone; icon: IconName; what: string; group: (group: FileGroup) => string }> = {
   largeOld: {
     label: "Large & Old",
     tone: "orange",
@@ -20,7 +27,7 @@ const toolMeta: Record<Tool, { label: string; tone: Tone; icon: IconName; what: 
     label: "Duplicates",
     tone: "violet",
     icon: "copy",
-    what: "Files of 1 MB or more with exactly the same contents. One copy of each is always kept: by default the oldest.",
+    what: "Files of 1 MB or more with exactly the same contents. One copy of each is always kept: by default the oldest. Space saved is “up to”: copies macOS made as clones share their space, so removing one may free less.",
     group: (group) => `${plural(group.items.length, "copy", "copies")}`,
   },
   similar: {
@@ -83,20 +90,42 @@ function keeps(group: FileGroup): boolean {
   return group.kind === "copies" || group.kind === "similar";
 }
 
-export function FilesScreen({ files }: { files: Files }) {
-  const { state, sent } = files;
-  const [tool, setTool] = useState<Tool>("largeOld");
+/** The item a group keeps: its first as found, whatever order it is shown in. */
+function isKept(group: FileGroup, item: FileItem): boolean {
+  return keeps(group) && group.items[0]?.id === item.id;
+}
+
+const filterSpec: ListFilterSpec<FileItem> = {
+  bytes: (item) => item.bytes,
+  name: (item) => item.name,
+  text: (item) => item.location,
+  date: (item) => item.modifiedMs,
+  type: fileKind,
+};
+
+export function FilesScreen({ files, explorer }: { files: Files; explorer: Explorer }) {
+  const { state } = files;
+  const remove = useRemoval();
+  const [tool, setTool] = useState<Tool>(() => tabFromHash(tools, "largeOld"));
+  // A folder of Downloads opened in place (the Browse view), and why one didn't open.
+  const [browsing, setBrowsing] = useState(false);
+  const [folderNote, setFolderNote] = useState<string | null>(null);
   const [options, setOptions] = useState<FilesOptions>({ largeMinMb: 500, oldDays: 180 });
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
-  const [sending, setSending] = useState(false);
-  const toast = useToast(6000);
+  // The images seen large: a group's images and the one chosen.
+  const [preview, setPreview] = useState<{ images: PreviewImage[]; start: number } | null>(null);
   const nowMs = Date.now();
 
+  const [filter, setFilter] = useListFilter(`files.${tool}`);
   const result = state.results[tool] ?? null;
   const meta = toolMeta[tool];
   const groups = result?.groups ?? [];
-  const choosable = (group: FileGroup, item: FileItem, index: number) => item.selectable && !sent.has(item.id) && !(keeps(group) && index === 0);
-  const picked = groups.flatMap((group) => group.items.filter((item, index) => choosable(group, item, index) && selection.has(item.id)));
+  const everything = groups.flatMap((group) => group.items);
+  // Each group shows what matches, in the chosen order; a group with nothing left is hidden.
+  // The type chips count every group, so each group is filtered against all of them.
+  const shownGroups = groups.map((group) => ({ group, items: applyFilter(group.items, filter, filterSpec, everything) })).filter((shown) => shown.items.length > 0);
+  const choosable = (group: FileGroup, item: FileItem) => item.selectable && !isKept(group, item);
+  const picked = groups.flatMap((group) => group.items.filter((item) => choosable(group, item) && selection.has(item.id)));
   const running = state.running === tool;
 
   const toggle = (id: string) => {
@@ -109,17 +138,39 @@ export function FilesScreen({ files }: { files: Files }) {
     setSelection(next);
   };
 
+  /** Chooses everything shown but the copy each group keeps. */
   const chooseAllButKept = () => {
-    const ids = groups.flatMap((group) => group.items.filter((item, index) => choosable(group, item, index)).map((item) => item.id));
+    const ids = shownGroups.flatMap(({ group, items }) => items.filter((item) => choosable(group, item)).map((item) => item.id));
     setSelection(new Set(ids));
   };
 
-  const send = () => {
-    setSending(true);
-    void files.send(picked.map((item) => item.id)).then((message) => {
-      setSending(false);
-      setSelection(new Set());
-      toast.show(message);
+  const openFolder = (item: FileItem) => {
+    setFolderNote(null);
+    files.openFolder(item.id).then(
+      (id) => {
+        if (id === null) {
+          setFolderNote(`“${item.name}” changed since the search. Search again to open it.`);
+          return;
+        }
+        setSelection(new Set());
+        setBrowsing(true);
+        explorer.open(id);
+      },
+      () => setFolderNote(`Kleari couldn’t open “${item.name}”.`),
+    );
+  };
+
+  const removePicked = () => {
+    const ids = picked.map((item) => item.id);
+    remove({
+      what: plural(ids.length, "file"),
+      // A copy may be an APFS clone sharing its space with the one kept.
+      freesUpTo: tool === "duplicates",
+      prepare: () => files.prepare(ids),
+      onDone: () => {
+        setSelection(new Set());
+        files.rerun();
+      },
     });
   };
 
@@ -128,8 +179,7 @@ export function FilesScreen({ files }: { files: Files }) {
       <PageHeader
         title="Files"
         headingId={headingIdFor("files")}
-        subtitle="Find your own files worth a look. Nothing moves until you approve it in Cleanup, and then only into quarantine."
-        actions={<LinkButton href={hrefFor("review")} size="sm">Open review</LinkButton>}
+        subtitle="Find your own files worth a look. Nothing moves until you approve it, and then only into quarantine."
       />
       <div className="files-body">
         <Segmented
@@ -138,6 +188,8 @@ export function FilesScreen({ files }: { files: Files }) {
           onChange={(next) => {
             setTool(next);
             setSelection(new Set());
+            setBrowsing(false);
+            setFolderNote(null);
           }}
           options={(Object.keys(toolMeta) as Tool[]).map((value) => ({ value, label: toolMeta[value].label }))}
         />
@@ -187,8 +239,21 @@ export function FilesScreen({ files }: { files: Files }) {
           </div>
         </section>
         {(state.error || state.stopped) && <span role="status" className="v2-card-note">{state.error ?? "The search was stopped. Showing the last full result."}</span>}
+        {folderNote && <span role="status" className="v2-card-note">{folderNote}</span>}
+        {!browsing && groups.length > 0 && (
+          <FilterBar label={`Filter ${meta.label}`} state={filter} onChange={setFilter} items={everything} spec={filterSpec} chips={fileKindChips} />
+        )}
         {/* The tabs and the tool stay in place; only what was found scrolls. */}
         <div className="files-results" tabIndex={0} role="region" aria-label="What was found">
+          {browsing ? (
+            <section aria-label="Folder in Downloads" className="v2-card files-browse">
+              <div>
+                <Button variant="soft" size="sm" onClick={() => setBrowsing(false)}>‹ Back to Downloads</Button>
+              </div>
+              <StorageExplorer explorer={explorer} intro="Open folders inside it and keep going deeper. Choose what to remove and you'll see it all again first." />
+            </section>
+          ) : (
+          <>
           {running && !result && (
             <section className="v2-card files-empty" aria-label="Searching">
               <Spinner size={30} />
@@ -202,32 +267,66 @@ export function FilesScreen({ files }: { files: Files }) {
               <span className="v2-row-title">Nothing found</span>
             </section>
           )}
-          {groups.map((group) => (
+          {groups.length > 0 && shownGroups.length === 0 && (
+            <section className="v2-card files-empty" aria-label="Nothing matches">
+              <IconTile tone="gray" icon="search" size={36} />
+              <span className="v2-row-title">Nothing found matches</span>
+              <span className="v2-card-note">Clear the search or pick another type.</span>
+            </section>
+          )}
+          {shownGroups.map(({ group, items }) => (
             <section key={group.id} aria-label={meta.group(group)} className="v2-card files-group">
               <div className="files-group-head">
                 <span className="v2-row-text">
                   <span className="v2-row-title">{meta.group(group)}</span>
                   {group.detail && <span className="v2-row-sub">{group.detail}</span>}
                 </span>
-                <span className="v2-num v2-muted">{keeps(group) ? `${formatGb(gb(group.reclaimable))} to gain` : formatGb(gb(group.bytes))}</span>
+                <span className="v2-num v2-muted">
+                  {group.kind === "copies" ? `up to ${formatGb(gb(group.reclaimable))} to gain` : keeps(group) ? `${formatGb(gb(group.reclaimable))} to gain` : formatGb(gb(group.bytes))}
+                </span>
               </div>
               <ul className="files-rows">
-                {group.items.map((item, index) => {
-                  const can = choosable(group, item, index);
-                  const kept = keeps(group) && index === 0;
+                {items.map((item) => {
+                  const can = choosable(group, item);
+                  const kept = isKept(group, item);
                   return (
                     <li key={item.id}>
                       <input type="checkbox" aria-label={`Choose ${item.name}`} checked={can && selection.has(item.id)} disabled={!can} onChange={() => toggle(item.id)} style={{ opacity: can ? 1 : 0.4 }} />
-                      <IconTile tone={meta.tone} icon={item.folder ? "folder" : fileIcon[item.fileCategory ?? "other"]} size={28} />
+                      <Picture
+                        source="files"
+                        id={item.id}
+                        size={28}
+                        label={item.name}
+                        enabled={item.fileCategory === "image"}
+                        fallback={<IconTile tone={meta.tone} icon={item.folder ? "folder" : fileIcon[item.fileCategory ?? "other"]} size={28} />}
+                        onOpen={() => {
+                          const images = items.filter((entry) => entry.fileCategory === "image");
+                          setPreview({
+                            images: images.map((entry) => ({
+                              id: entry.id,
+                              name: entry.name,
+                              detail: `${entry.location} · ${size(entry)}`,
+                              note: isKept(group, entry) ? "Keep" : undefined,
+                            })),
+                            start: Math.max(0, images.findIndex((entry) => entry.id === item.id)),
+                          });
+                        }}
+                      />
                       <span className="v2-row-text">
-                        <span className="v2-row-title v2-ellipsis">{item.name}</span>
+                        {tool === "downloads" && item.folder ? (
+                          <button type="button" className="v2-row-title v2-ellipsis v2-link files-open" title={`Open ${item.name}`} onClick={() => openFolder(item)}>
+                            {item.name} ›
+                          </button>
+                        ) : (
+                          <span className="v2-row-title v2-ellipsis">{item.name}</span>
+                        )}
                         <span className="v2-row-sub v2-ellipsis">
                           {item.location} · {tool === "largeOld" && group.kind === "old" ? `opened ${age(item.openedMs ?? item.modifiedMs, nowMs)}` : `changed ${age(item.modifiedMs, nowMs)}`}
                         </span>
                       </span>
                       <span className="v2-num files-size">{size(item)}</span>
                       <span className="files-pill">
-                        {sent.has(item.id) ? <Pill status="link">In review</Pill> : kept ? <Pill status="ok">Keep</Pill> : !item.selectable ? <Pill status="muted">Kept as is</Pill> : null}
+                        {kept ? <Pill status="ok">Keep</Pill> : !item.selectable ? <Pill status="muted">Kept as is</Pill> : null}
                       </span>
                     </li>
                   );
@@ -236,27 +335,27 @@ export function FilesScreen({ files }: { files: Files }) {
               </ul>
             </section>
           ))}
+          </>
+          )}
         </div>
       </div>
 
-      {result && groups.length > 0 && (
+      {!browsing && result && groups.length > 0 && (
         <FloatingBar>
           <div className="v2-float-text">
-            <span role="status" className="v2-float-title">{picked.length > 0 ? `${picked.length} chosen · ${formatGb(gb(sum(picked, (item) => item.bytes)))}` : "Nothing chosen"}</span>
-            <span className="v2-float-sub">Sending to review adds these to Cleanup step 2. Nothing moves until you approve it there, and then only into quarantine.</span>
+            <span role="status" className="v2-float-title">{picked.length > 0 ? `${picked.length} chosen · ${tool === "duplicates" ? "up to " : ""}${formatGb(gb(sum(picked, (item) => item.bytes)))}` : "Nothing chosen"}</span>
+            <span className="v2-float-sub">You'll see exactly what will go before anything moves, and it goes to quarantine, so you can put it back.</span>
           </div>
           <div className="v2-float-actions">
             {keeps(groups[0]) && <Button variant="secondary" onClick={chooseAllButKept}>Choose all but one of each</Button>}
-            <Button variant="primary" disabled={picked.length === 0 || sending} onClick={send}>
-              {picked.length > 0 ? `Send ${picked.length} to review` : "Send to review"}
+            <Button variant="primary" disabled={picked.length === 0} onClick={removePicked}>
+              {picked.length > 0 ? `Remove ${plural(picked.length, "item")}` : "Remove"}
             </Button>
           </div>
         </FloatingBar>
       )}
 
-      <Toast message={toast.message} bottom={92}>
-        <a className="v2-link" href={hrefFor("review")}>Open review</a>
-      </Toast>
+      {preview && <ImagePreview source="files" images={preview.images} start={preview.start} onClose={() => setPreview(null)} />}
     </>
   );
 }

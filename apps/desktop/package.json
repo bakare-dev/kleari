@@ -1,7 +1,7 @@
 {
   "name": "@kleari/desktop",
   "private": true,
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
@@ -10,7 +10,13 @@
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint .",
     "tauri": "tauri",
-    "check:release-bundle": "node scripts/check-release-bundle.mjs"
+    "check:release-bundle": "node scripts/check-release-bundle.mjs",
+    "check:network": "node scripts/check-network-boundary.mjs",
+    "test:network": "node --test scripts/check-network-boundary.test.mjs",
+    "notices": "node scripts/third-party-notices.mjs",
+    "check:notices": "node scripts/third-party-notices.mjs --check",
+    "test:notices": "node --test scripts/third-party-notices.test.mjs",
+    "test:ui": "node --experimental-strip-types --test scripts/dashboard-search.test.mjs scripts/list-filter.test.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",

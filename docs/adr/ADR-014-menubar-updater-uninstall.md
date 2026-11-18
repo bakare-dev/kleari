@@ -98,16 +98,21 @@
       (`dev.bakare.kleari`), Saved Application State (`dev.bakare.kleari.savedState`) and
       Preferences (`dev.bakare.kleari.plist`); and last the running app's own bundle. Only
       locations that don't exist are skipped; one that can't be checked or moved is reported.
-    - The result lists what was moved and what wasn't, gives `tccutil reset All
-      dev.bakare.kleari` for macOS's permissions (Kleari can't clear those itself), and
-      offers only Quit.
+    - Before anything moves (`tccutil` finds the app through LaunchServices, which may not
+      find it in the Trash), runs `/usr/bin/tccutil reset All <identifier>` with no shell or
+      environment, and the old identifier's reset through a stub if the move left it
+      (ADR-024).
+    - The result lists what was moved and what wasn't, says whether macOS forgot Kleari's
+      permissions (if not, it gives the `tccutil reset All dev.kleari.app` command to run),
+      and offers only Quit.
 - **Consequences:**
   - Kleari now makes one kind of internet request: the update check, to GitHub, at launch
     (unless turned off) and when asked. It sends nothing about the Mac or the user's files
     beyond what any download sends (IP address, a user agent). The "Offline" wording in the
     interface became "Your files never leave this Mac".
   - An in-app update keeps Kleari's permissions only while every release is signed with the
-    same certificate ("Kleari Self-Signed"); the updater key and the code-signing
+    same certificate ("Kleari Self-Signed") and keeps the same bundle identifier (beta 4
+    changed it once, ADR-024, and asks for them again); the updater key and the code-signing
     certificate are separate, and both must be kept.
   - WebKit may write its storage once more as Kleari quits after an uninstall, recreating
     `~/Library/WebKit/dev.bakare.kleari` with the appearance choice only. The install guide

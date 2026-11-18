@@ -1,6 +1,6 @@
 [package]
 name = "kleari"
-version = "0.1.0-beta.3"
+version = "0.1.0-beta.4"
 description = "Kleari desktop app"
 authors = ["Kleari"]
 license = "GPL-3.0-or-later"
@@ -48,12 +48,14 @@ libc = "0.2.191"
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6.5", default-features = false, features = ["std"] }
 objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "block2", "objc2-core-graphics", "NSApplication", "NSEvent", "NSGraphics", "NSGraphicsContext", "NSImage", "NSImageRep", "NSOpenPanel", "NSPanel", "NSResponder", "NSRunningApplication", "NSSavePanel", "NSScreen", "NSWindow", "NSWorkspace", "libc"] }
-objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFBase", "CFDate", "CFDictionary", "CFMachPort", "CFNumber", "CFRunLoop", "CFString"] }
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFBase", "CFData", "CFDate", "CFDictionary", "CFMachPort", "CFNumber", "CFRunLoop", "CFString", "CFURL"] }
 # CGEvent*: the Mouse module's event tap and the events it posts (ADR-016).
 objc2-core-graphics = { version = "0.3.2", default-features = false, features = ["std", "libc", "CGBitmapContext", "CGColorSpace", "CGContext", "CGDirectDisplay", "CGDisplayConfiguration", "CGError", "CGEvent", "CGEventSource", "CGEventTypes", "CGImage", "CGRemoteOperation"] }
-objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSBundle", "NSDictionary", "NSError", "NSFileManager", "NSProcessInfo", "NSString", "NSURL", "NSValue"] }
+# NSDistributedNotificationCenter, NSNotification, NSOperation and block2: a second launch asks
+# the running Kleari to show its window (instance.rs).
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "block2", "NSArray", "NSBundle", "NSDictionary", "NSDistributedNotificationCenter", "NSError", "NSFileManager", "NSNotification", "NSOperation", "NSProcessInfo", "NSString", "NSURL", "NSValue"] }
 # Notifications (Settings › Notifications) and the completion blocks their API takes. Both
 # are already in the tree via Tauri.
 objc2-user-notifications = { version = "0.3.2", default-features = false, features = ["std", "block2", "UNNotification", "UNNotificationContent", "UNNotificationRequest", "UNNotificationResponse", "UNNotificationSettings", "UNNotificationSound", "UNNotificationTrigger", "UNUserNotificationCenter"] }
 block2 = { version = "0.6.2", default-features = false, features = ["std"] }
-objc2-io-kit = { version = "0.3.2", default-features = false, features = ["std", "libc", "ps"] }
+objc2-io-kit = { version = "0.3.2", default-features = false, features = ["std", "libc", "ps", "hid"] }

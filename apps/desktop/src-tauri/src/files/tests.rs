@@ -106,6 +106,39 @@ fn copies_are_found_by_content_and_one_is_always_kept() {
 }
 
 #[test]
+fn every_item_has_a_picture_path_but_only_removable_ones_are_handed_to_removal() {
+    let home = Home::new("found");
+    let photo = home.write("Pictures/holiday.jpg", &vec![7_u8; 2_000_000]);
+    let state = FilesState::default();
+    let scan = run(
+        &home,
+        &state,
+        Tool::LargeOld,
+        Options {
+            large_min_mb: 1,
+            old_days: 3650,
+        },
+    );
+    let item = scan
+        .groups
+        .iter()
+        .flat_map(|group| &group.items)
+        .find(|item| item.name == "holiday.jpg")
+        .expect("found")
+        .clone();
+    assert!(item.selectable);
+    assert_eq!(state.path(&item.id), Some(photo));
+    assert_eq!(state.chosen(std::slice::from_ref(&item.id)).len(), 1);
+    // An item Kleari may not remove keeps its picture, and is never handed to removal.
+    lock(&state.found)
+        .get_mut(&item.id)
+        .expect("kept")
+        .selectable = false;
+    assert!(state.path(&item.id).is_some());
+    assert!(state.chosen(std::slice::from_ref(&item.id)).is_empty());
+}
+
+#[test]
 fn large_and_old_files_are_listed_in_their_own_groups() {
     let home = Home::new("large-old");
     let big = vec![1_u8; 101_000_000];
@@ -176,10 +209,15 @@ fn downloads_are_grouped_by_the_app_that_downloaded_them() {
         labels,
         [
             ("Safari", vec!["page.pdf"]),
+            ("Saved or copied here", vec!["untagged.txt"]),
             ("Slack", vec!["design.png"]),
-            ("Unknown", vec!["untagged.txt"]),
         ]
     );
+    // The untagged group says why it has no app.
+    assert!(result
+        .groups
+        .iter()
+        .any(|group| group.label == "Saved or copied here" && group.detail.is_some()));
 }
 
 #[test]

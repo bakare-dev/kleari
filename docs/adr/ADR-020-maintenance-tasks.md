@@ -29,9 +29,11 @@
     launch agents can be sent to Cleanup's review (`Kind::LaunchAgent`, Medium risk), so it
     moves into quarantine only when approved and can be restored. Items for every user and
     system daemons are managed in System Settings, which the page opens.
-  - **Not offered, with the reason shown:** repairing disk permissions and running periodic
-    scripts (obsolete), removing language files and universal binaries (breaks app
-    signatures), document versions (protected), Mail's Trash (Mail's own data).
+  - **Not offered:** repairing disk permissions and running periodic scripts (obsolete),
+    removing language files and universal binaries (breaks app signatures), document versions
+    (protected), Mail's Trash (Mail's own data). (Amended in 0.1.0 beta 4: these are still not
+    offered, but the page no longer has a tab listing them and why, by the product owner's
+    decision.)
   - Each run is recorded in Activity with its outcome (done, cancelled, failed).
 - **Consequences:** Kleari can now delete system caches, old logs, deleted users' images and
   the Trash for good, each only after a confirmation and macOS's prompt. The threat model notes

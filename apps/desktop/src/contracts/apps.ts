@@ -2,6 +2,7 @@
 // response is validated before the UI sees it. Paths never arrive here: only opaque IDs,
 // names and `~/…` locations.
 
+import { parsePreview, type CleanupPreview } from "./cleanup";
 import { ContractError, nonNegativeInteger, nullable, oneOf, record } from "./systemMetrics";
 
 export interface LeftoverEntry {
@@ -24,6 +25,8 @@ export interface AppEntry {
   location: string;
   bytes: number;
   lowerBound: boolean;
+  /** When its bundle last changed (installed or updated), if reported. */
+  modifiedMs: number | null;
   running: boolean;
   /** Part of macOS: never removed. */
   apple: boolean;
@@ -48,7 +51,7 @@ export interface AppsScan {
 }
 
 export type RemoveOutcome =
-  | { status: "removed"; leftovers: number; leftoverBytes: number }
+  | { status: "removed"; leftovers: number; leftoverBytes: number; preview: CleanupPreview }
   | { status: "running" }
   | { status: "refused" }
   | { status: "changed" }
@@ -115,6 +118,7 @@ export function parseAppsScan(payload: unknown): AppsScan {
         location: text(app.location, `${field}.location`),
         bytes: nonNegativeInteger(app.bytes, `${field}.bytes`),
         lowerBound: boolean(app.lowerBound, `${field}.lowerBound`),
+        modifiedMs: nullable(app.modifiedMs, (ms) => nonNegativeInteger(ms, `${field}.modifiedMs`)),
         running: boolean(app.running, `${field}.running`),
         apple: boolean(app.apple, `${field}.apple`),
         leftovers: list(app.leftovers, `${field}.leftovers`, MAX_LEFTOVERS).map((left, at) => leftover(left, `${field}.leftovers[${at}]`)),
@@ -145,6 +149,7 @@ export function parseRemoveOutcome(payload: unknown): RemoveOutcome {
       status,
       leftovers: nonNegativeInteger(fields.leftovers, "leftovers"),
       leftoverBytes: nonNegativeInteger(fields.leftoverBytes, "leftoverBytes"),
+      preview: parsePreview(fields.preview),
     };
   }
   return { status };

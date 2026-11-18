@@ -5,8 +5,8 @@
 Kleari runs on a Mac with **Apple silicon** (M1 or later) and **macOS 14 or later**.
 
 **macOS will warn you the first time you open it. That is expected.** Kleari isn't from the
-App Store, and it isn't signed with a paid Apple developer account, so macOS can't check it
-with Apple. It is signed with Kleari's own certificate instead, which keeps your settings
+App Store and isn't **notarized** by Apple (notarizing needs a paid Apple developer account),
+so macOS can't check it with Apple. It is signed with Kleari's own certificate instead, which keeps your settings
 and the permissions you give it working from one version to the next. You confirm once, in
 System Settings, and after that it opens like any other app.
 
@@ -17,7 +17,9 @@ Three things to know before you start:
 - **Run it from Applications**, not from inside the downloaded disk image.
 - **Only install a copy from Kleari's [Releases page](https://github.com/bakare-dev/kleari/releases).**
   The steps below tell macOS to trust this app; don't follow them for a file from anywhere
-  else. The repository is private, so sign in to GitHub with an account that has access first.
+  else.
+- **You never need to turn off Gatekeeper** or paste Terminal commands. The steps below use
+  macOS's own Open Anyway, which allows only Kleari.
 
 ## Install
 
@@ -29,8 +31,9 @@ Three things to know before you start:
    `shasum -a 256 ~/Downloads/Kleari_<version>_aarch64.dmg` and compare the result with the
    checksum in the release notes. They must match exactly.
 3. Open the downloaded file. Drag **Kleari** onto the **Applications** folder in the window
-   that appears. If an older Kleari is there, choose **Replace** (your history, settings and
-   quarantine are kept: they aren't stored in the app).
+   that appears (the window also shows the first-open steps from step 2). If an older Kleari
+   is there, choose **Replace** (your history, settings and quarantine are kept: they aren't
+   stored in the app).
 4. Close the window and eject the disk image (the ⏏ next to **Kleari** in Finder's
    sidebar). You can then delete the downloaded `.dmg`.
 
@@ -93,7 +96,8 @@ use the feature.
 - **Notifications:** only if you turn one on in Settings › Notifications, or turn on a
   scheduled scan in Settings › Scanning.
 - **Accessibility:** only if you turn on the Mouse page's settings. Kleari then sees your
-  mouse wheel and extra buttons (never your keystrokes) to change what they do. Turn it on in
+  external mouse's wheel and extra buttons (never your trackpad, and never your keystrokes,
+  except while you record a shortcut on that page) to change what they do. Turn it on in
   System Settings › Privacy & Security › Accessibility; the Mouse page offers the way there.
 - **Open at login:** only if you turn it on in Settings › General; macOS may ask you to
   approve it in System Settings › General › Login Items.
@@ -122,20 +126,30 @@ Kleari stays where it is until a newer stable release comes out.
 1. In Kleari, restore or permanently delete anything still in **Quarantine**. Items there
    are your files, kept until you decide; Kleari won't uninstall until it's empty.
 2. Open **Settings › About** and choose **Uninstall…**. Kleari tries to turn off Open at
-   login, then moves itself and its settings, history and caches to the Trash, and lists
-   what it moved. Your own files aren't touched.
-3. To remove the permissions you gave it, run the command it shows in Terminal:
-   `tccutil reset All dev.bakare.kleari`. Then choose **Quit Kleari**.
+   login, asks macOS to forget the permissions you gave it (it runs
+   `tccutil reset All dev.kleari.app`), then moves itself and its settings, history and
+   caches to the Trash, and lists what it moved. Your own files aren't touched.
+3. If it says macOS couldn't clear the permissions, run the command it shows in Terminal:
+   `tccutil reset All dev.kleari.app`. Then choose **Quit Kleari**.
 
-As Kleari quits, macOS may write `~/Library/WebKit/dev.bakare.kleari` once more (it holds
+As Kleari quits, macOS may write `~/Library/WebKit/dev.kleari.app` once more (it holds
 only the light/dark choice); move it to the Trash too if you want nothing left.
 
 To uninstall by hand instead: empty Quarantine, turn off Open at
 login, quit Kleari, move it from Applications to the Trash, and move these to the Trash:
-`~/Library/Application Support/dev.bakare.kleari` (history, settings and the quarantine
-folder), `~/Library/Caches/dev.bakare.kleari`, `~/Library/WebKit/dev.bakare.kleari`,
-`~/Library/HTTPStorages/dev.bakare.kleari`,
-`~/Library/Saved Application State/dev.bakare.kleari.savedState` and
-`~/Library/Preferences/dev.bakare.kleari.plist`.
+`~/Library/Application Support/dev.kleari.app` (history, settings and the quarantine
+folder), `~/Library/Caches/dev.kleari.app`, `~/Library/WebKit/dev.kleari.app`,
+`~/Library/HTTPStorages/dev.kleari.app`,
+`~/Library/Saved Application State/dev.kleari.app.savedState` and
+`~/Library/Preferences/dev.kleari.app.plist`. Before beta 4 the identifier was
+`dev.bakare.kleari`; Kleari moves its folders to the new name at the first launch after
+the update.
+
+### After updating from beta 3 or older
+
+Beta 4 gave Kleari a new identifier on your Mac (`dev.kleari.app`). Your history, settings
+and quarantine come across on their own, but macOS asks for Kleari's permissions again: a
+one-time window lists the ones you used (Accessibility for the Mouse settings, Full Disk
+Access, notifications, Open at login) with a button for each.
 
 Kleari never deletes your files on its own, and uninstalling doesn't either.

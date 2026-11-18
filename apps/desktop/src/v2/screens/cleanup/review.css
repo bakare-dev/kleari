@@ -1,58 +1,6 @@
+/* The shared filter bar (ListFilter), placed on this page. */
 .rev-filters {
-  display: flex;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
   padding: 2px 28px 12px;
-}
-
-.rev-chips {
-  display: flex;
-  flex: 1;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.rev-chip {
-  display: inline-flex;
-  height: 30px;
-  align-items: center;
-  gap: 7px;
-  padding: 0 12px;
-  border: 1px solid var(--mp-border);
-  border-radius: 15px;
-  background: var(--mp-card);
-  box-shadow: var(--mp-card-shadow);
-  color: var(--mp-text);
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-.rev-chip .v2-dot {
-  width: 8px;
-  height: 8px;
-}
-
-.rev-dot-all {
-  background: #94a3b8;
-}
-
-.rev-chip-count {
-  font-weight: 500;
-  opacity: 0.75;
-}
-
-.rev-chip.on {
-  border-color: transparent;
-  background: color-mix(in srgb, var(--c2) 14%, transparent);
-  box-shadow: none;
-  color: var(--fg);
-}
-
-.rev-chip-all.on {
-  background: var(--mp-text);
-  color: var(--mp-bg);
 }
 
 .rev-toolbar {

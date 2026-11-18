@@ -6,13 +6,15 @@ import type { AppearancePreference, AppearanceStorageStatus } from "../../../fea
 import type { AccessFolder, FolderSource, LoginItem, NotificationAccess, Preferences, ScanSchedule, ScheduleFrequency, ScheduleStatus, SettingsState, Uninstalled } from "../../../contracts/settings";
 import type { ScanMode } from "../../../contracts/cleanup";
 import type { NotificationKey, UninstallOutcome } from "../../../features/settings/useSettings";
+import { COPYRIGHT, DISCLAIMER_SHORT, legalDocuments } from "../../../features/legal/legal";
+import { openLegalDocument, reportProblem, showLog } from "../../../lib/legalIpc";
 import type { UpdateState } from "../../../features/settings/useUpdates";
-import { installable, updateStatus } from "./Updates";
+import { installable, notesText, showReleaseNotes, updateStatus } from "./Updates";
 import "./settings.css";
 import { AccessSteps } from "../../ui/AccessSteps";
 
 /** Kleari's bundle identifier (tauri.conf.json), which macOS keys its permissions by. */
-export const BUNDLE_ID = "dev.bakare.kleari";
+export const BUNDLE_ID = "dev.kleari.app";
 const RESET_PERMISSIONS = `tccutil reset All ${BUNDLE_ID}`;
 
 type Dialog =
@@ -59,14 +61,14 @@ interface SettingsScreenProps {
   onOpenPane: (pane: "loginItems" | "fullDiskAccess" | "filesAndFolders" | "notifications") => void;
 }
 
-const sections: readonly { id: Section; label: string; blurb: string; tone: Tone; icon: IconName }[] = [
+export const sections: readonly { id: Section; label: string; blurb: string; tone: Tone; icon: IconName }[] = [
   { id: "general", label: "General", blurb: "Startup, appearance and the default scan", tone: "gray", icon: "gear" },
   { id: "scanning", label: "Scanning", blurb: "What Kleari leaves out of its findings", tone: "blue", icon: "search" },
   { id: "access", label: "Folders and access", blurb: "Folders Kleari may read", tone: "teal", icon: "folder" },
   { id: "quarantine", label: "Quarantine", blurb: "Where moved items wait until you decide", tone: "orange", icon: "quarantine" },
   { id: "notifications", label: "Notifications", blurb: "When Kleari lets you know", tone: "red", icon: "bell" },
   { id: "privacy", label: "Privacy and safety", blurb: "What stays on this Mac, the activity log and built-in rules", tone: "green", icon: "shield" },
-  { id: "about", label: "About", blurb: "Version, updates and uninstalling", tone: "indigo", icon: "info" },
+  { id: "about", label: "About", blurb: "Version, updates, legal and uninstalling", tone: "indigo", icon: "info" },
 ];
 
 /** Settings › Notifications › Alerts: one switch per group (src-tauri/src/issues.rs). */
@@ -199,7 +201,7 @@ export function UninstallDialog(props: {
     );
   }
   if (dialog.kind === "uninstalled") {
-    const { moved, failed, loginItemKept } = dialog.uninstalled;
+    const { moved, failed, loginItemKept, permissionsReset } = dialog.uninstalled;
     const partly = failed.length > 0 || loginItemKept !== null;
     return (
       <div className="v2-dialog-body v2-dialog-centered">
@@ -214,10 +216,16 @@ export function UninstallDialog(props: {
             Open at login is still on ({loginItemKept}). Remove Kleari in System Settings › General › Login Items.
           </p>
         )}
-        <p className="v2-dialog-text">
-          macOS keeps the permissions you gave Kleari until you clear them. In Terminal, run:
-        </p>
-        <code className="set-command v2-mono">{RESET_PERMISSIONS}</code>
+        {permissionsReset ? (
+          <p className="v2-dialog-text">macOS has also forgotten the permissions you gave Kleari.</p>
+        ) : (
+          <>
+            <p className="v2-dialog-text">
+              macOS couldn’t clear the permissions you gave Kleari, so they stay until you do. In Terminal, run:
+            </p>
+            <code className="set-command v2-mono">{RESET_PERMISSIONS}</code>
+          </>
+        )}
         {dialog.quitProblem && <p role="alert" className="v2-dialog-text">{dialog.quitProblem} Quit with ⌘Q.</p>}
         <div className="v2-dialog-actions">
           <Button variant="primary" onClick={props.onQuit}>Quit Kleari</Button>
@@ -230,7 +238,7 @@ export function UninstallDialog(props: {
       <IconTile tone="red" icon="trash" size={52} glow />
       <h2 id="set-dialog-title" className="v2-dialog-title">Uninstall Kleari?</h2>
       <p className="v2-dialog-text">
-        Kleari tries to turn off Open at login (and tells you if macOS keeps it on), then moves itself, its settings, activity history and caches to the Trash, and asks you to quit. Your own files stay where they are. You can put it back from the Trash until you empty it.
+        Kleari tries to turn off Open at login (and tells you if macOS keeps it on), asks macOS to forget the permissions you gave it, then moves itself, its settings, activity history and caches to the Trash, and asks you to quit. Your own files stay where they are. You can put it back from the Trash until you empty it.
       </p>
       {dialog.problem && <p role="alert" className="v2-dialog-text">{dialog.problem}</p>}
       <div className="v2-dialog-actions">
@@ -604,7 +612,65 @@ export function SettingsScreen(props: SettingsScreenProps) {
                     )
                   }
                 />
-                {update?.status === "available" && update.notes && <Row label="What’s new" sub={update.notes} control={null} />}
+                {update?.status === "available" && (
+                  <Row
+                    label="What’s new"
+                    sub={notesText(update.notes) ?? `The release notes for ${update.version}, on GitHub`}
+                    control={<Button variant="soft" size="sm" onClick={() => showReleaseNotes(update.version)}>Open</Button>}
+                  />
+                )}
+              </Group>
+              <Group title="Legal" note={`${COPYRIGHT}. Kleari is free software under the GNU General Public License v3.0 or later.`}>
+                <Row label="A friendly note" sub={DISCLAIMER_SHORT} control={null} />
+                {legalDocuments.map((document) => (
+                  <Row
+                    key={document.id}
+                    label={document.label}
+                    sub={document.sub}
+                    control={
+                      <Button
+                        variant="soft"
+                        size="sm"
+                        onClick={() => void openLegalDocument(document.id).catch(() => toast.show(`${document.label} couldn’t be opened in your browser.`, "warn"))}
+                      >
+                        Open
+                      </Button>
+                    }
+                  />
+                ))}
+              </Group>
+              <Group title="Help" note="Kleari keeps a small log on this Mac of what it did and what went wrong. It never holds file names, paths or what you type, and nothing is sent anywhere.">
+                <Row
+                  label="Report a problem"
+                  sub="Opens a new issue on GitHub with your Kleari and macOS versions filled in, and shows the log in Finder so you can attach it if you like"
+                  control={
+                    <Button
+                      variant="soft"
+                      size="sm"
+                      onClick={() =>
+                        void reportProblem().then(
+                          (shown) => {
+                            if (!shown) {
+                              toast.show("The issue page opened, but the log couldn’t be shown. It’s in ~/Library/Logs/Kleari.", "warn");
+                            }
+                          },
+                          () => toast.show("GitHub couldn’t be opened in your browser.", "warn"),
+                        )
+                      }
+                    >
+                      Report…
+                    </Button>
+                  }
+                />
+                <Row
+                  label="Log"
+                  sub="~/Library/Logs/Kleari/kleari.log, up to about 2 MB"
+                  control={
+                    <Button variant="soft" size="sm" onClick={() => void showLog().catch(() => toast.show("The log couldn’t be shown in Finder.", "warn"))}>
+                      Show in Finder
+                    </Button>
+                  }
+                />
               </Group>
               <Group title="Uninstall" note="Your own files are never touched. Quarantine must be empty first, so nothing of yours goes to the Trash with Kleari.">
                 <Row

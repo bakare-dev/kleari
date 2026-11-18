@@ -2,11 +2,12 @@
 //! apps that are gone, and installers already downloaded (ADR-017).
 //!
 //! Read-only. Every folder is opened relative to its open parent without following
-//! symlinks (`fsdir`), and an app's `Info.plist` is the only file content read (at most
-//! 256 KB, parsed as untrusted input). Removing an app moves its bundle to the Trash through
+//! symlinks (`fsdir`), and an app's `Info.plist` and a launch agent's property list are the
+//! only file contents read (at most 256 KB each, parsed as untrusted input). Removing an app moves its bundle to the Trash through
 //! macOS (`remove_app`); its leftovers, other apps' leftovers and installers go through
 //! Cleanup's review, preview and quarantine like everything else Kleari moves.
 
+use std::collections::HashSet;
 use std::ffi::{CStr, CString};
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -20,6 +21,7 @@ use crate::developer::{measure_dir, open_absolute, Links, Measured};
 use crate::ids::new_id;
 use crate::storage::fsdir::{DirHandle, FileStat};
 use crate::system_monitor::display_path;
+use crate::system_monitor::open_paths::OpenPaths;
 use crate::system_monitor::running_apps::RunningBundle;
 
 const MAX_APPS: usize = 2_000;
@@ -63,6 +65,8 @@ pub struct AppEntry {
     pub location: String,
     pub bytes: u64,
     pub lower_bound: bool,
+    /// When its bundle last changed (installed or updated), if reported.
+    pub modified_ms: Option<u64>,
     pub running: bool,
     /// Part of macOS: Kleari never removes it.
     pub apple: bool,
@@ -125,6 +129,19 @@ pub struct Bundle {
     pub name: String,
     pub bundle_id: Option<String>,
     pub apple: bool,
+}
+
+impl Bundle {
+    /// Made by Apple (`com.apple.…`), including Apple's App Store apps (Xcode, Logic Pro),
+    /// which can be removed: what it keeps in the Library is never offered, as it may be
+    /// shared with macOS.
+    pub fn apple_made(&self) -> bool {
+        apple_id(self.bundle_id.as_deref())
+    }
+}
+
+fn apple_id(bundle_id: Option<&str>) -> bool {
+    bundle_id.is_some_and(|id| id.to_lowercase().starts_with("com.apple."))
 }
 
 /// Something the page may send to the review: what it is and where, kept in Rust.
@@ -204,6 +221,31 @@ impl AppsState {
             .collect()
     }
 
+    /// The installed app (from the last scan) that an app cache or leftover named `name`
+    /// belongs to, for its icon: matched by bundle ID or name as leftovers are.
+    pub fn owner_path(&self, kind: &Kind, name: &str) -> Option<PathBuf> {
+        let bundles = lock(&self.bundles);
+        let found = match kind {
+            Kind::AppLeftover { owner } => bundles.iter().find(|bundle| {
+                bundle
+                    .bundle_id
+                    .as_deref()
+                    .is_some_and(|id| id.eq_ignore_ascii_case(owner))
+                    || bundle.name.eq_ignore_ascii_case(owner)
+            }),
+            Kind::AppCache => bundles.iter().find(|bundle| {
+                bundle
+                    .bundle_id
+                    .as_deref()
+                    .into_iter()
+                    .chain(std::iter::once(bundle.name.as_str()))
+                    .any(|owner| leftover_matches(name, owner))
+            }),
+            _ => None,
+        };
+        found.map(|bundle| bundle.path.clone())
+    }
+
     /// Forgets a removed app.
     pub fn forget(&self, id: &str) {
         lock(&self.bundles).retain(|bundle| bundle.id != id);
@@ -211,6 +253,7 @@ impl AppsState {
 }
 
 /// Where apps are installed: `/Applications`, its `Utilities` folder and `~/Applications`.
+/// Apps here (and in their subfolders, `MAX_APP_DEPTH` deep) can be removed.
 pub fn app_folders(home: Option<&Path>) -> Vec<PathBuf> {
     let mut folders = vec![
         PathBuf::from("/Applications"),
@@ -222,40 +265,83 @@ pub fn app_folders(home: Option<&Path>) -> Vec<PathBuf> {
     folders
 }
 
-/// Whether `path` is an app bundle directly in one of `folders`.
-pub fn bundle_in_bounds(path: &Path, folders: &[PathBuf]) -> bool {
-    path.extension().is_some_and(|extension| extension == "app")
-        && path
-            .parent()
-            .is_some_and(|parent| folders.iter().any(|folder| folder == parent))
+/// Where macOS keeps its own apps, on the read-only system volume, and Safari's cryptex
+/// (`/System/Cryptexes/App` is a symlink to it): shown as part of macOS, never removed.
+pub fn system_app_folders() -> Vec<PathBuf> {
+    vec![
+        PathBuf::from("/System/Applications"),
+        PathBuf::from("/System/Volumes/Preboot/Cryptexes/App/System/Applications"),
+    ]
 }
 
-/// Runs the read-only scan of the apps in `folders` (`app_folders`) and the home folder.
+/// How many folders below an apps folder are searched for apps: a suite's folder and one
+/// more (`/Applications/BOSS/GT-1000/BOSS TONE STUDIO.app`).
+const MAX_APP_DEPTH: usize = 2;
+
+/// Whether `path` is an app bundle in one of `folders`, directly or at most `MAX_APP_DEPTH`
+/// plain folders below it (never inside another app).
+pub fn bundle_in_bounds(path: &Path, folders: &[PathBuf]) -> bool {
+    use std::path::Component;
+
+    let is_app = |part: &Path| part.extension().is_some_and(|extension| extension == "app");
+    is_app(path)
+        && folders.iter().any(|folder| {
+            path.strip_prefix(folder).is_ok_and(|rest| {
+                let parts: Vec<Component<'_>> = rest.components().collect();
+                let Some((_, between)) = parts.split_last() else {
+                    return false;
+                };
+                between.len() <= MAX_APP_DEPTH
+                    && parts
+                        .iter()
+                        .all(|part| matches!(part, Component::Normal(_)))
+                    && between.iter().all(|part| {
+                        let name = part.as_os_str().to_string_lossy();
+                        !name.starts_with('.') && !bundle_like(&name)
+                    })
+            })
+        })
+}
+
+/// Runs the read-only scan of the apps in `folders` (`app_folders`), macOS's own apps in
+/// `system` (`system_app_folders`), and the home folder. A leftover anything in `open` is
+/// inside isn't offered; without a reading (`None`) they are listed, and preparing them
+/// reads again and holds back every one (fail closed).
 pub fn scan(
     folders: &[PathBuf],
+    system: &[PathBuf],
     home: Option<&Path>,
     running: &[RunningBundle],
+    open: Option<&OpenPaths>,
     now_ms: u64,
     cancel: &AtomicBool,
 ) -> (AppsScan, Vec<Bundle>, Vec<ReviewItem>) {
     let mut links = Links::default();
-    let mut bundles = Vec::new();
-    let mut apps = Vec::new();
-    for folder in folders {
+    let mut finder = AppFinder {
+        home,
+        running,
+        now_ms,
+        cancel,
+        links: &mut links,
+        seen: HashSet::new(),
+        bundles: Vec::new(),
+        apps: Vec::new(),
+    };
+    let roots = folders
+        .iter()
+        .map(|folder| (folder, false))
+        .chain(system.iter().map(|folder| (folder, true)));
+    for (folder, system) in roots {
         if cancel.load(Ordering::Relaxed) {
             break;
         }
-        read_apps(
-            folder,
-            home,
-            running,
-            now_ms,
-            cancel,
-            &mut links,
-            &mut bundles,
-            &mut apps,
-        );
+        if let Some((dir, dev)) = open_absolute(folder) {
+            finder.read(folder, dir, dev, 0, system);
+        }
     }
+    let AppFinder {
+        bundles, mut apps, ..
+    } = finder;
     let library = home
         .map(|home| read_library(home, LEFTOVER_FOLDERS))
         .unwrap_or_default();
@@ -264,7 +350,7 @@ pub fn scan(
         let Some(bundle) = bundles.iter().find(|bundle| bundle.id == app.id) else {
             continue;
         };
-        if bundle.apple {
+        if bundle.apple || bundle.apple_made() {
             continue;
         }
         for (path, stat, owner) in leftovers_of(bundle, &library) {
@@ -294,6 +380,17 @@ pub fn scan(
                     continue;
                 };
                 let path = folder.folder.join(name);
+                // Something has it open, or runs from inside it: in use, whatever its name.
+                if open.is_some_and(|open| open.touches(&path)) {
+                    continue;
+                }
+                // A launch agent whose program is still there belongs to a tool that is still
+                // installed (one without an app); only one pointing to nothing is left over.
+                if folder.folder == home.join("Library/LaunchAgents")
+                    && !(stat.is_file() && agent_program_missing(&path))
+                {
+                    continue;
+                }
                 let measured = measure(&path, stat, &mut links, cancel);
                 let newest = measured.newest_modified_s.max(stat.modified_s);
                 if idle_days(newest, now_ms) < ORPHAN_IDLE_DAYS {
@@ -353,6 +450,9 @@ pub fn leftovers_for_removed(
     now_ms: u64,
     cancel: &AtomicBool,
 ) -> Vec<ReviewItem> {
+    if bundle.apple_made() {
+        return Vec::new();
+    }
     let library = read_library(home, LEFTOVER_FOLDERS);
     let mut links = Links::default();
     leftovers_of(bundle, &library)
@@ -370,6 +470,61 @@ pub fn leftovers_for_removed(
             }
         })
         .collect()
+}
+
+/// The caches of the installed app `bundle`: its folders directly in `~/Library/Caches`
+/// (matched by bundle ID or name, as leftovers are), read again now, as Cleanup's app caches,
+/// so Cleanup's rules for caches apply (never Apple's, never while the app is open). Only
+/// caches: its settings and data are never included.
+pub fn caches_of(
+    bundle: &Bundle,
+    home: &Path,
+    now_ms: u64,
+    cancel: &AtomicBool,
+) -> Vec<ReviewItem> {
+    if bundle.apple_made() {
+        return Vec::new();
+    }
+    let library = read_library(home, &["Library/Caches"]);
+    let mut links = Links::default();
+    leftovers_of(bundle, &library)
+        .into_iter()
+        .filter(|(_, stat, _)| stat.is_dir())
+        .map(|(path, stat, _)| {
+            let measured = measure(&path, &stat, &mut links, cancel);
+            ReviewItem {
+                id: new_id(now_ms),
+                name: display_name(&path),
+                kind: Kind::AppCache,
+                path,
+                stat,
+                measured,
+                owner_removed: false,
+            }
+        })
+        .collect()
+}
+
+/// Whether the launch agent at `path` names a program that is gone (read as untrusted input,
+/// at most `MAX_PLIST_BYTES`, without following a symlink). Unreadable counts as not gone.
+fn agent_program_missing(path: &Path) -> bool {
+    use std::os::unix::fs::OpenOptionsExt;
+
+    let Ok(file) = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(path)
+    else {
+        return false;
+    };
+    if file.metadata().map_or(true, |metadata| {
+        !metadata.is_file() || metadata.len() > MAX_PLIST_BYTES
+    }) {
+        return false;
+    }
+    let mut bytes = Vec::new();
+    file.take(MAX_PLIST_BYTES).read_to_end(&mut bytes).is_ok()
+        && crate::cleanup::scan::program_missing(&bytes)
 }
 
 fn display_name(path: &Path) -> String {
@@ -540,48 +695,116 @@ fn orphan_owner(name: &str, installed: &[&Bundle], running: &[RunningBundle]) ->
     leftover_matches(name, &owner).then_some(owner)
 }
 
-#[allow(clippy::too_many_arguments)]
-fn read_apps(
-    folder: &Path,
-    home: Option<&Path>,
-    running: &[RunningBundle],
+/// Folder name extensions of bundles and packages, which hold no apps of their own to list
+/// (`Logi Options+ Driver Installer.bundle/…app`). A suite folder may still have a dot in
+/// its name (`Cisco Packet Tracer 9.0.1`, `Chrome Apps.localized`).
+const BUNDLE_EXTENSIONS: &[&str] = &[
+    "app",
+    "appex",
+    "bundle",
+    "component",
+    "framework",
+    "kext",
+    "mdimporter",
+    "pkg",
+    "mpkg",
+    "plugin",
+    "prefpane",
+    "qlgenerator",
+    "saver",
+    "xpc",
+];
+
+fn bundle_like(name: &str) -> bool {
+    Path::new(name).extension().is_some_and(|extension| {
+        let extension = extension.to_string_lossy().to_lowercase();
+        BUNDLE_EXTENSIONS.contains(&extension.as_str())
+    })
+}
+
+/// Finds app bundles in an apps folder and its plain subfolders, through handles, never
+/// following symlinks or leaving the folder's volume.
+struct AppFinder<'a> {
+    home: Option<&'a Path>,
+    running: &'a [RunningBundle],
     now_ms: u64,
-    cancel: &AtomicBool,
-    links: &mut Links,
-    bundles: &mut Vec<Bundle>,
-    apps: &mut Vec<AppEntry>,
-) {
-    let Some((mut dir, dev)) = open_absolute(folder) else {
-        return;
-    };
-    while let Some(Ok(name)) = dir.next_name() {
-        if bundles.len() >= MAX_APPS || cancel.load(Ordering::Relaxed) {
-            break;
+    cancel: &'a AtomicBool,
+    links: &'a mut Links,
+    /// Bundles already listed (device, inode): `/Applications/Utilities` is both a folder
+    /// of `/Applications` and an apps folder of its own.
+    seen: HashSet<(u64, u64)>,
+    bundles: Vec<Bundle>,
+    apps: Vec<AppEntry>,
+}
+
+impl AppFinder<'_> {
+    /// Lists the apps in `folder` (open as `dir` on device `dev`), `depth` folders below an
+    /// apps folder. `system`: macOS's own folder, whose apps are never removed.
+    fn read(&mut self, folder: &Path, mut dir: DirHandle, dev: u64, depth: usize, system: bool) {
+        let mut subfolders = Vec::new();
+        let mut entries = 0_usize;
+        while let Some(Ok(name)) = dir.next_name() {
+            entries += 1;
+            if entries > MAX_ENTRIES_PER_FOLDER
+                || self.bundles.len() >= MAX_APPS
+                || self.cancel.load(Ordering::Relaxed)
+            {
+                break;
+            }
+            let Ok(text) = name.to_str() else {
+                continue;
+            };
+            // A symlinked app or folder (Safari links into the system) isn't followed.
+            let Ok(stat) = dir.stat_child(&name) else {
+                continue;
+            };
+            if !stat.is_dir() || stat.dev != dev {
+                continue;
+            }
+            if let Some(stem) = text.strip_suffix(".app") {
+                if self.seen.insert((stat.dev, stat.ino)) {
+                    let path = folder.join(text);
+                    self.add(&dir, &name, stem, path, stat, dev, system);
+                }
+            } else if depth < MAX_APP_DEPTH && !text.starts_with('.') && !bundle_like(text) {
+                let text = text.to_owned();
+                subfolders.push((name, text, stat));
+            }
         }
-        let Some(stem) = name
-            .to_str()
-            .ok()
-            .and_then(|name| name.strip_suffix(".app"))
-        else {
-            continue;
-        };
-        // A symlinked app (Safari links into the system) isn't followed or offered.
-        let Ok(stat) = dir.stat_child(&name) else {
-            continue;
-        };
-        if !stat.is_dir() || stat.dev != dev {
-            continue;
+        for (name, text, stat) in subfolders {
+            if self.bundles.len() >= MAX_APPS || self.cancel.load(Ordering::Relaxed) {
+                break;
+            }
+            let Ok((sub, opened)) = dir.open_child(&name) else {
+                continue;
+            };
+            // A bundle without a known extension still has a `Contents` folder.
+            if opened.dev != dev || opened.ino != stat.ino || sub.stat_child(c"Contents").is_ok() {
+                continue;
+            }
+            self.read(&folder.join(text), sub, dev, depth + 1, system);
         }
-        let path = folder.join(name.to_str().unwrap_or_default());
-        let info = read_info(&dir, &name, dev).unwrap_or_default();
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn add(
+        &mut self,
+        dir: &DirHandle,
+        name: &CStr,
+        stem: &str,
+        path: PathBuf,
+        stat: FileStat,
+        dev: u64,
+        system: bool,
+    ) {
+        let info = read_info(dir, name, dev).unwrap_or_default();
         let display = info.name.clone().unwrap_or_else(|| stem.to_owned());
-        let apple = info
-            .bundle_id
-            .as_deref()
-            .is_some_and(|id| id.to_lowercase().starts_with("com.apple."));
-        let measured = match dir.open_child(&name) {
+        // Part of macOS: in its own folder, or Apple's and not from the App Store (Apple's
+        // App Store apps, such as Xcode or Logic Pro, can be removed like any other).
+        let apple = system || (apple_id(info.bundle_id.as_deref()) && !info.store_receipt);
+        let measured = match dir.open_child(name) {
             Ok((bundle, opened)) if opened.ino == stat.ino => {
-                measure_dir(bundle, dev, links, cancel)
+                measure_dir(bundle, dev, self.links, self.cancel)
             }
             _ => Measured {
                 bytes: 0,
@@ -591,26 +814,30 @@ fn read_apps(
                 newest_modified_s: 0,
             },
         };
-        let id = new_id(now_ms);
+        let id = new_id(self.now_ms);
         let is_running = info.bundle_id.as_deref().is_some_and(|bundle_id| {
-            running
+            self.running
                 .iter()
                 .any(|app| app.id.eq_ignore_ascii_case(bundle_id))
         });
-        apps.push(AppEntry {
+        self.apps.push(AppEntry {
             id: id.clone(),
             name: display.clone(),
             bundle_id: info.bundle_id.clone(),
             version: info.version,
-            location: display_path(folder, home),
+            location: path
+                .parent()
+                .map(|parent| display_path(parent, self.home))
+                .unwrap_or_default(),
             bytes: measured.bytes,
             lower_bound: measured.lower_bound,
+            modified_ms: modified_ms(stat.modified_s),
             running: is_running,
             apple,
             leftovers: Vec::new(),
             leftover_bytes: 0,
         });
-        bundles.push(Bundle {
+        self.bundles.push(Bundle {
             id,
             path,
             stat,
@@ -626,6 +853,8 @@ struct Info {
     bundle_id: Option<String>,
     name: Option<String>,
     version: Option<String>,
+    /// It has an App Store receipt (`Contents/_MASReceipt`).
+    store_receipt: bool,
 }
 
 fn read_info(applications: &DirHandle, bundle: &CStr, dev: u64) -> Option<Info> {
@@ -639,6 +868,9 @@ fn read_info(applications: &DirHandle, bundle: &CStr, dev: u64) -> Option<Info> 
     if opened.dev != dev {
         return None;
     }
+    let store_receipt = contents
+        .stat_child(c"_MASReceipt")
+        .is_ok_and(|receipt| receipt.is_dir());
     let file = contents.open_file_child(c"Info.plist").ok()?;
     let metadata = file.metadata().ok()?;
     if !metadata.is_file() || metadata.dev() != dev || metadata.len() > MAX_PLIST_BYTES {
@@ -646,7 +878,10 @@ fn read_info(applications: &DirHandle, bundle: &CStr, dev: u64) -> Option<Info> 
     }
     let mut bytes = Vec::new();
     file.take(MAX_PLIST_BYTES).read_to_end(&mut bytes).ok()?;
-    Some(parse_info(&bytes))
+    Some(Info {
+        store_receipt,
+        ..parse_info(&bytes)
+    })
 }
 
 /// The bundle ID, display name and version from an `Info.plist` (XML or binary).
@@ -668,6 +903,7 @@ fn parse_info(bytes: &[u8]) -> Info {
         bundle_id: text("CFBundleIdentifier"),
         name: text("CFBundleDisplayName").or_else(|| text("CFBundleName")),
         version: text("CFBundleShortVersionString"),
+        store_receipt: false,
     }
 }
 

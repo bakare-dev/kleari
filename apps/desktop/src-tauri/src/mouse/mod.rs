@@ -7,12 +7,16 @@
 //! sees only wheel and extra-button events; nothing it sees is stored or sent anywhere.
 
 pub mod config;
+pub mod devices;
 // Only the macOS event tap drives it; on other targets (Linux CI) only its tests do.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub mod engine;
+pub mod keylock;
 pub mod probe;
+pub mod recorder;
 #[cfg(target_os = "macos")]
 mod tap;
+pub mod window;
 
 #[cfg(target_os = "macos")]
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -54,6 +58,8 @@ pub struct MouseStatus {
     pub access: Access,
     /// The settings are being applied to the mouse now.
     pub active: bool,
+    /// The external mice connected now; trackpads are never listed (or changed).
+    pub mice: Vec<devices::Mouse>,
 }
 
 #[cfg(target_os = "macos")]
@@ -273,14 +279,85 @@ fn refresh(app: &AppHandle) -> MouseStatus {
         source: loaded.source,
         access,
         active,
+        mice: devices::connected(),
     }
 }
 
 /// At launch: the saved settings take effect if they are on and macOS allows it.
 pub fn start(app: &AppHandle) {
+    // System shortcuts a recording turned off before Kleari quit or crashed come back on.
+    recorder::restore_after_crash(&app.state::<History>().db);
+    window::init(app.clone());
     let _ = refresh(app);
     // The button finder's in-app monitor; silent until the Mouse page listens.
     probe::install(app.clone());
+}
+
+/// How starting a shortcut recording went.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum RecordingStart {
+    /// Every key press goes to the page (`recorder::RECORD_EVENT`) until it stops recording
+    /// `session`.
+    Recording {
+        session: u64,
+    },
+    /// Accessibility isn't allowed: the page records in its own window instead.
+    NotAllowed,
+    Unsupported,
+}
+
+/// Starts recording a shortcut: the keyboard, system shortcuts included, goes only to the
+/// page, and the mouse settings pause, until `stop_shortcut_recording` (or Escape, or
+/// `recorder::MAX_RECORDING`).
+#[tauri::command]
+pub async fn start_shortcut_recording(app: AppHandle) -> Result<RecordingStart, CommandError> {
+    tauri::async_runtime::spawn_blocking(move || match recorder::start(app) {
+        Ok(session) => RecordingStart::Recording { session },
+        Err(recorder::StartError::NotAllowed) => RecordingStart::NotAllowed,
+        Err(recorder::StartError::Unsupported) => RecordingStart::Unsupported,
+    })
+    .await
+    .map_err(blocking_failed)
+}
+
+/// Ends shortcut recording `session` (a later one is left alone); the keyboard, the system
+/// shortcuts and the mouse settings work as usual again.
+#[tauri::command]
+pub fn stop_shortcut_recording(session: u64) {
+    recorder::stop(session);
+}
+
+/// Locks the keyboard for `seconds` (30, 60, 120 or 300) for cleaning it: until then, or the
+/// first mouse or trackpad click, or Kleari quitting. Brings the main window forward,
+/// where the lock screen shows the time left (from the popover too).
+#[tauri::command]
+pub async fn start_keyboard_lock(
+    app: AppHandle,
+    seconds: u64,
+) -> Result<keylock::LockStart, CommandError> {
+    if !keylock::valid_duration(seconds) {
+        return Err(CommandErrorCode::InvalidRequest.into());
+    }
+    let handle = app.clone();
+    let started = tauri::async_runtime::spawn_blocking(move || keylock::start(handle, seconds))
+        .await
+        .map_err(blocking_failed)?;
+    if matches!(started, keylock::LockStart::Locked { .. }) {
+        crate::menubar::hide_popover(app.clone());
+        crate::menubar::show_main(&app);
+    }
+    Ok(started)
+}
+
+/// Whether the keyboard is locked, and until when.
+#[tauri::command]
+pub fn get_keyboard_lock() -> keylock::LockState {
+    keylock::state()
 }
 
 /// The Mouse page starts (`true`) and stops (`false`) listening for which button is pressed.

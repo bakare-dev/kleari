@@ -470,6 +470,7 @@ export function findingView(finding: ReviewFinding, nowMs: number): Finding {
     gb: toGb(finding.bytes),
     files: `${finding.lowerBound ? "≥ " : ""}${finding.files.toLocaleString("en-US")}`,
     modified: modified.charAt(0).toUpperCase() + modified.slice(1),
+    modifiedMs: finding.modifiedMs,
     reason: reasonFor(finding),
     certainty: certaintyText[finding.certainty],
     risk: riskText[finding.risk],
@@ -478,14 +479,6 @@ export function findingView(finding: ReviewFinding, nowMs: number): Finding {
     whyNot: finding.whyNot === null ? undefined : whyNotText[finding.whyNot],
     evidence: finding.evidence.map((entry) => ({ tone: entry.tone, text: evidenceText(entry) })),
   };
-}
-
-export function categoryCounts(findings: readonly Finding[]): Record<FindingCategory, number> {
-  const counts: Record<FindingCategory, number> = { cache: 0, xcode: 0, pkg: 0, node: 0, build: 0, logs: 0, large: 0, old: 0, apps: 0, chosen: 0, broken: 0, startup: 0 };
-  for (const finding of findings) {
-    counts[finding.category] += 1;
-  }
-  return counts;
 }
 
 function clock(ms: number, withSeconds = false): string {

@@ -10,3 +10,8 @@ export function checkForUpdate(): Promise<UpdateCheck> {
 export async function installUpdate(): Promise<void> {
   await call("install_update", {}, () => undefined);
 }
+
+/** Opens Kleari's release page for `version` in the browser; Rust builds the address. */
+export async function openReleasePage(version: string): Promise<void> {
+  await call("open_release_page", { version }, () => undefined);
+}

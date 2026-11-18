@@ -6,6 +6,12 @@
   flex: none;
 }
 
+.apps-rescan {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .apps-actions {
   display: flex;
   align-items: center;

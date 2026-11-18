@@ -133,6 +133,12 @@ pub struct PlannedItem {
     pub state: PlannedState,
     /// The size measured for the preview (for planned items), otherwise the scan's.
     pub bytes: u64,
+    /// What a page's confirm sheet shows (the review has them from its findings): the item's
+    /// name, its category, the folder it is in as `~/…`, and why it can't be removed, if not.
+    pub name: String,
+    pub category: super::policy::Category,
+    pub location: String,
+    pub why_not: Option<super::WhyNot>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -181,10 +187,15 @@ pub fn create_preview(
                 }
             }
         };
+        let finding = item.finding();
         planned.push(PlannedItem {
             id: item.id,
             state: state_now,
             bytes,
+            name: finding.name,
+            category: finding.category,
+            location: finding.location,
+            why_not: finding.why_not,
         });
     }
     let id = new_id(now_ms);
@@ -280,6 +291,53 @@ pub enum ApproveOutcome {
 
 /// Approves the preview `preview_id`: checks every item again, then moves each one into a new
 /// quarantine batch named by `origin`.
+/// Why a preview can't be acted on.
+enum Unbound {
+    /// There is no such preview, or one of its items is no longer known.
+    NoPreview,
+    /// These items changed since the preview was made; the preview is dropped.
+    Stale(Vec<String>),
+}
+
+/// The preview's items with what each was bound to, if every one is still known and still the
+/// same as when the preview was made: same identity, same size, same place, still eligible and
+/// still kept by the preferences. Everything is checked before anything is touched.
+fn checked_preview(
+    state: &CleanupState,
+    preview_id: &str,
+    checks: &Checks<'_>,
+) -> Result<Vec<(Candidate, Bound)>, Unbound> {
+    let Some(preview) = state.preview().filter(|preview| preview.id == preview_id) else {
+        return Err(Unbound::NoPreview);
+    };
+    let ids: Vec<String> = preview.items.iter().map(|entry| entry.id.clone()).collect();
+    let mut items = state.items(&ids);
+    let mut bound = Vec::with_capacity(preview.items.len());
+    for entry in preview.items {
+        // Every bound item must still be known; otherwise the preview is void.
+        let Some(at) = items.iter().position(|item| item.id == entry.id) else {
+            return Err(Unbound::NoPreview);
+        };
+        bound.push((items.swap_remove(at), entry));
+    }
+    let changed: Vec<String> = bound
+        .iter()
+        .filter(|(item, entry)| {
+            !(checks.eligible_now(item)
+                && checks.in_bounds(item)
+                && checks.clear_of_exclusions(item)
+                && current_state(&item.path, checks.cancel) == Some((entry.identity, entry.bytes))
+                && checks.kept_now(item, entry.bytes))
+        })
+        .map(|(item, _)| item.id.clone())
+        .collect();
+    if !changed.is_empty() {
+        state.set_preview(None);
+        return Err(Unbound::Stale(changed));
+    }
+    Ok(bound)
+}
+
 pub fn approve(
     state: &CleanupState,
     preview_id: &str,
@@ -290,36 +348,13 @@ pub fn approve(
     mut progress: impl FnMut(MoveProgress),
 ) -> ApproveOutcome {
     let (db, store) = (&history.db, &history.store);
-    let Some(preview) = state.preview().filter(|preview| preview.id == preview_id) else {
-        return ApproveOutcome::NoPreview;
+    let bound = match checked_preview(state, preview_id, checks) {
+        Ok(bound) => bound,
+        Err(Unbound::NoPreview) => return ApproveOutcome::NoPreview,
+        Err(Unbound::Stale(changed)) => return ApproveOutcome::Stale { changed },
     };
-    let ids: Vec<String> = preview.items.iter().map(|entry| entry.id.clone()).collect();
-    let items = state.items(&ids);
-    let mut bound: Vec<(&Candidate, &Bound)> = Vec::new();
-    for entry in &preview.items {
-        // Every bound item must still be in the review; otherwise the preview is void.
-        let Some(item) = items.iter().find(|item| item.id == entry.id) else {
-            return ApproveOutcome::NoPreview;
-        };
-        bound.push((item, entry));
-    }
-
-    // Everything is checked before anything moves.
-    let mut changed = Vec::new();
-    for (item, entry) in &bound {
-        let same = checks.eligible_now(item)
-            && checks.in_bounds(item)
-            && checks.clear_of_exclusions(item)
-            && current_state(&item.path, checks.cancel) == Some((entry.identity, entry.bytes))
-            && checks.kept_now(item, entry.bytes);
-        if !same {
-            changed.push(item.id.clone());
-        }
-    }
-    if !changed.is_empty() {
-        state.set_preview(None);
-        return ApproveOutcome::Stale { changed };
-    }
+    let bound: Vec<(&Candidate, &Bound)> =
+        bound.iter().map(|(item, entry)| (item, entry)).collect();
 
     if let Some(reason) = db.unavailable() {
         return ApproveOutcome::HistoryUnavailable { reason };
@@ -442,6 +477,115 @@ pub fn approve(
     state.remove(&moved_ids);
     ApproveOutcome::Finished {
         batch_id: batch.id,
+        finished_at_ms: finished,
+        items: results,
+    }
+}
+
+/// Where one item of a permanent delete is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(tag = "state", rename_all = "camelCase")]
+pub enum DeleteState {
+    Deleting,
+    Deleted,
+    /// It wasn't deleted, or only part of it was (a folder stops at the first error).
+    Failed {
+        reason: MoveFailure,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteNowProgress {
+    pub id: String,
+    #[serde(flatten)]
+    pub state: DeleteState,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "status", rename_all = "camelCase")]
+pub enum DeleteNowOutcome {
+    /// There is no such preview (it was replaced, or the review changed since).
+    NoPreview,
+    /// Something changed after the preview was made; nothing was deleted.
+    Stale { changed: Vec<String> },
+    #[serde(rename_all = "camelCase")]
+    Finished {
+        finished_at_ms: u64,
+        items: Vec<DeleteNowProgress>,
+    },
+}
+
+/// Deletes the preview's items for good, where they are, without quarantine. Every item is
+/// checked first exactly as for a move (`checked_preview`), and nothing is deleted unless all
+/// still match; then each is checked once more just before it goes and deleted only through
+/// handles bound to the identity it had (`Store::delete_in_place`). Recorded in Activity as a
+/// permanent delete (counts and size, `subject` the page it came from; no paths).
+pub fn delete_now(
+    state: &CleanupState,
+    preview_id: &str,
+    checks: &Checks<'_>,
+    history: &History,
+    origin: &str,
+    now_ms: impl Fn() -> u64,
+    mut progress: impl FnMut(DeleteNowProgress),
+) -> DeleteNowOutcome {
+    let bound = match checked_preview(state, preview_id, checks) {
+        Ok(bound) => bound,
+        Err(Unbound::NoPreview) => return DeleteNowOutcome::NoPreview,
+        Err(Unbound::Stale(changed)) => return DeleteNowOutcome::Stale { changed },
+    };
+    let mut results = Vec::with_capacity(bound.len());
+    let mut deleted_ids = Vec::new();
+    let mut deleted_bytes = 0_u64;
+    for (item, entry) in &bound {
+        progress(DeleteNowProgress {
+            id: item.id.clone(),
+            state: DeleteState::Deleting,
+        });
+        // The preferences once more, on its time read now; then the identity, by handle.
+        let outcome = if checks.clear_of_exclusions(item) && checks.kept_now(item, entry.bytes) {
+            crate::quarantine::Store::delete_in_place(&item.path, entry.identity)
+        } else {
+            Err(Failure::Changed)
+        };
+        let state_now = match outcome {
+            Ok(()) => {
+                deleted_ids.push(item.id.clone());
+                deleted_bytes = deleted_bytes.saturating_add(entry.bytes);
+                DeleteState::Deleted
+            }
+            Err(failure) => DeleteState::Failed {
+                reason: move_failure(failure),
+            },
+        };
+        let result = DeleteNowProgress {
+            id: item.id.clone(),
+            state: state_now,
+        };
+        progress(result.clone());
+        results.push(result);
+    }
+    let failed = results.len() - deleted_ids.len();
+    let finished = now_ms();
+    // The outcome is already shown; a failed event write loses only the log line.
+    let _ = history.db.record_event(&Event {
+        at_ms: finished,
+        kind: EventKind::Delete,
+        batch_id: None,
+        items: u64::try_from(results.len()).unwrap_or(u64::MAX),
+        bytes: deleted_bytes,
+        failed: u64::try_from(failed).unwrap_or(u64::MAX),
+        outcome: match (deleted_ids.len(), failed) {
+            (_, 0) => "completed",
+            (0, _) => "failed",
+            _ => "partial",
+        },
+        subject: Some(origin.to_owned()),
+        lines: Vec::new(),
+    });
+    state.remove(&deleted_ids);
+    DeleteNowOutcome::Finished {
         finished_at_ms: finished,
         items: results,
     }
