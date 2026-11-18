@@ -170,8 +170,10 @@ pub async fn install_update(app: AppHandle) -> Result<(), CommandError> {
     }
 }
 
-/// Waits this long at most for the old Kleari to end before opening the new one anyway.
-const RELAUNCH_WAIT_TENTHS: u32 = 100;
+const SH: &str = "/bin/sh";
+/// Waits for the old Kleari (`$1`) to end, at most 10 seconds, then opens the bundle (`$2`).
+/// The network check (docs/network.md) allows `/bin/sh` only here, with exactly this script.
+const RELAUNCH_SCRIPT: &str = r#"i=0; while kill -0 "$1" 2>/dev/null && [ "$i" -lt 100 ]; do sleep 0.1; i=$((i + 1)); done; exec /usr/bin/open "$2""#;
 
 /// Opens `bundle` once this process has ended, from a helper that outlives it. Tauri's restart
 /// opens a second instance (`open -n`) while this one still runs, and the Dock gives that
@@ -181,7 +183,7 @@ fn relaunch_after_exit(bundle: &std::path::Path) -> std::io::Result<()> {
     use std::os::unix::process::CommandExt;
     use std::process::{Command, Stdio};
 
-    Command::new("/bin/sh")
+    Command::new(SH)
         .args(relaunch_args(std::process::id(), bundle))
         // Its own process group, so it is not ended along with Kleari's.
         .process_group(0)
@@ -195,13 +197,9 @@ fn relaunch_after_exit(bundle: &std::path::Path) -> std::io::Result<()> {
 /// The helper's arguments: the process and bundle are passed as positional parameters, never
 /// written into the script.
 fn relaunch_args(pid: u32, bundle: &std::path::Path) -> Vec<std::ffi::OsString> {
-    let script = format!(
-        "i=0; while kill -0 \"$1\" 2>/dev/null && [ \"$i\" -lt {RELAUNCH_WAIT_TENTHS} ]; do \
-         sleep 0.1; i=$((i + 1)); done; exec /usr/bin/open \"$2\""
-    );
     vec![
         "-c".into(),
-        script.into(),
+        RELAUNCH_SCRIPT.into(),
         "kleari-relaunch".into(),
         pid.to_string().into(),
         bundle.as_os_str().to_owned(),
