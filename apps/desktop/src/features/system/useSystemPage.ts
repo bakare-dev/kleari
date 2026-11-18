@@ -2,13 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { StartupItems, SystemActivity, SystemDetails } from "../../contracts/systemPage";
 import { fetchStartupItems, fetchSystemActivity, fetchSystemDetails, openSystemSettings, type SettingsPane } from "../../lib/systemPageIpc";
 import { singleFlight, startPolling } from "../overview/metricsPoller";
-import { toErrorKind, useKleariInView } from "../overview/useSystemMetrics";
+import { toErrorKind, useDocumentVisible } from "../overview/useSystemMetrics";
 import { appendHistory, buildSystemView, type Loadable } from "./systemView";
 
 /** While the System page is on screen. */
 export const ACTIVITY_INTERVAL_MS = 1_000;
-/** While it isn't, so the page has recent readings and charts the moment it opens. */
+/** While the Dashboard is on screen; nothing is sampled while other pages are. */
 export const BACKGROUND_INTERVAL_MS = 5_000;
+/** A reading still measuring (the first after a gap) is asked for again this soon, not after
+ * a whole interval. */
+export const WARM_UP_RETRY_MS = 1_000;
+
+function warmingUp(sample: SystemActivity): boolean {
+  return sample.cpu.status === "unavailable" && sample.cpu.reason === "warmingUp";
+}
 
 export interface SystemLoaders {
   activity: () => Promise<SystemActivity>;
@@ -56,18 +63,19 @@ function useReloadable<T>(load: () => Promise<T>): [Loadable<T>, () => void] {
 }
 
 /**
- * The System page's data, held at the app level from launch. Activity is sampled every
- * `foregroundMs` while the page is on screen and every `backgroundMs` otherwise, while Kleari
- * is open to look at (its window, or its menu-bar popover) and not paused, so the page opens
- * with recent readings and charts.
+ * The System page's data, held at the app level so its charts survive leaving the page.
+ * Activity is sampled every `foregroundMs` while the System page is on screen and every
+ * `backgroundMs` while the Dashboard is (`watch`), only while Kleari is open to look at and
+ * not paused; other pages sample nothing, to keep Kleari light.
  * Details and startup items are read at launch and again each time the page opens. History
  * is only what was actually sampled; a gap (pause, hidden window) starts a new chart.
  */
 export function useSystemMonitor(loaders: SystemLoaders = defaultLoaders, foregroundMs = ACTIVITY_INTERVAL_MS, backgroundMs = BACKGROUND_INTERVAL_MS) {
   const [paused, setPaused] = useState(false);
   const [onScreen, setOnScreen] = useState(false);
+  const [watched, setWatched] = useState(false);
   const [live, setLive] = useState<LiveState>({ activity: { status: "loading" }, history: [] });
-  const visible = useKleariInView();
+  const visible = useDocumentVisible();
   const sharedActivity = useMemo(() => singleFlight(loaders.activity), [loaders.activity]);
   const [details, reloadDetails] = useReloadable(loaders.details);
   const [startup, reloadStartup] = useReloadable(loaders.startup);
@@ -76,21 +84,32 @@ export function useSystemMonitor(loaders: SystemLoaders = defaultLoaders, foregr
   const maxGapMs = Math.max(foregroundMs, backgroundMs) * 3;
 
   useEffect(() => {
-    if (!visible || paused) {
+    if (!visible || paused || !(onScreen || watched)) {
       return;
     }
+    let retry: ReturnType<typeof setTimeout> | undefined;
     const poller = startPolling({
       load: sharedActivity,
       intervalMs,
-      onSuccess: (sample) =>
+      onSuccess: (sample) => {
         setLive((current) => ({
           activity: { status: "ready", value: sample },
           history: appendHistory(current.history, sample, maxGapMs),
-        })),
+        }));
+        if (warmingUp(sample) && retry === undefined) {
+          retry = setTimeout(() => {
+            retry = undefined;
+            poller.refresh();
+          }, WARM_UP_RETRY_MS);
+        }
+      },
       onError: (error) => setLive((current) => ({ ...current, activity: failed(current.activity, error) })),
     });
-    return () => poller.stop();
-  }, [visible, paused, sharedActivity, intervalMs, maxGapMs]);
+    return () => {
+      clearTimeout(retry);
+      poller.stop();
+    };
+  }, [visible, paused, onScreen, watched, sharedActivity, intervalMs, maxGapMs]);
 
   /** Called by the page while it is on screen; reads details and startup items again. */
   const enter = useCallback(() => {
@@ -99,9 +118,12 @@ export function useSystemMonitor(loaders: SystemLoaders = defaultLoaders, foregr
     reloadStartup();
   }, [reloadDetails, reloadStartup]);
   const leave = useCallback(() => setOnScreen(false), []);
+  /** Called by the Dashboard while it is on screen: samples at `backgroundMs`. */
+  const watch = useCallback(() => setWatched(true), []);
+  const unwatch = useCallback(() => setWatched(false), []);
   const togglePause = useCallback(() => setPaused((current) => !current), []);
 
-  return { activity: live.activity, history: live.history, details, startup, paused, togglePause, enter, leave, openSettings: loaders.openSettings };
+  return { activity: live.activity, history: live.history, details, startup, paused, togglePause, enter, leave, watch, unwatch, openSettings: loaders.openSettings };
 }
 
 export type SystemMonitor = ReturnType<typeof useSystemMonitor>;

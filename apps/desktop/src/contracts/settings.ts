@@ -17,6 +17,18 @@ export interface Preferences {
   notifyScan: boolean;
   notifyQuarantine: boolean;
   notifySound: boolean;
+  /** The single alerts switch before alerts had groups; groups never saved follow it. */
+  notifyIssues: boolean;
+  /** Alert notifications by group (Settings › Notifications). */
+  notifyStorage: boolean;
+  notifyPerformance: boolean;
+  notifyBattery: boolean;
+  notifyLoginItems: boolean;
+  notifyReminders: boolean;
+  /** The first-launch setup was seen. */
+  setupDone: boolean;
+  /** Which version of the "use at your own risk" notice was acknowledged; 0 is none. */
+  disclaimerSeen: number;
   retentionDays: number;
   /** Kleari sits in the menu bar and keeps running when its window is closed. */
   menuBar: boolean;
@@ -80,6 +92,14 @@ export interface SettingsState {
   quarantineFolder: string;
   version: string;
   schedule: ScheduleStatus;
+  /** Kleari moved to its new bundle identifier and the sheet to allow its permissions again
+   * hasn't been closed; `null` otherwise. */
+  identityMove: IdentityMove | null;
+}
+
+export interface IdentityMove {
+  /** False: System Settings may still list the old "Kleari", for the user to remove. */
+  oldPermissionsReset: boolean;
 }
 
 const MAX_TEXT = 1024;
@@ -141,6 +161,14 @@ function preferences(value: unknown, field: string): Preferences {
     notifyScan: boolean(fields.notifyScan, `${field}.notifyScan`),
     notifyQuarantine: boolean(fields.notifyQuarantine, `${field}.notifyQuarantine`),
     notifySound: boolean(fields.notifySound, `${field}.notifySound`),
+    notifyIssues: boolean(fields.notifyIssues, `${field}.notifyIssues`),
+    notifyStorage: boolean(fields.notifyStorage, `${field}.notifyStorage`),
+    notifyPerformance: boolean(fields.notifyPerformance, `${field}.notifyPerformance`),
+    notifyBattery: boolean(fields.notifyBattery, `${field}.notifyBattery`),
+    notifyLoginItems: boolean(fields.notifyLoginItems, `${field}.notifyLoginItems`),
+    notifyReminders: boolean(fields.notifyReminders, `${field}.notifyReminders`),
+    setupDone: boolean(fields.setupDone, `${field}.setupDone`),
+    disclaimerSeen: nonNegativeInteger(fields.disclaimerSeen, `${field}.disclaimerSeen`),
     retentionDays: nonNegativeInteger(fields.retentionDays, `${field}.retentionDays`),
     menuBar: boolean(fields.menuBar, `${field}.menuBar`),
     checkForUpdates: boolean(fields.checkForUpdates, `${field}.checkForUpdates`),
@@ -223,6 +251,8 @@ export interface Uninstalled {
   failed: string[];
   /** Open at login was on and macOS didn't turn it off: its reason. */
   loginItemKept: string | null;
+  /** macOS forgot the permissions it gave Kleari; false: the page gives the command. */
+  permissionsReset: boolean;
 }
 
 export function parseUninstalled(payload: unknown): Uninstalled {
@@ -231,6 +261,7 @@ export function parseUninstalled(payload: unknown): Uninstalled {
     moved: parsePaths(fields.moved, "moved"),
     failed: parsePaths(fields.failed, "failed"),
     loginItemKept: fields.loginItemKept === null ? null : text(fields.loginItemKept, "loginItemKept"),
+    permissionsReset: boolean(fields.permissionsReset, "permissionsReset"),
   };
 }
 
@@ -251,5 +282,11 @@ export function parseSettings(payload: unknown): SettingsState {
     quarantineFolder: text(fields.quarantineFolder, "quarantineFolder"),
     version: text(fields.version, "version"),
     schedule: scheduleStatus(fields.schedule, "schedule"),
+    identityMove: fields.identityMove === null ? null : identityMove(fields.identityMove, "identityMove"),
   };
+}
+
+function identityMove(value: unknown, field: string): IdentityMove {
+  const fields = record(value, field);
+  return { oldPermissionsReset: boolean(fields.oldPermissionsReset, `${field}.oldPermissionsReset`) };
 }

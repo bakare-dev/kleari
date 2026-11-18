@@ -168,9 +168,24 @@ mod macos {
         .contains(&kind)
     }
 
+    /// `NSEventSubtypeTouch`: the event came from a trackpad.
+    const TOUCH: i16 = 3;
+
     fn probe(event: &NSEvent) -> Option<Probe> {
         let button = || u8::try_from(event.buttonNumber()).ok();
         let kind = event.r#type();
+        // A trackpad's clicks aren't the mouse's: the finder shows only an external mouse.
+        // (Asked only of clicks: AppKit raises for `subtype` on some other events.)
+        let click = [
+            NSEventType::LeftMouseDown,
+            NSEventType::LeftMouseUp,
+            NSEventType::RightMouseDown,
+            NSEventType::RightMouseUp,
+        ]
+        .contains(&kind);
+        if click && event.subtype().0 == TOUCH {
+            return None;
+        }
         if kind == NSEventType::ScrollWheel {
             let inverted = event.isDirectionInvertedFromDevice();
             return Some(Probe::Scroll {

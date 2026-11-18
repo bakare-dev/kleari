@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Segmented } from "./ui/components";
+import { TrashScreen } from "./screens/quarantine/TrashScreen";
 import {
-  categoryCounts,
   clock,
   consequences,
   findingView,
@@ -18,11 +19,15 @@ import type { useCleanupScan } from "../features/cleanup/useCleanupScan";
 import type { useQuarantine } from "../features/cleanup/useQuarantine";
 import { buildDeveloperView } from "../features/developer/developerView";
 import type { useDeveloperScan } from "../features/developer/useDeveloperScan";
+import type { Apps } from "../features/apps/useApps";
+import type { StorageExplorer as StorageExplorerState } from "../features/storage/useStorageExplorer";
+import { AppsScreen } from "./screens/apps/AppsScreen";
 import { useProcessesPage, type ProcessMonitor } from "../features/processes/useProcessesPage";
 import { useSystemPage, type SystemMonitor } from "../features/system/useSystemPage";
 import { buildStorageView } from "../features/storage/storageAnalysisView";
 import { openFullDiskAccessSettings, useStorageAnalysis, useStorageOverview } from "../features/storage/useStorageAnalysis";
 import { openSystemSettings } from "../lib/systemPageIpc";
+import { revealStorageFile } from "../lib/cleanupIpc";
 import { navigate } from "./shell/routes";
 import { CleanupScreen } from "./screens/cleanup/CleanupScreen";
 import { PreviewScreen } from "./screens/cleanup/PreviewScreen";
@@ -65,14 +70,38 @@ export function DeveloperRoute({ developer, review }: { developer: ReturnType<ty
       onScan={developer.scan}
       onCancel={developer.cancel}
       onAddFolder={developer.addFolder}
-      sent={review.developerSent}
-      onSendToReview={(entries) => review.sendDeveloper(entries.flatMap((entry) => entry.reviewIds))}
+      onPrepare={(entries) => review.prepareDeveloper(entries.flatMap((entry) => entry.reviewIds))}
+      onRemoved={() => {
+        review.refresh();
+        developer.scan();
+      }}
+    />
+  );
+}
+
+/** The Apps scan runs only when asked; removing an app always asks first. */
+export function AppsRoute({ apps }: { apps: Apps }) {
+  const { state } = apps;
+  return (
+    <AppsScreen
+      result={state.result}
+      running={state.running}
+      note={state.error ?? (state.stopped ? "The scan was stopped. Showing the last full scan." : null)}
+      onScan={apps.scan}
+      onCancel={apps.cancel}
+      onPrepare={apps.prepare}
+      onPrepareCaches={apps.prepareCaches}
+      onRemoved={apps.refresh}
+      onRemove={(app) => apps.remove(app.id, app.name)}
+      onOpenAppManagement={() => {
+        void openSystemSettings("appManagement");
+      }}
     />
   );
 }
 
 /** Capacity is read on each visit; the analysis runs only when asked. */
-export function StorageRoute({ storage, review, cleanup }: { storage: ReturnType<typeof useStorageAnalysis>; review: CleanupReview; cleanup: CleanupScan }) {
+export function StorageRoute({ storage, review, cleanup, explorer }: { storage: ReturnType<typeof useStorageAnalysis>; review: CleanupReview; cleanup: CleanupScan; explorer: StorageExplorerState }) {
   const overview = useStorageOverview(storage.state.result);
   const view = buildStorageView({ overview, analysis: storage.state, nowMs: Date.now() });
   return (
@@ -81,8 +110,9 @@ export function StorageRoute({ storage, review, cleanup }: { storage: ReturnType
       onAnalyze={storage.analyze}
       onCancelAnalysis={storage.cancel}
       onOpenPrivacySettings={openFullDiskAccessSettings}
-      inReview={review.storageSent}
-      onAddToReview={(file) => review.addStorageFile(file.reviewId, file.name)}
+      onPrepareFile={(file) => review.prepareStorageFile(file.reviewId)}
+      onRevealFile={(file) => revealStorageFile(file.reviewId)}
+      explorer={explorer}
       onScanInCleanup={(mode: ScanMode) => {
         // Opens Cleanup with the mode chosen; the scan starts only when asked there.
         cleanup.prepare({ mode });
@@ -129,7 +159,7 @@ export function CleanupRoute({ cleanup, review }: { cleanup: CleanupScan; review
 }
 
 /** Step 2: the review is read again on each visit. */
-export function ReviewRoute({ review, initialQuery = "" }: { review: CleanupReview; initialQuery?: string }) {
+export function ReviewRoute({ review }: { review: CleanupReview }) {
   const { refresh } = review;
   useEffect(() => {
     refresh();
@@ -139,11 +169,9 @@ export function ReviewRoute({ review, initialQuery = "" }: { review: CleanupRevi
   return (
     <ReviewScreen
       findings={findings}
-      categoryCounts={categoryCounts(findings)}
       subtitle={reviewSubtitle(review.review, nowMs)}
       selection={review.selection}
       onSelectionChange={review.setSelection}
-      initialQuery={initialQuery}
       onRevealInFinder={(finding) => review.reveal(finding.id)}
       error={review.reviewError}
     />
@@ -191,23 +219,42 @@ export function PreviewRoute({ review, quarantine }: { review: CleanupReview; qu
       failedText={failure === undefined ? undefined : moveFailureText[failure]}
       errorText={preview.error}
       consequences={consequences([...new Set(items.map((item) => item.category))])}
+      mode={preview.mode}
+      deleteError={preview.deleteError}
       onApprove={review.approve}
       onRebuild={review.rebuild}
     />
   );
 }
 
-/** Read on each visit and after every restore or delete. */
+/** Read on each visit and after every restore or delete. The Trash tab reads the Trash only
+ * while it is shown. */
 export function QuarantineRoute({ quarantine }: { quarantine: Quarantine }) {
   const { refresh } = quarantine;
+  const [tab, setTab] = useState<"quarantine" | "trash">("quarantine");
   useEffect(() => {
     refresh();
   }, [refresh]);
   const nowMs = Date.now();
   const list = quarantine.list;
   const batches = list?.status === "available" ? list.batches : [];
+  const tabs = (
+    <Segmented
+      label="Show"
+      value={tab}
+      onChange={setTab}
+      options={[
+        { value: "quarantine", label: "Quarantine" },
+        { value: "trash", label: "Trash" },
+      ]}
+    />
+  );
+  if (tab === "trash") {
+    return <TrashScreen tabs={tabs} />;
+  }
   return (
     <QuarantineScreen
+      tabs={tabs}
       batches={quarantineBatches(batches, nowMs)}
       restored={quarantine.restored}
       deleted={new Set()}

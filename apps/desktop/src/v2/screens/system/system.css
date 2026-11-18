@@ -207,15 +207,18 @@
   padding: 14px 12px 8px;
 }
 
+/* The title and its button or note wrap onto two lines in a narrow card. */
 .sys-list-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px 8px;
   margin: 0 6px 4px;
 }
 
 .sys-list-head h2 {
-  flex: 1;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .sys-bg-summary {
@@ -268,11 +271,11 @@
 
 .sys-all {
   width: 520px;
-  max-height: 640px;
+  max-height: min(640px, calc(100vh - 48px));
 }
 
 .sys-all-body {
-  max-height: 640px;
+  max-height: min(640px, calc(100vh - 48px));
   padding: 22px;
 }
 

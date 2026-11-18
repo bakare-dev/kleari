@@ -1,0 +1,197 @@
+/* The header and the tabs stay in place; only each tab's items scroll. */
+.mt-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+  padding: 4px 28px 22px;
+}
+
+.mt-body > .v2-card-note,
+.mt-body > .v2-seg {
+  flex-shrink: 0;
+}
+
+.mt-grid {
+  display: grid;
+  min-height: 0;
+  flex: 1 1 auto;
+  align-content: start;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  /* Room for the cards' shadows inside the scrolling area. */
+  margin: -4px;
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.mt-grid:focus-visible,
+.mt-rows:focus-visible {
+  outline-offset: -2px;
+}
+
+.mt-task {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+}
+
+.mt-task-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mt-task-head h2 {
+  flex: 1;
+}
+
+.mt-line {
+  font-size: 13px;
+}
+
+.mt-task-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.mt-task-foot .v2-button,
+.mt-task-foot button {
+  margin-left: auto;
+}
+
+/* The card fills the rest of the page; its title and note stay, its list scrolls. */
+.mt-login {
+  display: flex;
+  min-height: 0;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+}
+
+.mt-login > :not(.mt-rows) {
+  flex-shrink: 0;
+}
+
+.mt-login-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mt-rows {
+  min-height: 0;
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.mt-rows li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 2px;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+@media (max-width: 640px) {
+  .mt-body {
+    padding: 4px 16px 22px;
+  }
+}
+
+/* The selection bar sits below the body, so the body leaves less space under it. */
+.mt-body-above-bar {
+  padding-bottom: 12px;
+}
+
+/* App caches: one card, its title and filter stay, its rows scroll. */
+.mt-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 24px;
+  text-align: center;
+}
+
+.mt-empty .v2-card-note {
+  max-width: 420px;
+}
+
+.mt-list {
+  display: flex;
+  min-height: 0;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 12px 6px;
+}
+
+.mt-list > :not(.mt-list-rows) {
+  flex-shrink: 0;
+}
+
+.mt-list-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 6px;
+}
+
+.mt-list-head .v2-muted {
+  margin-right: auto;
+  font-size: 12px;
+}
+
+.mt-list-note {
+  margin: 0 6px;
+}
+
+.mt-list-rows {
+  min-height: 0;
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.mt-list-rows:focus-visible {
+  outline-offset: -2px;
+}
+
+.mt-list-rows li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 6px;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.mt-list-rows .v2-row-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.mt-size {
+  width: 64px;
+  flex-shrink: 0;
+  font-weight: 600;
+  text-align: right;
+}

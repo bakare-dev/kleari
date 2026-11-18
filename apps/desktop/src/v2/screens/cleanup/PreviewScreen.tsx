@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Glyph, StatusMark, type IconName } from "../../ui/icons";
 import { Button, Dot, IconTile, LinkButton, PageHeader, ScrollBody, Spinner, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
@@ -8,10 +7,26 @@ import { categoryMeta } from "./findingMeta";
 import type { Finding, FindingCategory } from "./types";
 import "./preview.css";
 
-export type PreviewStage = "review" | "stale" | "running" | "result";
+/** `deleting`: being deleted permanently where it is ("Delete permanently", no quarantine). */
+export type PreviewStage = "review" | "stale" | "running" | "deleting" | "result";
 /** `excluded`: left out when the preview was made (it changed since the scan, or isn't eligible now). */
 /** `unconfirmed`: moved, but the move couldn't be checked; it is listed in Quarantine. */
-export type PreviewItemState = "planned" | "changed" | "checking" | "waiting" | "moved" | "unconfirmed" | "failed" | "excluded";
+/** `deleted` / `notDeleted`: after "Delete permanently"; one not deleted stays where it was. */
+export type PreviewItemState =
+  | "planned"
+  | "changed"
+  | "checking"
+  | "waiting"
+  | "moved"
+  | "unconfirmed"
+  | "failed"
+  | "excluded"
+  | "deleting"
+  | "deleted"
+  | "notDeleted";
+
+/** Quarantine (restorable), or delete permanently where they are. */
+export type PreviewMode = "quarantine" | "delete";
 
 interface PreviewScreenProps {
   items: readonly Finding[];
@@ -30,12 +45,16 @@ interface PreviewScreenProps {
   errorText?: string | null;
   /** What each moved category means afterwards, e.g. Xcode rebuilding DerivedData. */
   consequences: string;
-  onApprove: () => void;
+  /** What the approval was (or is) for. */
+  mode: PreviewMode;
+  /** Why the permanent delete couldn't finish; what wasn't deleted stays where it was. */
+  deleteError?: string | null;
+  onApprove: (mode: PreviewMode) => void;
   onRebuild: () => void;
 }
 
 const effects: Record<PreviewItemState, { text: string; icon: IconName | "spin"; className: string }> = {
-  planned: { text: "Move to quarantine", icon: "arrowRight", className: "pv-effect-planned" },
+  planned: { text: "Ready", icon: "arrowRight", className: "pv-effect-planned" },
   changed: { text: "Changed after preview", icon: "warning", className: "pv-effect-danger" },
   checking: { text: "Checking…", icon: "spin", className: "pv-effect-muted" },
   waiting: { text: "Waiting", icon: "arrowRight", className: "pv-effect-muted" },
@@ -43,12 +62,15 @@ const effects: Record<PreviewItemState, { text: string; icon: IconName | "spin";
   unconfirmed: { text: "Moved, not confirmed", icon: "info", className: "pv-effect-muted" },
   failed: { text: "Not moved, left in place", icon: "warning", className: "pv-effect-warn" },
   excluded: { text: "Left out, changed or not eligible now", icon: "blocked", className: "pv-effect-muted" },
+  deleting: { text: "Deleting…", icon: "spin", className: "pv-effect-muted" },
+  deleted: { text: "Deleted permanently", icon: "check", className: "pv-effect-ok" },
+  notDeleted: { text: "Not deleted, left where it was", icon: "warning", className: "pv-effect-warn" },
 };
 
 const steps: readonly { title: string; sub: string; tone: Tone }[] = [
-  { title: "Kleari checks each item again", sub: "Same file, same size, still allowed, access still granted. If anything changed, nothing moves and you review again.", tone: "blue" },
-  { title: "Items move to quarantine", sub: "They leave their current place but stay on this Mac, in Kleari’s quarantine folder.", tone: "violet" },
-  { title: "The result is saved on this Mac", sub: "What moved, anything left in place and why, so each item can be restored from Quarantine.", tone: "green" },
+  { title: "Kleari checks each item again", sub: "Same file, same size, still allowed, access still granted. If anything changed, nothing is touched and you review again.", tone: "blue" },
+  { title: "They go the way you choose", sub: "Delete permanently removes them for good. Move to quarantine keeps them in Kleari’s quarantine folder, so you can put them back.", tone: "violet" },
+  { title: "The result is saved on this Mac", sub: "What went, anything left in place and why, in Activity.", tone: "green" },
 ];
 
 function SummaryRing({ fraction, tone, heroTone, heroIcon }: { fraction: number; tone: Tone; heroTone: Tone; heroIcon: IconName }) {
@@ -81,17 +103,22 @@ function SummaryRing({ fraction, tone, heroTone, heroIcon }: { fraction: number;
 }
 
 export function PreviewScreen(props: PreviewScreenProps) {
-  const { items: all, stage, states, staleItem, failedItem } = props;
-  const [acknowledged, setAcknowledged] = useState(false);
+  const { items: all, stage, states, staleItem, failedItem, mode } = props;
   const result = stage === "result";
+  const deleteMode = mode === "delete";
   const excluded = all.filter((item) => states[item.id] === "excluded");
   // Items left out when the preview was made are listed but never move.
   const items = all.filter((item) => states[item.id] !== "excluded");
-  // An unconfirmed move did happen, so it counts as moved, never as left in place.
-  const movedItems = items.filter((item) => states[item.id] === "moved" || states[item.id] === "unconfirmed");
+  // An unconfirmed move did happen, so it counts as moved, never as left in place. A permanent
+  // delete moves nothing: what it couldn't delete stays where it was.
+  const movedStates: ReadonlySet<PreviewItemState | undefined> = new Set(["moved", "unconfirmed"]);
+  const movedItems = items.filter((item) => movedStates.has(states[item.id]));
+  const deletedItems = items.filter((item) => states[item.id] === "deleted");
+  const keptItems = items.filter((item) => states[item.id] === "notDeleted");
   const unconfirmed = items.filter((item) => states[item.id] === "unconfirmed");
   const totalGb = sum(items, (item) => item.gb);
   const movedGb = sum(movedItems, (item) => item.gb);
+  const deletedGb = sum(deletedItems, (item) => item.gb);
   const partial = result && movedItems.length < items.length;
 
   const byCategory = new Map<FindingCategory, number>();
@@ -136,17 +163,20 @@ export function PreviewScreen(props: PreviewScreenProps) {
     );
   }
 
-  const ringTone: Tone = result ? (partial ? "orange" : "green") : "blue";
-  const heroTone: Tone = result ? "green" : stage === "stale" ? "red" : "blue";
-  const heroIcon: IconName = result ? "check" : stage === "stale" ? "warning" : "quarantine";
-  const fraction = result ? movedItems.length / Math.max(items.length, 1) : 1;
-  const failedCount = items.length - movedItems.length;
+  const deletedResult = result && deleteMode;
+  const doneCount = deletedResult ? deletedItems.length : movedItems.length;
+  const partlyDone = result && doneCount < items.length;
+  const ringTone: Tone = result ? (partlyDone ? "orange" : "green") : deleteMode && stage !== "review" ? "red" : "blue";
+  const heroTone: Tone = result ? "green" : stage === "stale" ? "red" : deleteMode && stage !== "review" ? "red" : "blue";
+  const heroIcon: IconName = result ? "check" : stage === "stale" ? "warning" : deleteMode && stage !== "review" ? "trashLines" : "quarantine";
+  const fraction = result ? doneCount / Math.max(items.length, 1) : 1;
+  const failedCount = items.length - (deleteMode ? deletedItems.length : movedItems.length);
 
   return (
     <>
       <PageHeader
         above={<CleanupSteps current={2} />}
-        title={result ? "Quarantine finished" : "Preview and approve"}
+        title={deletedResult ? "Delete finished" : result ? "Quarantine finished" : "Preview and approve"}
         headingId={headingIdFor("preview")}
         subtitle={
           result
@@ -195,7 +225,18 @@ export function PreviewScreen(props: PreviewScreenProps) {
             </div>
           </div>
         )}
-        {partial && failedItem && (
+        {result && deleteMode && (props.deleteError || keptItems.length > 0) && (
+          <div role="status" className="v2-banner v2-banner-warn">
+            <IconTile tone="orange" icon="warning" size={32} />
+            <div className="v2-banner-text">
+              <strong>{plural(keptItems.length, "item")} not deleted</strong>
+              <span>
+                {props.deleteError ?? "Kleari couldn’t delete them."} {keptItems.length === 1 ? "It was" : "They were"} left where {keptItems.length === 1 ? "it was" : "they were"}.
+              </span>
+            </div>
+          </div>
+        )}
+        {partial && failedItem && !deleteMode && (
           <div role="status" className="v2-banner v2-banner-warn">
             <IconTile tone="orange" icon="warning" size={32} />
             <div className="v2-banner-text">
@@ -212,59 +253,71 @@ export function PreviewScreen(props: PreviewScreenProps) {
           <div className="pv-col">
             <section aria-labelledby="pv-items" className="v2-card pv-items">
               <div className="v2-card-head">
-                <h2 id="pv-items" className="v2-card-title">{result ? "What happened to each item" : `${plural(items.length, "item")} will move to quarantine`}</h2>
+                <h2 id="pv-items" className="v2-card-title">
+                  {result
+                    ? "What happened to each item"
+                    : deleteMode && stage !== "review"
+                      ? `${plural(items.length, "item")} to delete permanently`
+                      : `${plural(items.length, "item")} selected`}
+                </h2>
                 {stage === "review" && <LinkButton href={hrefFor("review")} size="sm">Change selection</LinkButton>}
               </div>
-              <ul className="pv-list">
+              {/* The only part of the page that scrolls: the summary and actions stay in view. */}
+              <ul className="pv-list" tabIndex={0} aria-label="Selected items">
                 {items.map((item) => {
                   const meta = categoryMeta[item.category];
                   const effect = effects[states[item.id] ?? "planned"];
                   return (
                     <li key={item.id}>
-                      <IconTile tone={meta.tone} icon={meta.icon} size={36} />
-                      <span className="v2-row-text">
-                        <span className="pv-name">
-                          <span>{item.name}</span>
+                      <IconTile tone={meta.tone} icon={meta.icon} size={34} />
+                      {/* Name, then category and place, then what happens: each on its own line,
+                          so none squeezes another in a narrow window. */}
+                      <span className="v2-row-text pv-text">
+                        <span className="pv-name v2-ellipsis" title={item.name}>{item.name}</span>
+                        <span className="pv-where">
                           <span className={`v2-pill v2-pill-tone tone-${meta.tone}`}>{meta.label}</span>
+                          <span className="v2-mono pv-path" title={item.path}>{item.path}</span>
                         </span>
-                        <span className="v2-mono pv-path">{item.path}</span>
+                        <span className={`pv-effect ${effect.className}`}>
+                          {effect.icon === "spin" ? <Spinner size={12} /> : <Glyph name={effect.icon} size={12} strokeWidth={2.4} />}
+                          <span className="v2-ellipsis">{effect.text}</span>
+                        </span>
                       </span>
                       <span className="pv-size">{formatGb(item.gb)}</span>
-                      <span className={`pv-effect ${effect.className}`}>
-                        {effect.icon === "spin" ? <Spinner size={14} /> : <Glyph name={effect.icon} size={14} strokeWidth={2.4} />}
-                        {effect.text}
-                      </span>
                     </li>
                   );
                 })}
               </ul>
             </section>
 
-            <section aria-labelledby="pv-how" className="v2-card v2-card-pad pv-how">
-              <h2 id="pv-how" className="v2-card-title">What happens when you approve</h2>
-              <ol>
-                {steps.map((step, index) => (
-                  <li key={step.title}>
-                    <span className={`pv-step-num tone-${step.tone}`} aria-hidden="true">{index + 1}</span>
-                    <span className="v2-row-text">
-                      <span className="pv-step-title">{step.title}</span>
-                      <span className="pv-step-sub">{step.sub}</span>
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </section>
+            {/* Only before approving; afterwards the result list gets the room. */}
+            {!result && (
+              <section aria-labelledby="pv-how" className="v2-card v2-card-pad pv-how">
+                <h2 id="pv-how" className="v2-card-title">What happens when you approve</h2>
+                <ol>
+                  {steps.map((step, index) => (
+                    <li key={step.title}>
+                      <span className={`pv-step-num tone-${step.tone}`} aria-hidden="true">{index + 1}</span>
+                      <span className="v2-row-text">
+                        <span className="pv-step-title">{step.title}</span>
+                        <span className="pv-step-sub">{step.sub}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
           </div>
 
           <section aria-labelledby="pv-summary" className="v2-card pv-summary">
             <div className="pv-summary-head">
               <SummaryRing fraction={fraction} tone={ringTone} heroTone={heroTone} heroIcon={heroIcon} />
               <div className="pv-summary-text">
-                <h2 id="pv-summary">{result ? "Moved to quarantine" : "Ready to move"}</h2>
-                <span className="pv-summary-value">{formatGb(result ? movedGb : totalGb)}</span>
+                <h2 id="pv-summary">{deletedResult ? "Deleted permanently" : result ? "Moved to quarantine" : "Ready"}</h2>
+                <span className="pv-summary-value">{formatGb(deletedResult ? deletedGb : result ? movedGb : totalGb)}</span>
                 <span className="v2-card-note">
                   {result
-                    ? `${movedItems.length} of ${plural(items.length, "item")}${partial ? ` · ${items.length - movedItems.length} left in place` : ""}`
+                    ? `${doneCount} of ${plural(items.length, "item")}${partlyDone ? ` · ${items.length - doneCount} ${deletedResult ? "not deleted" : "left in place"}` : ""}`
                     : `${plural(items.length, "item")} in ${plural(categories.length, "category", "categories")}`}
                 </span>
               </div>
@@ -282,9 +335,14 @@ export function PreviewScreen(props: PreviewScreenProps) {
               </div>
             </div>
             <ul className="v2-facts">
-              <li><StatusMark tone="ok" /><span>Nothing is permanently deleted in this step</span></li>
-              <li><StatusMark tone="ok" /><span>Restore any item from Quarantine</span></li>
-              <li><StatusMark tone="ok" /><span>A restore never overwrites a file that is already there</span></li>
+              {deleteMode && stage !== "review" ? (
+                <li><StatusMark tone="warn" /><span>Deleted items skip the Trash and can’t be restored</span></li>
+              ) : (
+                <>
+                  <li><StatusMark tone="ok" /><span>Quarantine keeps every item restorable</span></li>
+                  <li><StatusMark tone="ok" /><span>A restore never overwrites a file that is already there</span></li>
+                </>
+              )}
               <li><StatusMark tone="info" /><span>{props.consequences}</span></li>
             </ul>
             <div className="pv-folder">
@@ -293,23 +351,26 @@ export function PreviewScreen(props: PreviewScreenProps) {
             </div>
 
             {stage === "review" && (
-              <>
-                <label className={`v2-ack${acknowledged ? " on" : ""}`}>
-                  <input type="checkbox" checked={acknowledged} onChange={() => setAcknowledged(!acknowledged)} />
-                  <span>I reviewed these {plural(items.length, "item")} and want to move them to quarantine.</span>
-                </label>
-                <div className="pv-actions">
-                  <LinkButton href={hrefFor("review")} size="lg" className="pv-back">Back to results</LinkButton>
-                  <Button variant="primary" size="lg" className="pv-approve" disabled={!acknowledged} onClick={props.onApprove}>
-                    Quarantine {plural(items.length, "item")}
-                  </Button>
-                </div>
-              </>
+              <div className="pv-actions pv-actions-choose">
+                <LinkButton href={hrefFor("review")} size="lg" className="pv-back">Back</LinkButton>
+                <Button variant="soft" size="lg" onClick={() => props.onApprove("quarantine")}>
+                  Move to quarantine
+                </Button>
+                <Button variant="danger" size="lg" className="pv-approve" onClick={() => props.onApprove("delete")}>
+                  Delete {formatGb(totalGb)} permanently
+                </Button>
+              </div>
             )}
             {stage === "running" && (
               <div role="status" className="pv-running">
                 <Spinner size={16} />
                 Checking each item, then moving it…
+              </div>
+            )}
+            {stage === "deleting" && (
+              <div role="status" className="pv-running pv-running-danger">
+                <Spinner size={16} tone="danger" />
+                Checking each item, then deleting it…
               </div>
             )}
             {(stage === "stale" || stage === "error") && (
@@ -320,13 +381,14 @@ export function PreviewScreen(props: PreviewScreenProps) {
             )}
             {result && (
               <div className="pv-actions">
-                <LinkButton href={hrefFor("quarantine")} size="lg" className="pv-back">Open Quarantine</LinkButton>
+                {!deleteMode && <LinkButton href={hrefFor("quarantine")} size="lg" className="pv-back">Open Quarantine</LinkButton>}
                 <LinkButton href={hrefFor("cleanup")} variant="primary" size="lg" className="pv-back">Done</LinkButton>
               </div>
             )}
           </section>
         </div>
       </ScrollBody>
+
     </>
   );
 }

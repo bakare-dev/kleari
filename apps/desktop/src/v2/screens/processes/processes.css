@@ -75,10 +75,6 @@
   list-style: none;
 }
 
-.proc-list .v2-edge {
-  margin-bottom: -40px;
-}
-
 .proc-row {
   width: 100%;
   padding: 7px 8px;
@@ -365,8 +361,13 @@
   flex: 1;
 }
 
+/* A long app name wraps onto a second line instead of running past the panel. */
 .proc-quit-btn {
-  height: 36px;
+  height: auto;
+  min-height: 36px;
+  padding-block: 8px;
+  white-space: normal;
+  text-align: center;
 }
 
 .proc-protected {

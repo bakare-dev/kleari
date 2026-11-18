@@ -1,7 +1,7 @@
 import type { IconName } from "../../ui/icons";
 import type { Status, Tone } from "../../ui/components";
 
-export type FindingCategory = "cache" | "xcode" | "pkg" | "node" | "build" | "logs" | "large" | "old";
+export type FindingCategory = "cache" | "xcode" | "pkg" | "node" | "build" | "logs" | "large" | "old" | "apps" | "chosen" | "broken" | "startup";
 export type Eligibility = "eligible" | "notNow" | "needsCheck" | "rescan" | "inspectOnly";
 export type Level = "Low" | "Medium" | "Unknown";
 
@@ -18,6 +18,8 @@ export interface Finding {
   gb: number;
   files: string;
   modified: string;
+  /** When it last changed, for sorting; `null` when not reported. */
+  modifiedMs: number | null;
   reason: string;
   certainty: "High" | "Medium" | "Unknown";
   risk: Level;

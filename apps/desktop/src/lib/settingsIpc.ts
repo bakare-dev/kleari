@@ -66,6 +66,11 @@ export function uninstallKleari(): Promise<Uninstalled> {
   return call("uninstall_kleari", {}, parseUninstalled);
 }
 
+/** Closes the one-time sheet shown after Kleari's bundle identifier changed, for good. */
+export async function dismissIdentityMove(): Promise<void> {
+  await call("dismiss_identity_move", {}, () => undefined);
+}
+
 export async function clearActivity(): Promise<void> {
   await call("clear_activity", {}, () => undefined);
 }

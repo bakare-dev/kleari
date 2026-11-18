@@ -10,7 +10,6 @@ import {
   modifierKeys,
   pressActionOptions,
   scrollActionOptions,
-  shortcutFrom,
   type ActionChoice,
 } from "../../../features/mouse/mouseView";
 import { ShortcutRecorder } from "./ShortcutRecorder";
@@ -109,12 +108,9 @@ export function ComboEditor({ index, draft, others, seen, disabled, recording, o
                   key={recording ? "new" : shortcut}
                   current={recording ? null : shortcut}
                   onCancel={() => setRecording(false)}
-                  onRecord={(event) => {
-                    const recorded = shortcutFrom(event);
-                    if (recorded !== null) {
-                      setRecording(false);
-                      setDoes({ kind: "press", action: { kind: "shortcut", shortcut: recorded } });
-                    }
+                  onRecord={(recorded) => {
+                    setRecording(false);
+                    setDoes({ kind: "press", action: { kind: "shortcut", shortcut: recorded } });
                   }}
                 />
               )}

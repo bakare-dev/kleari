@@ -5,13 +5,16 @@ import { detailFromHash, headingIdFor } from "../../shell/routes";
 import type { AppearancePreference, AppearanceStorageStatus } from "../../../features/settings/appearance";
 import type { AccessFolder, FolderSource, LoginItem, NotificationAccess, Preferences, ScanSchedule, ScheduleFrequency, ScheduleStatus, SettingsState, Uninstalled } from "../../../contracts/settings";
 import type { ScanMode } from "../../../contracts/cleanup";
-import type { UninstallOutcome } from "../../../features/settings/useSettings";
+import type { NotificationKey, UninstallOutcome } from "../../../features/settings/useSettings";
+import { COPYRIGHT, DISCLAIMER_SHORT, legalDocuments } from "../../../features/legal/legal";
+import { openLegalDocument, reportProblem, showLog } from "../../../lib/legalIpc";
 import type { UpdateState } from "../../../features/settings/useUpdates";
-import { installable, updateStatus } from "./Updates";
+import { installable, notesText, showReleaseNotes, updateStatus } from "./Updates";
 import "./settings.css";
+import { AccessSteps } from "../../ui/AccessSteps";
 
 /** Kleari's bundle identifier (tauri.conf.json), which macOS keys its permissions by. */
-export const BUNDLE_ID = "dev.bakare.kleari";
+export const BUNDLE_ID = "dev.kleari.app";
 const RESET_PERMISSIONS = `tccutil reset All ${BUNDLE_ID}`;
 
 type Dialog =
@@ -39,7 +42,7 @@ interface SettingsScreenProps {
   saveFailed?: boolean;
   onSave: (preferences: Preferences) => Change;
   onOpenAtLogin: (enabled: boolean) => Change;
-  onNotify: (key: "notifyScan" | "notifyQuarantine", on: boolean) => Change;
+  onNotify: (key: NotificationKey, on: boolean) => Change;
   onSchedule: (schedule: ScanSchedule) => Change;
   onAddExclusion: () => Change;
   onRemoveExclusion: (path: string) => Change;
@@ -58,14 +61,23 @@ interface SettingsScreenProps {
   onOpenPane: (pane: "loginItems" | "fullDiskAccess" | "filesAndFolders" | "notifications") => void;
 }
 
-const sections: readonly { id: Section; label: string; blurb: string; tone: Tone; icon: IconName }[] = [
+export const sections: readonly { id: Section; label: string; blurb: string; tone: Tone; icon: IconName }[] = [
   { id: "general", label: "General", blurb: "Startup, appearance and the default scan", tone: "gray", icon: "gear" },
   { id: "scanning", label: "Scanning", blurb: "What Kleari leaves out of its findings", tone: "blue", icon: "search" },
   { id: "access", label: "Folders and access", blurb: "Folders Kleari may read", tone: "teal", icon: "folder" },
   { id: "quarantine", label: "Quarantine", blurb: "Where moved items wait until you decide", tone: "orange", icon: "quarantine" },
   { id: "notifications", label: "Notifications", blurb: "When Kleari lets you know", tone: "red", icon: "bell" },
   { id: "privacy", label: "Privacy and safety", blurb: "What stays on this Mac, the activity log and built-in rules", tone: "green", icon: "shield" },
-  { id: "about", label: "About", blurb: "Version, updates and uninstalling", tone: "indigo", icon: "info" },
+  { id: "about", label: "About", blurb: "Version, updates, legal and uninstalling", tone: "indigo", icon: "info" },
+];
+
+/** Settings › Notifications › Alerts: one switch per group (src-tauri/src/issues.rs). */
+const alertGroups: readonly { key: Extract<NotificationKey, "notifyStorage" | "notifyPerformance" | "notifyBattery" | "notifyLoginItems" | "notifyReminders">; label: string; sub: string }[] = [
+  { key: "notifyStorage", label: "Storage", sub: "Startup disk under 15% free or almost full (under 5%), a connected drive almost full, a large Trash" },
+  { key: "notifyPerformance", label: "Performance", sub: "Memory pressure that stays high or turns critical, the processor busy for 15 minutes" },
+  { key: "notifyBattery", label: "Battery", sub: "Low (20%) and critical (10%), fully charged, fast drain, hot, service recommended, near its cycle limit, a Bluetooth device’s low battery" },
+  { key: "notifyLoginItems", label: "Login items", sub: "A new app or agent set to start at login, or many of them" },
+  { key: "notifyReminders", label: "Reminders", sub: "No Cleanup scan for 7 days, apps not opened in 6 months to uninstall in Apps" },
 ];
 
 const folderSourceText: Record<FolderSource, string> = {
@@ -189,7 +201,7 @@ export function UninstallDialog(props: {
     );
   }
   if (dialog.kind === "uninstalled") {
-    const { moved, failed, loginItemKept } = dialog.uninstalled;
+    const { moved, failed, loginItemKept, permissionsReset } = dialog.uninstalled;
     const partly = failed.length > 0 || loginItemKept !== null;
     return (
       <div className="v2-dialog-body v2-dialog-centered">
@@ -204,10 +216,16 @@ export function UninstallDialog(props: {
             Open at login is still on ({loginItemKept}). Remove Kleari in System Settings › General › Login Items.
           </p>
         )}
-        <p className="v2-dialog-text">
-          macOS keeps the permissions you gave Kleari until you clear them. In Terminal, run:
-        </p>
-        <code className="set-command v2-mono">{RESET_PERMISSIONS}</code>
+        {permissionsReset ? (
+          <p className="v2-dialog-text">macOS has also forgotten the permissions you gave Kleari.</p>
+        ) : (
+          <>
+            <p className="v2-dialog-text">
+              macOS couldn’t clear the permissions you gave Kleari, so they stay until you do. In Terminal, run:
+            </p>
+            <code className="set-command v2-mono">{RESET_PERMISSIONS}</code>
+          </>
+        )}
         {dialog.quitProblem && <p role="alert" className="v2-dialog-text">{dialog.quitProblem} Quit with ⌘Q.</p>}
         <div className="v2-dialog-actions">
           <Button variant="primary" onClick={props.onQuit}>Quit Kleari</Button>
@@ -220,7 +238,7 @@ export function UninstallDialog(props: {
       <IconTile tone="red" icon="trash" size={52} glow />
       <h2 id="set-dialog-title" className="v2-dialog-title">Uninstall Kleari?</h2>
       <p className="v2-dialog-text">
-        Kleari tries to turn off Open at login (and tells you if macOS keeps it on), then moves itself, its settings, activity history and caches to the Trash, and asks you to quit. Your own files stay where they are. You can put it back from the Trash until you empty it.
+        Kleari tries to turn off Open at login (and tells you if macOS keeps it on), asks macOS to forget the permissions you gave it, then moves itself, its settings, activity history and caches to the Trash, and asks you to quit. Your own files stay where they are. You can put it back from the Trash until you empty it.
       </p>
       {dialog.problem && <p role="alert" className="v2-dialog-text">{dialog.problem}</p>}
       <div className="v2-dialog-actions">
@@ -359,7 +377,10 @@ export function SettingsScreen(props: SettingsScreenProps) {
                   }
                 />
                 {state?.loginItem === "requiresApproval" && (
-                  <Row label="Approve in System Settings" sub="General › Login Items" control={<Button variant="soft" size="sm" onClick={() => props.onOpenPane("loginItems")}>Open</Button>} />
+                  <>
+                    <Row label="Approve in System Settings" sub="General › Login Items" control={<Button variant="soft" size="sm" onClick={() => props.onOpenPane("loginItems")}>Open</Button>} />
+                    <div className="set-steps"><AccessSteps kind="loginItems" compact /></div>
+                  </>
                 )}
                 <Row
                   label="Show in menu bar"
@@ -403,7 +424,7 @@ export function SettingsScreen(props: SettingsScreenProps) {
               <Group title="What to look at" note="These only leave findings out. Nothing becomes eligible to move because of them.">
                 <Row
                   label="Include hidden files"
-                  sub="Files and folders that start with a dot, in a Deep scan"
+                  sub="Private dotfiles such as .env and .ssh, in a Deep scan. Build and cache folders such as .next are always searched"
                   control={<Switch label="Include hidden files" checked={preferences?.scanDefaults.hidden ?? false} disabled={!preferences} onChange={(on) => preferences && set("scanDefaults", { ...preferences.scanDefaults, hidden: on })} />}
                 />
                 <Row label="Skip large files changed in the last" sub="Recently changed large files are never suggested" control={stepper("skipRecentDays", "recent-file window", 0, 90, 1, "days")} />
@@ -484,6 +505,9 @@ export function SettingsScreen(props: SettingsScreenProps) {
                   control={state ? <Badge status={state.fullDiskAccess ? "ok" : "muted"}>{state.fullDiskAccess ? "Granted" : "Not granted"}</Badge> : null}
                 />
                 <Row label="Change in System Settings" sub="Privacy and Security › Full Disk Access" control={<Button variant="soft" size="sm" onClick={() => props.onOpenPane("fullDiskAccess")}>Open</Button>} />
+                {state && !state.fullDiskAccess && (
+                  <div className="set-steps"><AccessSteps kind="fullDiskAccess" compact /></div>
+                )}
               </Group>
             </>
           )}
@@ -512,8 +536,21 @@ export function SettingsScreen(props: SettingsScreenProps) {
               <Group title="Notify me when" note={state ? notificationNote[state.notifications] : undefined}>
                 <Row label="A Cleanup scan finishes" sub="With what it found; nothing is changed" control={<Switch label="A Cleanup scan finishes" checked={preferences?.notifyScan ?? false} disabled={!state} onChange={(on) => after(props.onNotify("notifyScan", on))} />} />
                 <Row label="Quarantine gets large" sub="Set the size in Quarantine" control={<Switch label="Quarantine gets large" checked={preferences?.notifyQuarantine ?? false} disabled={!state} onChange={(on) => after(props.onNotify("notifyQuarantine", on))} />} />
+              </Group>
+              <Group title="Alerts" note="Checked while Kleari runs: the battery’s charge every minute, the rest every 15 minutes. Each alert is sent at most once a day; reminders once a week.">
+                {alertGroups.map((group) => (
+                  <Row
+                    key={group.key}
+                    label={group.label}
+                    sub={group.sub}
+                    control={<Switch label={group.label} checked={preferences?.[group.key] ?? false} disabled={!state} onChange={(on) => after(props.onNotify(group.key, on))} />}
+                  />
+                ))}
                 {state?.notifications === "denied" && (
-                  <Row label="Allow in System Settings" sub="Notifications › Kleari" control={<Button variant="soft" size="sm" onClick={() => props.onOpenPane("notifications")}>Open</Button>} />
+                  <>
+                    <Row label="Allow in System Settings" sub="Notifications › Kleari" control={<Button variant="soft" size="sm" onClick={() => props.onOpenPane("notifications")}>Open</Button>} />
+                    <div className="set-steps"><AccessSteps kind="notifications" compact /></div>
+                  </>
                 )}
               </Group>
               <Group title="Style">
@@ -575,7 +612,65 @@ export function SettingsScreen(props: SettingsScreenProps) {
                     )
                   }
                 />
-                {update?.status === "available" && update.notes && <Row label="What’s new" sub={update.notes} control={null} />}
+                {update?.status === "available" && (
+                  <Row
+                    label="What’s new"
+                    sub={notesText(update.notes) ?? `The release notes for ${update.version}, on GitHub`}
+                    control={<Button variant="soft" size="sm" onClick={() => showReleaseNotes(update.version)}>Open</Button>}
+                  />
+                )}
+              </Group>
+              <Group title="Legal" note={`${COPYRIGHT}. Kleari is free software under the GNU General Public License v3.0 or later.`}>
+                <Row label="A friendly note" sub={DISCLAIMER_SHORT} control={null} />
+                {legalDocuments.map((document) => (
+                  <Row
+                    key={document.id}
+                    label={document.label}
+                    sub={document.sub}
+                    control={
+                      <Button
+                        variant="soft"
+                        size="sm"
+                        onClick={() => void openLegalDocument(document.id).catch(() => toast.show(`${document.label} couldn’t be opened in your browser.`, "warn"))}
+                      >
+                        Open
+                      </Button>
+                    }
+                  />
+                ))}
+              </Group>
+              <Group title="Help" note="Kleari keeps a small log on this Mac of what it did and what went wrong. It never holds file names, paths or what you type, and nothing is sent anywhere.">
+                <Row
+                  label="Report a problem"
+                  sub="Opens a new issue on GitHub with your Kleari and macOS versions filled in, and shows the log in Finder so you can attach it if you like"
+                  control={
+                    <Button
+                      variant="soft"
+                      size="sm"
+                      onClick={() =>
+                        void reportProblem().then(
+                          (shown) => {
+                            if (!shown) {
+                              toast.show("The issue page opened, but the log couldn’t be shown. It’s in ~/Library/Logs/Kleari.", "warn");
+                            }
+                          },
+                          () => toast.show("GitHub couldn’t be opened in your browser.", "warn"),
+                        )
+                      }
+                    >
+                      Report…
+                    </Button>
+                  }
+                />
+                <Row
+                  label="Log"
+                  sub="~/Library/Logs/Kleari/kleari.log, up to about 2 MB"
+                  control={
+                    <Button variant="soft" size="sm" onClick={() => void showLog().catch(() => toast.show("The log couldn’t be shown in Finder.", "warn"))}>
+                      Show in Finder
+                    </Button>
+                  }
+                />
               </Group>
               <Group title="Uninstall" note="Your own files are never touched. Quarantine must be empty first, so nothing of yours goes to the Trash with Kleari.">
                 <Row

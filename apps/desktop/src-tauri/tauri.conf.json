@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Kleari",
-  "version": "0.1.0-beta.1",
-  "identifier": "dev.bakare.kleari",
+  "version": "0.1.0-beta.6",
+  "identifier": "dev.kleari.app",
   "build": {
     "beforeDevCommand": "pnpm dev --host 127.0.0.1",
     "devUrl": "http://127.0.0.1:5173",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "title": "Kleari",
-        "width": 1100,
+        "width": 1280,
         "height": 760,
         "minWidth": 900,
         "minHeight": 520,
@@ -28,7 +28,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; media-src 'self'; object-src 'none'; frame-src 'none'; worker-src 'self'; form-action 'none'; base-uri 'none'"
     }
   },
   "plugins": {
@@ -47,7 +47,13 @@
     "longDescription": "Kleari keeps your Mac clean and fast, on this Mac only: storage, cleanup with quarantine, system readings, developer caches and your mouse.",
     "macOS": {
       "signingIdentity": "-",
-      "minimumSystemVersion": "14.0"
+      "minimumSystemVersion": "14.0",
+      "dmg": {
+        "background": "dmg/background.png",
+        "windowSize": { "width": 660, "height": 500 },
+        "appPosition": { "x": 165, "y": 140 },
+        "applicationFolderPosition": { "x": 495, "y": 140 }
+      }
     }
   }
 }

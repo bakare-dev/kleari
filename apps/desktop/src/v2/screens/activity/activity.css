@@ -9,8 +9,11 @@
   padding: 4px 28px 0;
 }
 
+/* The filters and the search share a line when they fit; in a narrow window the search
+   moves under them instead of past the edge. */
 .act-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -18,6 +21,8 @@
 
 .act-toolbar .v2-search {
   height: 32px;
+  min-width: 160px;
+  flex: 0 1 220px;
 }
 
 .act-log {

@@ -1756,7 +1756,7 @@ dependencies = [
 
 [[package]]
 name = "kleari"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.6"
 dependencies = [
  "block2",
  "libc",
@@ -1771,6 +1771,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "sha2",
  "sysinfo",
  "tauri",
  "tauri-build",
@@ -2195,6 +2196,7 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33fafba39597d6dc1fb709123dfa8289d39406734be322956a69f0931c73bb15"
 dependencies = [
+ "bitflags 2.13.2",
  "libc",
  "objc2-core-foundation",
 ]

@@ -2,13 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ProcessList } from "../../contracts/processes";
 import { fetchProcessList, quitApp, type QuitResult } from "../../lib/processesIpc";
 import { singleFlight, startPolling } from "../overview/metricsPoller";
-import { toErrorKind, useKleariInView } from "../overview/useSystemMetrics";
+import { toErrorKind, useDocumentVisible } from "../overview/useSystemMetrics";
 import type { Loadable } from "../system/systemView";
 import type { ProcessSample } from "../../v2/screens/processes/ProcessesScreen";
 import { appendCpuHistory, buildProcessesView, emptyHistory, PROCESS_INTERVAL_MS, type CpuHistory } from "./processesView";
-
-/** While the Processes page isn't on screen, so it opens with a recent list. */
-export const PROCESS_BACKGROUND_INTERVAL_MS = 5_000;
 
 export interface ProcessLoaders {
   list: () => Promise<ProcessList>;
@@ -36,27 +33,23 @@ export function quitTarget(state: Loadable<ProcessList>, id: string): { pid: num
 }
 
 /**
- * The Processes page's data, held at the app level from launch: the list is read every
- * `foregroundMs` while the page is on screen and every `backgroundMs` otherwise, while Kleari
- * is open to look at (its window, or its menu-bar popover) and not paused, single-flight. CPU
- * history is only what was sampled; a gap starts a new chart.
+ * The Processes page's data, held at the app level so its charts survive leaving the page.
+ * Listing every process is Kleari's costliest reading, so the list is read every
+ * `intervalMs` only while Processes or Browser care is on screen (`enter`), Kleari is open to
+ * look at and the list isn't paused, single-flight; never in the background. CPU history is
+ * only what was sampled; a gap starts a new chart.
  */
-export function useProcessMonitor(
-  loaders: ProcessLoaders = defaultLoaders,
-  foregroundMs = PROCESS_INTERVAL_MS,
-  backgroundMs = PROCESS_BACKGROUND_INTERVAL_MS,
-) {
+export function useProcessMonitor(loaders: ProcessLoaders = defaultLoaders, intervalMs = PROCESS_INTERVAL_MS) {
   const [paused, setPaused] = useState(false);
   const [onScreen, setOnScreen] = useState(false);
   const [live, setLive] = useState<LiveState>({ list: { status: "loading" }, history: emptyHistory });
-  const inView = useKleariInView();
+  const inView = useDocumentVisible();
   const sharedList = useMemo(() => singleFlight(loaders.list), [loaders.list]);
-  const intervalMs = onScreen ? foregroundMs : backgroundMs;
-  // Background lists are further apart; anything closer than three of them is one chart.
-  const maxGapMs = Math.max(foregroundMs, backgroundMs) * 3;
+  // Anything closer than three lists is one chart.
+  const maxGapMs = intervalMs * 3;
 
   useEffect(() => {
-    if (!inView || paused) {
+    if (!inView || paused || !onScreen) {
       return;
     }
     const poller = startPolling({
@@ -74,7 +67,7 @@ export function useProcessMonitor(
         }),
     });
     return () => poller.stop();
-  }, [inView, paused, sharedList, intervalMs, maxGapMs]);
+  }, [inView, paused, onScreen, sharedList, intervalMs, maxGapMs]);
 
   const quit = useCallback(
     async (process: ProcessSample): Promise<QuitResult> => {

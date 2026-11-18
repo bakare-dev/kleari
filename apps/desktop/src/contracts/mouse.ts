@@ -39,16 +39,33 @@ export const simpleButtonActions = [
   "forward",
   "missionControl",
   "appWindows",
+  "showDesktop",
+  "spotlight",
   "previousSpace",
   "nextSpace",
-  "middleClick",
-  "disabled",
-  "playPause",
-  "nextTrack",
-  "previousTrack",
-  "volumeUp",
-  "volumeDown",
-  "mute",
+  "nextApp",
+  "previousApp",
+  "nextWindow",
+  "previousWindow",
+  "newTab",
+  "closeTab",
+  "nextTab",
+  "previousTab",
+  "refresh",
+  "zoomIn",
+  "zoomOut",
+  "scrollUp",
+  "scrollDown",
+  "screenshot",
+  "screenshotArea",
+  "screenRecording",
+  "minimize",
+  "toggleFullScreen",
+  "closeWindow",
+  "tileLeft",
+  "tileRight",
+  "hideApp",
+  "lockScreen",
 ] as const;
 export type SimpleButtonAction = (typeof simpleButtonActions)[number];
 export type ButtonAction = { kind: SimpleButtonAction } | { kind: "shortcut"; shortcut: Shortcut };
@@ -58,7 +75,7 @@ export interface ButtonMapping {
   action: ButtonAction;
 }
 
-export const scrollActions = ["switchSpaces", "zoom", "switchTabs", "horizontalScroll"] as const;
+export const scrollActions = ["switchSpaces", "zoom", "switchTabs", "horizontalScroll", "switchApps", "switchWindows"] as const;
 export type ScrollAction = (typeof scrollActions)[number];
 
 /** What a combination does: while held, each wheel step does `wheel`; or, pressed together, `action` once. */
@@ -89,13 +106,26 @@ export type MouseAccess = (typeof accesses)[number];
 
 const sources = ["saved", "default", "invalid", "unavailable"] as const;
 
+const connections = ["usb", "receiver", "bluetooth", "other"] as const;
+export type MouseConnection = (typeof connections)[number];
+
+/** An external mouse connected now (src-tauri/src/mouse/devices.rs); trackpads are never listed. */
+export interface ConnectedMouse {
+  name: string;
+  connection: MouseConnection;
+}
+
 export interface MouseStatus {
   settings: MouseSettings;
   source: (typeof sources)[number];
   access: MouseAccess;
   /** The settings are being applied to the mouse now. */
   active: boolean;
+  mice: ConnectedMouse[];
 }
+
+/** More connected mice than this is malformed. */
+const MAX_MICE = 32;
 
 export const MAX_COMBOS = 8;
 
@@ -220,5 +250,42 @@ export function parseMouseStatus(payload: unknown): MouseStatus {
     source: oneOf(sources, fields.source, "source"),
     access: oneOf(accesses, fields.access, "access"),
     active: boolean(fields.active, "active"),
+    mice: list(fields.mice, MAX_MICE, "mice").map((entry, index) => {
+      const mouse = record(entry, `mice[${index}]`);
+      if (typeof mouse.name !== "string") {
+        throw new ContractError(`mice[${index}].name`);
+      }
+      return { name: mouse.name, connection: oneOf(connections, mouse.connection, `mice[${index}].connection`) };
+    }),
   };
+}
+
+/** How starting a shortcut recording went (src-tauri/src/mouse/mod.rs `RecordingStart`):
+ * recording `session` (pass it to stop), or why not. */
+export type RecordingStart = { kind: "recording"; session: number } | { kind: "notAllowed" } | { kind: "unsupported" };
+
+export function parseRecordingStart(payload: unknown): RecordingStart {
+  const fields = record(payload, "$");
+  if (fields.kind === "recording") {
+    return { kind: "recording", session: nonNegativeInteger(fields.session, "session") };
+  }
+  if (fields.kind === "notAllowed" || fields.kind === "unsupported") {
+    return { kind: fields.kind };
+  }
+  throw new ContractError("kind");
+}
+
+/** A key press while recording, or the recording ending by itself (src-tauri/src/mouse/recorder.rs). */
+export type Recorded = { kind: "shortcut"; shortcut: Shortcut } | { kind: "unsupported" } | { kind: "ended" };
+
+export function parseRecorded(payload: unknown): Recorded {
+  const fields = record(payload, "$");
+  if (fields.kind === "unsupported" || fields.kind === "ended") {
+    return { kind: fields.kind };
+  }
+  if (fields.kind === "shortcut") {
+    const shortcut = record(fields.shortcut, "shortcut");
+    return { kind: "shortcut", shortcut: { key: oneOf(shortcutKeys, shortcut.key, "shortcut.key"), modifiers: modifiers(shortcut.modifiers, "shortcut.modifiers") } };
+  }
+  throw new ContractError("kind");
 }

@@ -1,4 +1,6 @@
-import { useEffect } from "react";
+import { useIssues } from "../features/issues/useIssues";
+import { IssuesCard } from "./screens/dashboard/IssuesCard";
+import { useEffect, type ComponentProps } from "react";
 import { activityDays, activityStats } from "../features/activity/activityView";
 import type { Activity } from "../features/activity/useActivity";
 import { historyReasonText } from "../features/cleanup/cleanupView";
@@ -41,6 +43,7 @@ export function ActivityRoute({ activity }: { activity: Activity }) {
       retentionDays={list?.status === "available" ? list.retentionDays : 90}
       truncated={list?.status === "available" && list.truncated}
       unavailable={list?.status === "unavailable" ? historyReasonText[list.reason] : activity.error}
+      loading={list === null && activity.error === null}
     />
   );
 }
@@ -56,8 +59,10 @@ export function DashboardRoute(props: {
   review: CleanupReview;
   quarantine: Quarantine;
   settings: Settings;
-  onSearch: (query: string) => void;
+  search: Pick<ComponentProps<typeof DashboardScreen>, "query" | "onQueryChange" | "search" | "onOpen">;
 }) {
+  // Read when the Dashboard opens; nothing here changes anything.
+  const issues = useIssues();
   const { monitor, storage, review, quarantine, settings } = props;
   const overview = useStorageOverview(storage.state.result);
   const { refresh: refreshReview } = review;
@@ -66,6 +71,12 @@ export function DashboardRoute(props: {
     refreshReview();
     refreshQuarantine();
   }, [refreshReview, refreshQuarantine]);
+  // Live readings are sampled only while a page that shows them is on screen.
+  const { watch, unwatch } = monitor;
+  useEffect(() => {
+    watch();
+    return unwatch;
+  }, [watch, unwatch]);
   const data = buildDashboard({
     activity: monitor.activity,
     history: monitor.history,
@@ -77,7 +88,7 @@ export function DashboardRoute(props: {
     reminderGb: settings.state?.preferences.preferences.quarantineReminderGb ?? 0,
     nowMs: Date.now(),
   });
-  return <DashboardScreen data={data} onSearch={props.onSearch} onAnalyze={storage.analyze} />;
+  return <DashboardScreen data={data} {...props.search} onAnalyze={storage.analyze} alerts={<IssuesCard issues={issues.issues} failed={issues.failed} />} />;
 }
 
 /** `mouse` is read on each visit, and while waiting for Accessibility, which is turned on in

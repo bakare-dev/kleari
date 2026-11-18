@@ -1,0 +1,243 @@
+import { useState } from "react";
+import type { ExplorerEntry } from "../../../contracts/storageExplorer";
+import type { FileCategory } from "../../../contracts/storage";
+import type { StorageExplorer as Explorer } from "../../../features/storage/useStorageExplorer";
+import type { IconName } from "../../ui/icons";
+import { Button, FloatingBar, IconTile, Pill, Spinner, type Tone } from "../../ui/components";
+import { formatGb, plural, sum } from "../../ui/format";
+import { useRemoval } from "../../../features/removal/RemovalProvider";
+import { Picture } from "../../ui/Picture";
+import { ImagePreview, type PreviewImage } from "../../ui/ImagePreview";
+
+const fileLook: Record<FileCategory, { icon: IconName; tone: Tone }> = {
+  video: { icon: "film", tone: "pink" },
+  image: { icon: "file", tone: "violet" },
+  audio: { icon: "file", tone: "indigo" },
+  archive: { icon: "archive", tone: "orange" },
+  diskImage: { icon: "disk", tone: "orange" },
+  document: { icon: "file", tone: "blue" },
+  code: { icon: "code", tone: "green" },
+  other: { icon: "file", tone: "gray" },
+};
+
+/** Map colours, in order, for the largest entries. */
+const mapTones: readonly Tone[] = ["blue", "violet", "pink", "orange", "teal", "green", "indigo", "yellow"];
+
+function look(entry: ExplorerEntry): { icon: IconName; tone: Tone } {
+  if (entry.kind === "folder") {
+    return { icon: "folder", tone: "blue" };
+  }
+  if (entry.kind === "file") {
+    return fileLook[entry.fileCategory ?? "other"];
+  }
+  return { icon: entry.kind === "excluded" ? "eyeOff" : "arrowRight", tone: "gray" };
+}
+
+const gb = (bytes: number) => bytes / 1e9;
+
+function size(entry: { bytes: number; lowerBound: boolean }): string {
+  return `${entry.lowerBound ? "≥ " : ""}${formatGb(gb(entry.bytes))}`;
+}
+
+/**
+ * Browse the home folder one folder at a time, down to single files: a map of what takes the
+ * most space, every entry measured, and a selection to remove.
+ */
+export function StorageExplorer({ explorer, intro }: { explorer: Explorer; intro?: string }) {
+  const { state } = explorer;
+  const { listing } = state;
+  const removal = useRemoval();
+  const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
+  // The images seen large: this folder's images and the one chosen.
+  const [preview, setPreview] = useState<{ images: PreviewImage[]; start: number } | null>(null);
+
+  const entries = listing?.entries ?? [];
+  const can = (entry: ExplorerEntry) => entry.selectable;
+  const picked = entries.filter((entry) => can(entry) && selection.has(entry.id));
+  const total = Math.max(listing?.bytes ?? 0, 1);
+  const mapped = entries.filter((entry) => entry.bytes / total >= 0.01).slice(0, 12);
+  const mappedBytes = sum(mapped, (entry) => entry.bytes);
+
+  const open = (id: string | null) => {
+    setSelection(new Set());
+    explorer.open(id);
+  };
+
+  const toggle = (entry: ExplorerEntry) => {
+    if (!can(entry)) {
+      return;
+    }
+    const next = new Set(selection);
+    if (next.has(entry.id)) {
+      next.delete(entry.id);
+    } else {
+      next.add(entry.id);
+    }
+    setSelection(next);
+  };
+
+  const removePicked = () => {
+    const ids = picked.map((entry) => entry.id);
+    removal({
+      what: plural(ids.length, "item"),
+      prepare: () => explorer.prepare(ids),
+      onDone: () => {
+        setSelection(new Set());
+        explorer.removed();
+      },
+    });
+  };
+
+  return (
+    <div className="st-browse">
+      <div className="st-browse-head">
+        <span className="v2-card-note">
+          {intro ?? "Open any folder in your home folder, down to single files. Choose what to remove and you'll see it all again first, then delete it or keep it in quarantine."}
+        </span>
+        <div className="st-browse-actions">
+          {state.loading ? (
+            <Button variant="secondary" size="sm" onClick={explorer.cancel}>
+              <Spinner size={10} /> Stop
+            </Button>
+          ) : (
+            listing && <Button variant="soft" size="sm" onClick={() => open(listing.id)}>Measure again</Button>
+          )}
+        </div>
+      </div>
+      {listing && (
+        <nav aria-label="Folder path" className="st-crumbs">
+          {listing.crumbs.map((crumb, index) => (
+            <span key={crumb.id} className="st-crumb">
+              {index > 0 && <span aria-hidden="true">›</span>}
+              {index === listing.crumbs.length - 1 ? (
+                <strong aria-current="page">{crumb.name}</strong>
+              ) : (
+                <button type="button" className="v2-link" onClick={() => open(crumb.id)}>{crumb.name}</button>
+              )}
+            </span>
+          ))}
+          <span className="v2-muted v2-num">{size(listing)}</span>
+        </nav>
+      )}
+
+      {(state.loading || state.error || listing?.status === "unreadable" || listing?.status === "changed") && (
+        <span role="status" className="v2-card-note">
+          {state.loading
+            ? state.progress && state.progress.total > 0
+              ? `Measuring ${state.progress.done} of ${plural(state.progress.total, "item")}…`
+              : "Measuring…"
+            : state.error ??
+              (listing?.status === "unreadable"
+                ? "macOS didn’t let Kleari open this folder. Full Disk Access may be needed."
+                : "This folder changed since it was listed. Go up a level and measure again.")}
+        </span>
+      )}
+
+      {!listing && !state.loading && (
+        <div className="st-empty">
+          <IconTile tone="blue" icon="home" size={42} glow />
+          <Button variant="primary" size="sm" onClick={() => open(null)}>Browse Home</Button>
+        </div>
+      )}
+
+      {listing && mapped.length > 0 && (
+        <div className="st-map" role="list" aria-label="Storage map">
+          {mapped.map((entry, index) => (
+            <button
+              key={entry.id}
+              type="button"
+              role="listitem"
+              // A thin slice keeps its colour and tooltip; its name would only be cut off.
+              className={`st-map-cell tone-${mapTones[index % mapTones.length]}${entry.bytes / mappedBytes < 0.07 ? " st-map-cell-thin" : ""}`}
+              style={{ flexGrow: entry.bytes / mappedBytes }}
+              title={`${entry.name} · ${size(entry)}`}
+              disabled={entry.kind !== "folder" || state.loading}
+              onClick={() => open(entry.id)}
+            >
+              <span className="v2-ellipsis">{entry.name}</span>
+              <span className="v2-num">{formatGb(gb(entry.bytes))}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {listing && (
+        <ul aria-label="Folder contents" className="st-browse-rows">
+          {entries.map((entry) => {
+            const { icon, tone } = look(entry);
+            const choosable = can(entry);
+            return (
+              <li key={entry.id}>
+                <input type="checkbox" aria-label={`Choose ${entry.name}`} checked={choosable && selection.has(entry.id)} disabled={!choosable} onChange={() => toggle(entry)} style={{ opacity: choosable ? 1 : 0.4 }} />
+                <Picture
+                  source="explorer"
+                  id={entry.id}
+                  size={28}
+                  label={entry.name}
+                  enabled={entry.kind === "file" && entry.fileCategory === "image"}
+                  fallback={<IconTile tone={tone} icon={icon} size={28} />}
+                  onOpen={() => {
+                    const images = entries.filter((other) => other.kind === "file" && other.fileCategory === "image");
+                    setPreview({
+                      images: images.map((other) => ({ id: other.id, name: other.name, detail: size(other) })),
+                      start: Math.max(0, images.findIndex((other) => other.id === entry.id)),
+                    });
+                  }}
+                />
+                {entry.kind === "folder" ? (
+                  <button type="button" className="st-browse-name v2-link" disabled={state.loading} onClick={() => open(entry.id)}>
+                    <span className="v2-ellipsis">{entry.name}</span>
+                    <span className="v2-row-sub">{plural(entry.files, "file")}</span>
+                  </button>
+                ) : (
+                  <span className="st-browse-name">
+                    <span className="v2-ellipsis">{entry.name}</span>
+                    <span className="v2-row-sub">{entry.kind === "excluded" ? "Excluded in Settings" : entry.kind === "link" ? "Link, not followed" : "File"}</span>
+                  </span>
+                )}
+                <span className="st-browse-bar" aria-hidden="true"><span style={{ width: `${Math.min(100, (entry.bytes / total) * 100).toFixed(1)}%` }} /></span>
+                <span className="v2-num st-browse-size">{entry.kind === "excluded" || entry.kind === "link" ? "—" : size(entry)}</span>
+                <span className="st-browse-pill">
+                  {!entry.selectable && (entry.kind === "folder" || entry.kind === "file") ? <Pill status="muted">Kept as is</Pill> : null}
+                </span>
+              </li>
+            );
+          })}
+          {listing.moreEntries > 0 && (
+            <li className="v2-muted">
+              <span />
+              <span />
+              <span className="st-browse-name">{plural(listing.moreEntries, "smaller item")}</span>
+              <span />
+              <span className="v2-num st-browse-size">{formatGb(gb(listing.moreBytes))}</span>
+              <span />
+            </li>
+          )}
+          {entries.length === 0 && <li className="v2-muted"><span /><span /><span className="st-browse-name">This folder is empty.</span></li>}
+        </ul>
+      )}
+
+      {listing && picked.length === 0 && (
+        <span className="v2-card-note">“Kept as is” items are places Kleari never moves: top-level folders, most of the Library and the inside of app packages.</span>
+      )}
+
+      {/* As on Files: once something is chosen, the bar stays in view however far the list scrolls. */}
+      {listing && picked.length > 0 && (
+        <div className="st-browse-float">
+          <FloatingBar>
+            <div className="v2-float-text">
+              <span role="status" className="v2-float-title">{`${picked.length} chosen · ${formatGb(gb(sum(picked, (entry) => entry.bytes)))}`}</span>
+              <span className="v2-float-sub">You'll see exactly what will go before anything moves.</span>
+            </div>
+            <div className="v2-float-actions">
+              <Button variant="secondary" onClick={() => setSelection(new Set())}>Clear</Button>
+              <Button variant="primary" onClick={removePicked}>{`Remove ${plural(picked.length, "item")}`}</Button>
+            </div>
+          </FloatingBar>
+        </div>
+      )}
+
+      {preview && <ImagePreview source="explorer" images={preview.images} start={preview.start} onClose={() => setPreview(null)} />}
+    </div>
+  );
+}

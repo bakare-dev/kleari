@@ -68,6 +68,9 @@ pub struct SettingsState {
     pub version: String,
     /// When the saved schedule next scans and last did.
     pub schedule: crate::schedule::Status,
+    /// Kleari moved to its new bundle identifier and the sheet to allow its permissions again
+    /// hasn't been closed yet.
+    pub identity_move: Option<crate::identity::Pending>,
 }
 
 fn name_of(path: &Path) -> String {
@@ -143,7 +146,20 @@ fn state(app: &AppHandle) -> Result<SettingsState, CommandError> {
         exclusions: exclusions(&history, home.as_deref())?,
         quarantine_folder: display_path(&history.store.path(), home.as_deref()),
         version: app.package_info().version.to_string(),
+        identity_move: crate::identity::pending(&history.db),
     })
+}
+
+/// Closes the one-time sheet shown after Kleari's bundle identifier changed; it doesn't show
+/// again.
+#[tauri::command]
+pub async fn dismiss_identity_move(app: AppHandle) -> Result<(), CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::identity::dismiss(&app.state::<History>().db)
+            .map_err(|_| CommandErrorCode::HistoryUnavailable.into())
+    })
+    .await
+    .map_err(blocking_failed)?
 }
 
 /// Everything the Settings page shows, read now.
@@ -394,11 +410,29 @@ pub async fn uninstall_kleari(
             None
         };
         let identifier = app.config().identifier.clone();
+        // macOS forgets Kleari's permissions while the bundle is still where it was:
+        // `tccutil` finds an app through LaunchServices, which may not find it in the Trash.
+        let permissions_reset = crate::identity::reset_permissions(&identifier);
+        crate::log::note(
+            "uninstall",
+            if permissions_reset {
+                "permissions reset"
+            } else {
+                "permissions not reset; command shown"
+            },
+        );
+        // The old identifier's too, in case the move couldn't reset them (a stub in Kleari's
+        // caches folder, deleted before that folder goes to the Trash).
+        let caches = home.join("Library/Caches").join(&identifier);
+        if std::fs::create_dir_all(&caches).is_ok() {
+            let _ = crate::identity::stub_reset(&caches, crate::identity::OLD_IDENTIFIER);
+        }
         let mut locations = crate::uninstall::data_locations(&home, &identifier);
         // The app itself goes last, after its data.
         locations.push(bundle);
         let mut done = crate::uninstall::move_to_trash(&locations, Some(&home));
         done.login_item_kept = login_item_kept;
+        done.permissions_reset = permissions_reset;
         Ok(done)
     })
     .await

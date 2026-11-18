@@ -13,11 +13,15 @@
     real.
   - Activity is live.
 - **Decision:**
-  - **System sampling.** An app-level monitor samples activity from launch:
-    - every 5 s while System isn't on screen, every 1 s while it is;
-    - only while Kleari is open to look at (the window visible, or the menu-bar popover open,
-      which Rust reports with `popover-shown`) and not paused; the process list is sampled the
-      same way (every 5 s, 2 s on Processes);
+  - **System sampling.** An app-level monitor keeps the readings across pages, and samples:
+    - every 1 s while System is on screen and every 5 s while the Dashboard is; nothing while
+      other pages are (amended for CPU use: it used to sample every 5 s from launch);
+    - only while the window is visible and not paused (the menu-bar popover reads its own);
+      the process list, the costliest reading, only while Processes or Browser care is on
+      screen, every 2 s;
+    - a reading still warming up (the first after a gap) is asked for again after 1 s, and a
+      CPU window up to 15 s counts as current, so the Dashboard's 5 s and App Nap's slower
+      timers still show readings;
     - details and startup items are read at launch and again each time System opens.
     History is only what was sampled; a gap longer than three background intervals starts a
     new chart. The chart is labelled by the time its readings actually cover ("last 45 s"),
@@ -132,7 +136,8 @@
     A Tauri build only linker-signs the executable (identifier `kleari-<hash>`, bundle
     unsealed), which macOS's login items and notification centre don't accept, so the bundle
     is now signed ad hoc (`bundle.macOS.signingIdentity: "-"`, identifier
-    `dev.bakare.kleari`, sealed resources, hardened runtime). A distributed build still
+    `dev.kleari.app`, `dev.bakare.kleari` before beta 4 (ADR-024), sealed resources,
+    hardened runtime). A distributed build still
     needs a Developer ID signature and notarization. Without a usable signature they say so
     and stay off. On macOS 11 and 12, which lack `SMAppService`, Open at login is
     `unsupported`: it says it needs macOS 13 and points to Users & Groups › Login Items,

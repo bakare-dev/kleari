@@ -1,0 +1,59 @@
+name: Branch flow
+
+# Enforces CONTRIBUTING.md's branch flow, which GitHub can't restrict on its own:
+#   main     accepts pull requests from any branch or fork;
+#   beta     only from this repository's `main`;
+#   release  only from this repository's `beta`, `hotfix/…` or `release-prep/…`.
+# A required check on all three protected branches, so it runs (and passes) on `main` too.
+
+on:
+  pull_request:
+    branches: [main, beta, release]
+    # `edited` re-runs the check when a pull request's base branch is changed.
+    types: [opened, edited, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  branch-flow:
+    name: Branch flow
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the source branch
+        env:
+          # Passed through the environment, never interpolated into the script: a branch
+          # name is chosen by whoever opens the pull request.
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          same_repo=false
+          if [ "$HEAD_REPO" = "$REPO" ]; then
+            same_repo=true
+          fi
+          case "$BASE" in
+            main)
+              echo "Pull requests into main may come from any branch or fork."
+              ;;
+            beta)
+              if [ "$same_repo" = true ] && [ "$HEAD" = "main" ]; then
+                echo "Promoting main into beta."
+              else
+                echo "::error::beta accepts pull requests only from this repository's main. Open your pull request into main instead (CONTRIBUTING.md, Branches)."
+                exit 1
+              fi
+              ;;
+            release)
+              if [ "$same_repo" = true ] && { [ "$HEAD" = "beta" ] || case "$HEAD" in hotfix/?*|release-prep/?*) true ;; *) false ;; esac; }; then
+                echo "Pull request from $HEAD into release."
+              else
+                echo "::error::release accepts pull requests only from this repository's beta, hotfix/… or release-prep/… branches (CONTRIBUTING.md, Branches)."
+                exit 1
+              fi
+              ;;
+            *)
+              echo "::error::Unexpected base branch: $BASE"
+              exit 1
+              ;;
+          esac

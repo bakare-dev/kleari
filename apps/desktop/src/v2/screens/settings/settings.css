@@ -191,3 +191,8 @@
   user-select: all;
   -webkit-user-select: all;
 }
+
+/* Step-by-step permission guides under a row. */
+.set-steps {
+  padding: 4px 14px 12px;
+}

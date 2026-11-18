@@ -12,8 +12,9 @@ export interface ActivityLoaders {
 const defaultLoaders: ActivityLoaders = { list: listActivity, clear: clearActivity };
 
 /**
- * The activity log, held at the app level so the page shows the last list at once while it
- * reads the history again. A failure is kept as state, never shown as an empty log.
+ * The activity log, read at launch and held at the app level so the page shows the last list
+ * at once while it reads the history again. `list` is null until the first read finishes. A
+ * failure is kept as state, never shown as an empty log.
  */
 export function useActivity(loaders: ActivityLoaders = defaultLoaders) {
   const [list, setList] = useState<ActivityList | null>(null);
@@ -42,6 +43,12 @@ export function useActivity(loaders: ActivityLoaders = defaultLoaders) {
       },
     );
   }, [loaders]);
+
+  // Read at launch, so the Activity page already has the log when it's first opened; the
+  // page reads it again on each visit to pick up what happened since.
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   /** Deletes the log (quarantine is untouched). Resolves to a message when it failed. */
   const clear = useCallback(async (): Promise<string | null> => {

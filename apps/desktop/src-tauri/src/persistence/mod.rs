@@ -131,10 +131,14 @@ pub enum EventKind {
     Access,
     /// An app asked to quit from Processes (`subject`: its display name).
     Quit,
+    /// An app moved to the Trash from Apps (`subject`: its display name).
+    AppRemoved,
+    /// A Maintenance task (`subject`: the task's ID; outcome done, cancelled or failed).
+    Maintenance,
 }
 
 impl EventKind {
-    const ALL: [Self; 9] = [
+    const ALL: [Self; 11] = [
         Self::Quarantine,
         Self::Restore,
         Self::Delete,
@@ -144,6 +148,8 @@ impl EventKind {
         Self::Review,
         Self::Access,
         Self::Quit,
+        Self::AppRemoved,
+        Self::Maintenance,
     ];
 
     const fn as_str(self) -> &'static str {
@@ -157,6 +163,8 @@ impl EventKind {
             Self::Review => "review",
             Self::Access => "access",
             Self::Quit => "quit",
+            Self::AppRemoved => "appRemoved",
+            Self::Maintenance => "maintenance",
         }
     }
 
@@ -590,6 +598,19 @@ impl Database {
             conn.execute("DELETE FROM folder_access WHERE folder = ?1", [folder])
                 .map(|_| ())
                 .map_err(write_failed)
+        })
+    }
+
+    /// When the latest kept event of `kind` happened (for the weekly cleanup reminder).
+    pub fn last_event_ms(&self, kind: EventKind) -> Result<Option<u64>, Unavailable> {
+        self.with(|conn| {
+            conn.query_row(
+                "SELECT MAX(at_ms) FROM history_event WHERE kind = ?1",
+                params![kind.as_str()],
+                |row| row.get::<_, Option<i64>>(0),
+            )
+            .map(|at| at.map(from_sql))
+            .map_err(write_failed)
         })
     }
 

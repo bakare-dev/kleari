@@ -13,7 +13,9 @@ use serde::Serialize;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager, State};
 
-use crate::cleanup::execute::{self, ApproveOutcome, Checks, MoveProgress, PreviewView};
+use crate::cleanup::execute::{
+    self, ApproveOutcome, Checks, DeleteNowOutcome, DeleteNowProgress, MoveProgress, PreviewView,
+};
 use crate::cleanup::intake::Intake;
 use crate::cleanup::scan::{self, Context, Progress, StepResult};
 use crate::cleanup::scope::{self, Access, ProtectedFolder, ScopeFolder};
@@ -29,6 +31,7 @@ use crate::quarantine::{
 };
 use crate::storage::analysis::AnalysisState;
 use crate::storage::{self, picker, temp_dir};
+use crate::system_monitor::open_paths::{self, OpenPaths};
 use crate::system_monitor::running_apps::{self, RunningBundle};
 
 /// IDs come from Rust (hex digits); anything else, or too many, is rejected.
@@ -38,7 +41,7 @@ fn valid_id(id: &str) -> bool {
     !id.is_empty() && id.len() <= 64 && id.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-fn check_ids(ids: &[String]) -> Result<(), CommandError> {
+pub(crate) fn check_ids(ids: &[String]) -> Result<(), CommandError> {
     if ids.len() <= MAX_IDS && ids.iter().all(|id| valid_id(id)) {
         Ok(())
     } else {
@@ -46,7 +49,7 @@ fn check_ids(ids: &[String]) -> Result<(), CommandError> {
     }
 }
 
-fn home() -> Result<PathBuf, CommandError> {
+pub(crate) fn home() -> Result<PathBuf, CommandError> {
     storage::home_dir().ok_or_else(|| CommandErrorCode::CleanupUnavailable.into())
 }
 
@@ -160,7 +163,7 @@ fn running(app: &AppHandle) -> Result<Vec<RunningBundle>, CommandError> {
         .map_err(|running_apps::Unavailable| CommandErrorCode::CleanupUnavailable.into())
 }
 
-fn blocking_failed<T>(_: T) -> CommandError {
+pub(crate) fn blocking_failed<T>(_: T) -> CommandError {
     CommandErrorCode::CleanupUnavailable.into()
 }
 
@@ -288,6 +291,8 @@ pub fn run_scan(
     // A scan without the running apps marks nothing as in use; preview and approval read
     // them again and refuse to go on without them.
     let running = running_apps::running_bundles(app).unwrap_or_default();
+    // Unread, every project counts as in use (fail closed); read again before anything moves.
+    let open = open_paths::read().ok();
     let history = app.state::<History>();
     let cleanup = app.state::<CleanupState>();
     let added = cleanup.added_folders();
@@ -314,6 +319,7 @@ pub fn run_scan(
         home: &home,
         temp: temp.as_deref(),
         running: &running,
+        open: open.as_ref(),
         now_ms: started_at_ms,
         options,
         store_dev: history.store.volume(),
@@ -423,20 +429,34 @@ pub fn get_cleanup_review(state: State<'_, CleanupState>) -> Review {
     state.review()
 }
 
-/// Sends caches and build folders from the latest Developer scan to the review. Returns the
-/// Developer review IDs that were added (unknown or stale IDs are left out).
+/// Puts `candidates` up for removal on the page that shows them (never listed in Cleanup's
+/// review) and returns their preview: each item checked and measured again now, with the same
+/// checks as the review's. The page shows it in its confirm sheet; approving it is
+/// `approve_cleanup_preview`, which checks every item once more before it moves.
+pub(crate) fn prepare_removal(
+    app: &AppHandle,
+    candidates: Vec<crate::cleanup::Candidate>,
+) -> Result<PreviewView, CommandError> {
+    let ids = app.state::<CleanupState>().add_direct(candidates);
+    with_checks(app, |checks, _, cleanup| {
+        execute::create_preview(cleanup, &ids, checks, unix_time_ms())
+    })
+}
+
+/// Prepares caches and build folders from the latest Developer scan for removal on the
+/// Developer page (unknown or stale IDs are left out): their preview.
 #[tauri::command]
-pub async fn send_developer_items_to_review(
+pub async fn prepare_developer_items_removal(
     app: AppHandle,
     ids: Vec<String>,
-) -> Result<Vec<String>, CommandError> {
+) -> Result<PreviewView, CommandError> {
     check_ids(&ids)?;
     tauri::async_runtime::spawn_blocking(move || {
         let home = home()?;
         let running = running_apps::running_bundles(&app).unwrap_or_default();
+        let open = open_paths::read().ok();
         let history = app.state::<History>();
-        // Folders excluded since the Developer scan: their items aren't sent, or read. Unknown
-        // exclusions send nothing.
+        // Folders excluded since the Developer scan: their items aren't prepared, or read.
         let excluded = history.exclusions()?;
         let items: Vec<_> = app
             .state::<DeveloperState>()
@@ -444,67 +464,74 @@ pub async fn send_developer_items_to_review(
             .into_iter()
             .filter(|item| !preferences::touches_excluded(&item.path, &excluded))
             .collect();
-        let sent: Vec<String> = items.iter().map(|item| item.id.clone()).collect();
         let intake = Intake {
             home: &home,
             running: &running,
+            open: open.as_ref(),
             store_dev: history.store.volume(),
             now_ms: unix_time_ms(),
             excluded: &excluded,
         };
-        let candidates = intake.developer_items(items);
-        let bytes = candidates
-            .iter()
-            .fold(0_u64, |total, item| total.saturating_add(item.bytes));
-        let count = u64::try_from(candidates.len()).unwrap_or(u64::MAX);
-        app.state::<CleanupState>().add_sent(candidates);
-        if count > 0 {
-            let mut event =
-                Event::new(EventKind::Review, unix_time_ms(), "completed", count, bytes);
-            event.subject = Some("developer".to_owned());
-            history.note(&event);
-        }
-        Ok(sent)
+        prepare_removal(&app, intake.developer_items(items))
     })
     .await
     .map_err(blocking_failed)?
 }
 
-/// Adds a large file from the last Storage analysis to the review (inspect only).
+/// Prepares a large file from the last Storage analysis for removal on the Storage page: its
+/// preview (empty if it is unknown or can't be removed).
 #[tauri::command]
-pub async fn add_storage_file_to_review(
+pub async fn prepare_storage_file_removal(
     app: AppHandle,
     review_id: String,
-) -> Result<bool, CommandError> {
+) -> Result<PreviewView, CommandError> {
     check_ids(std::slice::from_ref(&review_id))?;
     tauri::async_runtime::spawn_blocking(move || {
         let home = home()?;
-        let Some(file) = app.state::<AnalysisState>().large_file(&review_id) else {
-            return Ok(false);
-        };
         let history = app.state::<History>();
         let excluded = history.exclusions()?;
+        // A single file from Storage: no project, so nothing to check is open.
         let intake = Intake {
             home: &home,
             running: &[],
+            open: Some(&OpenPaths::NOTHING),
             store_dev: history.store.volume(),
             now_ms: unix_time_ms(),
             excluded: &excluded,
         };
-        let Some(candidate) = intake.storage_file(file) else {
-            return Ok(false);
-        };
-        let mut event = Event::new(
-            EventKind::Review,
-            unix_time_ms(),
-            "completed",
-            1,
-            candidate.bytes,
-        );
-        event.subject = Some("storage".to_owned());
-        app.state::<CleanupState>().add_sent(vec![candidate]);
-        history.note(&event);
-        Ok(true)
+        let candidate = app
+            .state::<AnalysisState>()
+            .large_file(&review_id)
+            .and_then(|file| intake.storage_file(file));
+        prepare_removal(&app, candidate.into_iter().collect())
+    })
+    .await
+    .map_err(blocking_failed)?
+}
+
+/// Shows a large file from the last Storage analysis in Finder, so it can be looked at before
+/// it is removed: only while it is not in an excluded folder and is still the file counted.
+#[tauri::command]
+pub async fn reveal_storage_file(app: AppHandle, review_id: String) -> Result<(), CommandError> {
+    check_ids(std::slice::from_ref(&review_id))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let file = app
+            .state::<AnalysisState>()
+            .large_file(&review_id)
+            .ok_or_else(|| CommandError::from(CommandErrorCode::RevealFailed))?;
+        let excluded = app.state::<History>().exclusions()?;
+        // Checked before the path is read, as for review items.
+        if preferences::touches_excluded(&file.source.path, &excluded) {
+            return Err(CommandErrorCode::RevealFailed.into());
+        }
+        let counted = file.source.stat.as_ref().map(quarantine::Identity::of);
+        let now = crate::cleanup::stat_path(&file.source.path)
+            .map(|stat| quarantine::Identity::of(&stat));
+        if counted.is_none() || counted != now {
+            return Err(CommandErrorCode::RevealFailed.into());
+        }
+        crate::finder::reveal(&app, vec![file.source.path])
+            .map_err(|_| CommandErrorCode::RevealFailed.into())
     })
     .await
     .map_err(blocking_failed)?
@@ -538,6 +565,8 @@ fn with_checks<T>(
 ) -> Result<T, CommandError> {
     let home = home()?;
     let running = running(app)?;
+    // Unread, every project counts as in use, so nothing in a project moves.
+    let open = open_paths::read().ok();
     let history = app.state::<History>();
     let cleanup = app.state::<CleanupState>();
     let added = cleanup.added_folders();
@@ -556,6 +585,7 @@ fn with_checks<T>(
         home: &home,
         temp: temp.as_deref(),
         running: &running,
+        open: open.as_ref(),
         store_dev: history.store.volume(),
         added: &added,
         cancel: &cancel,
@@ -596,11 +626,17 @@ pub async fn approve_cleanup_preview(
             .begin()
             .map_err(|_| CommandError::from(CommandErrorCode::OperationInProgress))?;
         with_checks(&app, |checks, history, cleanup| {
-            let origin = cleanup
-                .review()
-                .scan
-                .map_or("sent", |scan| scan.mode.as_str())
-                .to_owned();
+            // A page's own items are "sent" (as quarantine names them); the review's are the
+            // scan's mode.
+            let origin = if cleanup.preview_is_direct() {
+                "sent".to_owned()
+            } else {
+                cleanup
+                    .review()
+                    .scan
+                    .map_or("sent", |scan| scan.mode.as_str())
+                    .to_owned()
+            };
             let held_before = held_bytes(history);
             let outcome = execute::approve(
                 cleanup,
@@ -618,6 +654,45 @@ pub async fn approve_cleanup_preview(
                 remind_if_large(history, held_before, held_bytes(history));
             }
             outcome
+        })
+    })
+    .await
+    .map_err(blocking_failed)?
+}
+
+/// Deletes the preview's items for good, where they are, without quarantine, after checking
+/// every item again; streams each item's progress over `on_progress`.
+#[tauri::command]
+pub async fn delete_cleanup_preview(
+    app: AppHandle,
+    preview_id: String,
+    on_progress: Channel<DeleteNowProgress>,
+) -> Result<DeleteNowOutcome, CommandError> {
+    check_ids(std::slice::from_ref(&preview_id))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        // The same lock as a move, restore or quarantine delete: one change at a time.
+        let operations = app.state::<QuarantineState>();
+        let _guard = operations
+            .begin()
+            .map_err(|_| CommandError::from(CommandErrorCode::OperationInProgress))?;
+        with_checks(&app, |checks, history, cleanup| {
+            let origin = if cleanup.preview_is_direct() {
+                "page"
+            } else {
+                "cleanup"
+            };
+            execute::delete_now(
+                cleanup,
+                &preview_id,
+                checks,
+                history,
+                origin,
+                unix_time_ms,
+                |progress| {
+                    // A closed channel means the window went away; the deletes still complete.
+                    let _ = on_progress.send(progress);
+                },
+            )
         })
     })
     .await

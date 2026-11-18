@@ -22,7 +22,7 @@
         `package.json`, matched as globs with `!` exclusions. Any other lockfile above
         belongs to another project and doesn't count. The search stops at the repository
         root holding `.git`, the home folder or 8 levels;
-      - other build folders of projects without a commit in the last 14 days.
+      - other build folders of projects with nothing in them open in any app (checked at the scan and again before anything moves; originally, projects without a commit in the last 14 days).
     - *Never moved (inspect only):*
       - Apple's own caches (`com.apple.*`);
       - simulator devices and runtimes (manage them in Xcode);
@@ -37,7 +37,8 @@
       parent such as `~/Library/Caches`, a catalog path, a known build-folder name), strictly
       inside the home folder (or the temporary folder for temp files). Nothing may be in or
       contain `.git`, `.ssh`, `.gnupg`, Keychains, Mail, Messages, Containers, Group
-      Containers, Application Support, iCloud or CloudStorage.
+      Containers, Application Support, iCloud or CloudStorage. (Amended by ADR-017: an app's own
+      leftover, directly in a Library folder and named for that app, is the one exception.)
   - **Where items come from.** Only the Cleanup scan, the Developer scan or the Storage
     analysis creates items. Each item's real path and identity (device, inode, folder or
     file) stay in Rust, and the frontend refers to it by an opaque hex ID.
@@ -62,8 +63,8 @@
        after the rename fails, the move is `unconfirmed`: the record stays `moving` and the
        item is never reported or recorded as left in place. Partial results are shown as
        partial.
-  - **The quarantine folder** is `~/Library/Application Support/dev.bakare.kleari/
-    Quarantine`, created owner-only (0700) and opened without following symlinks. Kleari
+  - **The quarantine folder** is `~/Library/Application Support/dev.kleari.app/Quarantine`
+    (`dev.bakare.kleari` before beta 4; ADR-024 moves it over), created owner-only (0700) and opened without following symlinks. Kleari
     never empties it on its own. There is no retention period or size cap.
   - **Restore** first records the item as `restoring` (if that can't be written, nothing
     moves), then moves it back with the same exclusive rename into its original folder,
@@ -117,6 +118,13 @@
     inside is removed as a link, never followed. Read-only folders the item owns (Go's
     module cache) get owner write first. An item that can't be fully deleted stays held and
     is reported.
+  - **Delete permanently from Preview** is that same permanent delete, run straight after an
+    approval: the preview's "Delete permanently instead…" asks in its own confirmation
+    dialog with an acknowledgement, the approval moves the items into quarantine with every
+    check above, and then exactly the items it moved and confirmed (each result names the
+    quarantine item it became) are deleted one at a time through Quarantine's delete. An
+    item it couldn't delete, or a move that couldn't be confirmed, stays in Quarantine. There
+    is no second path that deletes a file where it is.
   - **History** (ADR-006): `history.sqlite3` in the app's data folder, owner-only, with
     explicit migrations and `synchronous = FULL`. It stores batches, items (with the
     original path, needed to restore), operation outcomes without paths, and protected-folder

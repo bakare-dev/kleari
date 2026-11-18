@@ -16,6 +16,7 @@ use crate::storage::{
     self, picker, FileFilter, FolderChoice, ProgressDto, ScanError, ScanSummary, StateError,
     StorageState,
 };
+use crate::system_monitor::open_paths;
 use crate::system_monitor::running_apps::{self, QuitOutcome};
 use crate::system_monitor::{
     self, ActivitySampler, ProcessList, ProcessListSampler, StartupItems, SystemActivity,
@@ -65,12 +66,27 @@ pub enum CommandErrorCode {
     UpdateFailed,
     /// macOS didn't show (or hide) the menu-bar item, so the preference wasn't changed.
     MenuBarUnavailable,
+    AppsScanInProgress,
+    AppsScanFailed,
+    FilesScanInProgress,
+    FilesScanFailed,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommandError {
     pub code: CommandErrorCode,
+}
+
+/// A command error is serialized only when Tauri sends it to the page as a command's result,
+/// so that is where it is logged: once per error the page receives, by its code's name.
+impl Serialize for CommandError {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        crate::log::command_error(self.code);
+        let mut fields = serializer.serialize_struct("CommandError", 1)?;
+        fields.serialize_field("code", &self.code)?;
+        fields.end()
+    }
 }
 
 impl From<CommandErrorCode> for CommandError {
@@ -211,6 +227,72 @@ pub async fn open_system_settings(app: AppHandle, pane: SettingsPane) -> Result<
         .map_err(|system_settings::OpenFailed| CommandErrorCode::SettingsUnavailable.into())
 }
 
+/// Opens Kleari's release page for `version` in the browser (an update's "What's new"). The
+/// address is built in Rust; the page sends only a version, which must look like one.
+#[tauri::command]
+pub async fn open_release_page(app: AppHandle, version: String) -> Result<(), CommandError> {
+    tauri::async_runtime::spawn_blocking(move || system_settings::open_release_page(&app, &version))
+        .await
+        .map_err(|_| CommandError::from(CommandErrorCode::SettingsUnavailable))?
+        .map_err(|system_settings::OpenFailed| CommandErrorCode::SettingsUnavailable.into())
+}
+
+/// Shows Kleari's log in Finder: the file, or its folder before anything was logged.
+fn reveal_log(app: &AppHandle) -> bool {
+    let Some(home) = crate::storage::home_dir() else {
+        return false;
+    };
+    let file = crate::log::file(&home);
+    let shown = if file.is_file() {
+        file
+    } else {
+        crate::log::folder(&home)
+    };
+    crate::finder::reveal(app, vec![shown]).is_ok()
+}
+
+/// "Report a problem" (Settings › About): opens a new, pre-filled GitHub issue in the browser
+/// (the address is built in Rust) and shows the log in Finder, to attach if the user chooses.
+/// Returns whether the log could be shown.
+#[tauri::command]
+pub async fn report_problem(app: AppHandle) -> Result<bool, CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        system_settings::open_issue_page(&app)
+            .map_err(|system_settings::OpenFailed| CommandErrorCode::SettingsUnavailable)?;
+        crate::log::note("report", "issue page opened");
+        Ok(reveal_log(&app))
+    })
+    .await
+    .map_err(|_| CommandError::from(CommandErrorCode::SettingsUnavailable))?
+}
+
+/// Shows Kleari's log in Finder (Settings › About).
+#[tauri::command]
+pub async fn show_log(app: AppHandle) -> Result<(), CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        reveal_log(&app)
+            .then_some(())
+            .ok_or_else(|| CommandError::from(CommandErrorCode::RevealFailed))
+    })
+    .await
+    .map_err(|_| CommandError::from(CommandErrorCode::RevealFailed))?
+}
+
+/// Opens one of Kleari's legal documents (Settings › About) in the browser. The page names only
+/// which one; the address is built in Rust.
+#[tauri::command]
+pub async fn open_legal_document(
+    app: AppHandle,
+    document: system_settings::LegalDocument,
+) -> Result<(), CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        system_settings::open_legal_document(&app, document)
+    })
+    .await
+    .map_err(|_| CommandError::from(CommandErrorCode::SettingsUnavailable))?
+    .map_err(|system_settings::OpenFailed| CommandErrorCode::SettingsUnavailable.into())
+}
+
 /// Opens the native folder panel. The chosen folder is kept in Rust under a grant ID; the
 /// frontend receives only the ID and the folder's name.
 #[tauri::command]
@@ -321,10 +403,12 @@ pub async fn start_developer_scan(
     let started_at_ms = unix_time_ms();
     let result = tauri::async_runtime::spawn_blocking(move || {
         let home = storage::home_dir();
+        let open = open_paths::read().ok();
         developer::scan(
             home.as_deref(),
             &added,
             &excluded,
+            open.as_ref(),
             &cancel,
             started_at_ms,
             |progress| {

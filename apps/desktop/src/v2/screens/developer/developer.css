@@ -73,11 +73,7 @@
   list-style: none;
 }
 
-.dev-rows .v2-edge {
-  margin-bottom: -40px;
-}
-
-.dev-rows li:not(.v2-edge) {
+.dev-rows li {
   display: flex;
   align-items: center;
   gap: 10px;

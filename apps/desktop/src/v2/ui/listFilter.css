@@ -1,0 +1,63 @@
+/* The filter bar every list shares: type chips, sort and a name search. */
+.lf-bar {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.lf-chips {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lf-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.lf-chip {
+  display: inline-flex;
+  height: 30px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid var(--mp-border);
+  border-radius: 15px;
+  background: var(--mp-card);
+  box-shadow: var(--mp-card-shadow);
+  color: var(--mp-text);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.lf-chip .v2-dot {
+  width: 8px;
+  height: 8px;
+}
+
+.lf-dot-all {
+  background: #94a3b8;
+}
+
+.lf-chip-count {
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.lf-chip.on {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--c2) 14%, transparent);
+  box-shadow: none;
+  color: var(--fg);
+}
+
+.lf-chip-all.on {
+  background: var(--mp-text);
+  color: var(--mp-bg);
+}

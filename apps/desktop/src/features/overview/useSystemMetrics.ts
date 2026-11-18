@@ -1,6 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
-import { isTauri } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from "react";
 import type { SystemMetrics } from "../../contracts/systemMetrics";
 import { fetchSystemMetrics, MetricsError, type MetricsErrorKind } from "../../lib/systemMetricsIpc";
 import { singleFlight, startPolling, type Poller } from "./metricsPoller";
@@ -41,42 +39,6 @@ export function useDocumentVisible(): boolean {
     () => document.visibilityState === "visible",
     () => true,
   );
-}
-
-/** Sent by Rust when the menu-bar popover opens (`true`) or closes (`false`) (menubar.rs). */
-export const POPOVER_SHOWN = "popover-shown";
-
-/**
- * Whether Kleari is open to look at: its window is visible, or its menu-bar popover is open
- * (the main window counts as hidden then). The System and Processes readings run while it is,
- * whichever screen is showing, so both open with recent data.
- */
-export function useKleariInView(): boolean {
-  const visible = useDocumentVisible();
-  const [popover, setPopover] = useState(false);
-  useEffect(() => {
-    if (!isTauri()) {
-      return;
-    }
-    let stop: (() => void) | undefined;
-    let closed = false;
-    listen<unknown>(POPOVER_SHOWN, (event) => setPopover(event.payload === true)).then(
-      (unlisten) => {
-        if (closed) {
-          unlisten();
-        } else {
-          stop = unlisten;
-        }
-      },
-      // Not listening only means readings follow the window alone, as they did before.
-      () => undefined,
-    );
-    return () => {
-      closed = true;
-      stop?.();
-    };
-  }, []);
-  return visible || popover;
 }
 
 export function useSystemMetrics(

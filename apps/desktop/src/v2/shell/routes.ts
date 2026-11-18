@@ -9,6 +9,10 @@ export const v2Routes = [
   "preview",
   "quarantine",
   "storage",
+  "apps",
+  "files",
+  "maintenance",
+  "browser",
   "system",
   "developer",
   "processes",
@@ -32,6 +36,12 @@ export function detailFromHash(hash: string): string | null {
   return detail || null;
 }
 
+/** The tab the current hash's detail names (`leftovers` in `#apps/leftovers`), or `fallback`. */
+export function tabFromHash<T extends string>(tabs: readonly T[], fallback: T): T {
+  const detail = typeof window === "undefined" ? null : detailFromHash(window.location.hash);
+  return tabs.find((tab) => tab === detail) ?? fallback;
+}
+
 export function hrefFor(route: V2Route, detail?: string): string {
   return detail ? `#${route}/${detail}` : `#${route}`;
 }
@@ -48,6 +58,10 @@ export const mainNav: readonly NavDestination[] = [
   { route: "cleanup", label: "Cleanup", icon: "search" },
   { route: "quarantine", label: "Quarantine", icon: "quarantine" },
   { route: "storage", label: "Storage", icon: "disk" },
+  { route: "apps", label: "Apps", icon: "apps" },
+  { route: "files", label: "Files", icon: "file" },
+  { route: "maintenance", label: "Maintenance", icon: "gear" },
+  { route: "browser", label: "Browser care", icon: "laptop" },
   { route: "system", label: "System", icon: "pulse" },
   { route: "developer", label: "Developer", icon: "code" },
   { route: "processes", label: "Processes", icon: "list" },

@@ -3,12 +3,13 @@
 // never arrive here: only opaque IDs, names and `~/…` locations.
 
 import { parseDockerState, type DockerState } from "./developer";
+import { fileCategories, type FileCategory } from "./storage";
 import { ContractError, nonNegativeInteger, nullable, oneOf, record } from "./systemMetrics";
 
 export const scanModes = ["standard", "deep", "dev"] as const;
 export type ScanMode = (typeof scanModes)[number];
 
-export const findingCategories = ["cache", "xcode", "pkg", "node", "build", "logs", "large", "old"] as const;
+export const findingCategories = ["cache", "xcode", "pkg", "node", "build", "logs", "large", "old", "apps", "chosen", "broken", "startup"] as const;
 export type FindingCategory = (typeof findingCategories)[number];
 
 const risks = ["low", "medium", "unknown"] as const;
@@ -29,6 +30,7 @@ const whyNots = [
   "appleCache",
   "manageInXcode",
   "userFile",
+  "openInApp",
   "otherVolume",
   "changedSinceScan",
 ] as const;
@@ -68,6 +70,21 @@ export const evidenceCodes = [
   "notOpenedFor",
   "notKnownCache",
   "otherVolume",
+  "leftoverOfRemovedApp",
+  "leftoverNoApp",
+  "losesAppData",
+  "installerFile",
+  "downloadAgain",
+  "chosenByYou",
+  "openInApp",
+  "nothingOpen",
+  "preferencesUnreadable",
+  "appMakesNewPreferences",
+  "programMissing",
+  "agentNotStarted",
+  "inXcodePreviews",
+  "startsAtLogin",
+  "stopsAtNextLogin",
 ] as const;
 export type EvidenceCode = (typeof evidenceCodes)[number];
 
@@ -79,7 +96,7 @@ export interface EvidenceEntry {
   app: string | null;
 }
 
-export type FindingSource = "scan" | "storage" | "developer";
+export type FindingSource = "scan" | "storage" | "developer" | "apps";
 
 export interface ReviewFinding {
   id: string;
@@ -101,6 +118,8 @@ export interface ReviewFinding {
   source: FindingSource;
   /** A Developer catalog ID for a known tool cache. */
   tool: string | null;
+  /** What kind of file a large or old file is, by its extension. */
+  fileCategory: FileCategory | null;
 }
 
 export interface ReviewScan {
@@ -127,7 +146,7 @@ export interface ScanOptionsInput {
   docker: boolean;
 }
 
-export const stepIds = ["appCaches", "logsAndTemp", "packageCaches", "largeAndOld", "xcode", "simulators", "nodeModules", "docker"] as const;
+export const stepIds = ["appCaches", "logsAndTemp", "packageCaches", "largeAndOld", "brokenItems", "xcode", "simulators", "nodeModules", "docker"] as const;
 export type StepId = (typeof stepIds)[number];
 
 export interface StepResult {
@@ -177,6 +196,12 @@ export interface PlannedItem {
   id: string;
   state: PlannedState;
   bytes: number;
+  /** For a page's confirm sheet: the item's name, category, folder (`~/…`) and why it can't be
+   * removed, if it can't. */
+  name: string;
+  category: FindingCategory;
+  location: string;
+  whyNot: WhyNot | null;
 }
 
 export interface CleanupPreview {
@@ -198,10 +223,11 @@ const moveFailures = [
 export type MoveFailure = (typeof moveFailures)[number];
 
 /** `unconfirmed`: the move happened but couldn't be checked; it is in Quarantine and
- * confirmed at the next launch, never reported as left in place. */
+ * confirmed at the next launch, never reported as left in place. A finished approval's
+ * `moved` items carry `heldId`, the quarantine item each became. */
 export type MoveProgress =
   | { id: string; state: "checking" }
-  | { id: string; state: "moved" }
+  | { id: string; state: "moved"; heldId?: string }
   | { id: string; state: "unconfirmed" }
   | { id: string; state: "failed"; reason: MoveFailure };
 
@@ -332,8 +358,9 @@ function finding(value: unknown, field: string): ReviewFinding {
     eligibility,
     whyNot,
     evidence: list(fields.evidence, `${field}.evidence`, MAX_EVIDENCE).map((entry, index) => evidence(entry, `${field}.evidence[${index}]`)),
-    source: oneOf(["scan", "storage", "developer"] as const, fields.source, `${field}.source`),
+    source: oneOf(["scan", "storage", "developer", "apps"] as const, fields.source, `${field}.source`),
     tool: nullable(fields.tool, (tool) => text(tool, `${field}.tool`)),
+    fileCategory: nullable(fields.fileCategory, (category) => oneOf(fileCategories, category, `${field}.fileCategory`)),
   };
 }
 
@@ -421,6 +448,10 @@ export function parsePreview(payload: unknown): CleanupPreview {
         id: id(item.id, `items[${index}].id`),
         state: oneOf(["planned", "changed", "notEligible"] as const, item.state, `items[${index}].state`),
         bytes: nonNegativeInteger(item.bytes, `items[${index}].bytes`),
+        name: text(item.name, `items[${index}].name`),
+        category: oneOf(findingCategories, item.category, `items[${index}].category`),
+        location: text(item.location, `items[${index}].location`),
+        whyNot: nullable(item.whyNot, (reason) => oneOf(whyNots, reason, `items[${index}].whyNot`)),
       };
     }),
   };
@@ -432,6 +463,9 @@ export function parseMoveProgress(payload: unknown): MoveProgress {
   const state = oneOf(["checking", "moved", "unconfirmed", "failed"] as const, fields.state, "state");
   if (state === "failed") {
     return { id: itemId, state, reason: oneOf(moveFailures, fields.reason, "reason") };
+  }
+  if (state === "moved" && fields.heldId !== undefined) {
+    return { id: itemId, state, heldId: id(fields.heldId, "heldId") };
   }
   return { id: itemId, state };
 }
@@ -452,6 +486,41 @@ export function parseApproveOutcome(payload: unknown): ApproveOutcome {
         batchId: id(fields.batchId, "batchId"),
         finishedAtMs: nonNegativeInteger(fields.finishedAtMs, "finishedAtMs"),
         items: list(fields.items, "items", MAX_FINDINGS).map((entry, index) => parseMoveProgress(record(entry, `items[${index}]`))),
+      };
+  }
+}
+
+/** One item of a permanent delete, where it is (src-tauri `DeleteNowProgress`). */
+export type DeleteNowProgress = { id: string; state: "deleting" | "deleted" } | { id: string; state: "failed"; reason: MoveFailure };
+
+export type DeleteNowOutcome =
+  | { status: "noPreview" }
+  | { status: "stale"; changed: string[] }
+  | { status: "finished"; finishedAtMs: number; items: DeleteNowProgress[] };
+
+export function parseDeleteNowProgress(payload: unknown): DeleteNowProgress {
+  const fields = record(payload, "$");
+  const itemId = id(fields.id, "id");
+  const state = oneOf(["deleting", "deleted", "failed"] as const, fields.state, "state");
+  if (state === "failed") {
+    return { id: itemId, state, reason: oneOf(moveFailures, fields.reason, "reason") };
+  }
+  return { id: itemId, state };
+}
+
+export function parseDeleteNowOutcome(payload: unknown): DeleteNowOutcome {
+  const fields = record(payload, "$");
+  const status = oneOf(["noPreview", "stale", "finished"] as const, fields.status, "status");
+  switch (status) {
+    case "noPreview":
+      return { status };
+    case "stale":
+      return { status, changed: ids(fields.changed, "changed") };
+    case "finished":
+      return {
+        status,
+        finishedAtMs: nonNegativeInteger(fields.finishedAtMs, "finishedAtMs"),
+        items: list(fields.items, "items", MAX_FINDINGS).map((entry, index) => parseDeleteNowProgress(record(entry, `items[${index}]`))),
       };
   }
 }

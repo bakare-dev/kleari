@@ -416,3 +416,16 @@ fn settings_and_excluded_folders_are_kept_and_replaced() {
     db.forget_folder_access("downloads").expect("forget");
     assert_eq!(db.folder_access("downloads"), Ok(None));
 }
+
+#[test]
+fn the_latest_event_of_a_kind_is_found() {
+    let db = Database::in_memory();
+    assert_eq!(db.last_event_ms(EventKind::Scan).expect("none"), None);
+    for at in [20, 50] {
+        db.record_event(&Event::new(EventKind::Scan, at, "completed", 1, 1))
+            .expect("scan");
+    }
+    db.record_event(&Event::new(EventKind::Quarantine, 90, "completed", 1, 1))
+        .expect("moved");
+    assert_eq!(db.last_event_ms(EventKind::Scan).expect("scan"), Some(50));
+}

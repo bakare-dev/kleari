@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Glyph, StatusMark } from "../../ui/icons";
-import { Button, FloatingBar, IconTile, LinkButton, Modal, PageHeader, Pill, SearchField, Switch, Toast, useToast } from "../../ui/components";
+import { Button, FloatingBar, IconTile, LinkButton, Modal, PageHeader, Pill, Switch, Toast, useToast } from "../../ui/components";
 import { formatGb, sum } from "../../ui/format";
+import { applyFilter, FilterBar, useListFilter, type ListFilterSpec } from "../../ui/ListFilter";
 import { headingIdFor, hrefFor } from "../../shell/routes";
 import { CleanupSteps } from "./CleanupSteps";
 import { categoryMeta, eligibilityIcon, eligibilityLabel, riskStatus } from "./findingMeta";
@@ -9,15 +10,21 @@ import { isSelectable, type Finding, type FindingCategory } from "./types";
 import "./review.css";
 
 const PAGE_SIZE = 10;
-const categoryOrder: readonly FindingCategory[] = ["cache", "xcode", "pkg", "node", "build", "logs", "large", "old"];
+const categoryOrder: readonly FindingCategory[] = ["cache", "xcode", "pkg", "node", "build", "logs", "broken", "startup", "apps", "chosen", "large", "old"];
+const categoryChips = categoryOrder.map((key) => ({ value: key, label: categoryMeta[key].label, tone: categoryMeta[key].tone }));
+const filterSpec: ListFilterSpec<Finding> = {
+  bytes: (finding) => finding.gb,
+  name: (finding) => finding.name,
+  text: (finding) => finding.path,
+  date: (finding) => finding.modifiedMs,
+  type: (finding) => finding.category,
+};
 
 interface ReviewScreenProps {
   findings: readonly Finding[];
-  categoryCounts: Record<FindingCategory, number>;
   subtitle: string;
   selection: ReadonlySet<string>;
   onSelectionChange: (next: ReadonlySet<string>) => void;
-  initialQuery: string;
   /** Shows the item in Finder; resolves to a message when it couldn't. */
   onRevealInFinder: (finding: Finding) => Promise<string | null>;
   /** Why the review couldn't load, if it didn't. */
@@ -33,23 +40,16 @@ function EligibilityText({ finding }: { finding: Finding }) {
   );
 }
 
-export function ReviewScreen({ findings, categoryCounts, subtitle, selection, onSelectionChange, initialQuery, onRevealInFinder, error }: ReviewScreenProps) {
-  const [category, setCategory] = useState<FindingCategory | "all">("all");
+export function ReviewScreen({ findings, subtitle, selection, onSelectionChange, onRevealInFinder, error }: ReviewScreenProps) {
+  const [filter, setFilter] = useListFilter("review", "largest");
   const [eligibleOnly, setEligibleOnly] = useState(false);
-  const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
   const toast = useToast();
 
-  const needle = query.trim().toLowerCase();
-  const shown = findings.filter(
-    (finding) =>
-      !hidden.has(finding.id) &&
-      (category === "all" || finding.category === category) &&
-      (!eligibleOnly || isSelectable(finding)) &&
-      (needle === "" || `${finding.name} ${finding.path}`.toLowerCase().includes(needle)),
-  );
+  const listed = findings.filter((finding) => !hidden.has(finding.id));
+  const shown = applyFilter(listed, filter, filterSpec).filter((finding) => !eligibleOnly || isSelectable(finding));
   const pageCount = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const rows = shown.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -82,40 +82,26 @@ export function ReviewScreen({ findings, categoryCounts, subtitle, selection, on
   };
 
   const resetPage = () => setPage(1);
-  const total = sum(categoryOrder, (key) => categoryCounts[key]);
+  const sortedBySize = filter.sort === "largest" || filter.sort === "smallest";
 
   return (
     <>
       <PageHeader above={<CleanupSteps current={1} />} title="Review results" headingId={headingIdFor("review")} subtitle={subtitle} />
 
-      <div className="rev-filters">
-        <div role="group" aria-label="Category" className="rev-chips">
-          <button
-            type="button"
-            aria-pressed={category === "all"}
-            className={`rev-chip rev-chip-all${category === "all" ? " on" : ""}`}
-            onClick={() => { setCategory("all"); resetPage(); }}
-          >
-            <span className="v2-dot rev-dot-all" aria-hidden="true" />
-            <span>All results</span>
-            <span className="rev-chip-count">{total}</span>
-          </button>
-          {categoryOrder.filter((key) => categoryCounts[key] > 0).map((key) => (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={category === key}
-              className={`rev-chip tone-${categoryMeta[key].tone}${category === key ? " on" : ""}`}
-              onClick={() => { setCategory(key); resetPage(); }}
-            >
-              <span className="v2-dot" aria-hidden="true" />
-              <span>{categoryMeta[key].label}</span>
-              <span className="rev-chip-count">{categoryCounts[key]}</span>
-            </button>
-          ))}
-        </div>
-        <SearchField label="Search results" value={query} onChange={(value) => { setQuery(value); resetPage(); }} width={190} />
-      </div>
+      <FilterBar
+        label="Filter results"
+        className="rev-filters"
+        state={filter}
+        onChange={(next) => {
+          setFilter(next);
+          resetPage();
+        }}
+        items={listed}
+        spec={filterSpec}
+        chips={categoryChips}
+        allLabel="All results"
+        searchWidth={190}
+      />
 
       <div className="rev-toolbar">
         <label className="rev-elig-toggle">
@@ -158,7 +144,9 @@ export function ReviewScreen({ findings, categoryCounts, subtitle, selection, on
               </th>
               <th scope="col" className="v2-th-glass">Item</th>
               <th scope="col" className="v2-th-glass">Category</th>
-              <th scope="col" className="v2-th-glass rev-col-size" aria-sort="descending">Size ↓</th>
+              <th scope="col" className="v2-th-glass rev-col-size" aria-sort={sortedBySize ? (filter.sort === "largest" ? "descending" : "ascending") : undefined}>
+                {sortedBySize ? `Size ${filter.sort === "largest" ? "↓" : "↑"}` : "Size"}
+              </th>
               <th scope="col" className="v2-th-glass">Risk</th>
               <th scope="col" className="v2-th-glass">Eligibility</th>
               <th scope="col" className="v2-th-glass rev-col-more"><span className="v2-visually-hidden">Details</span></th>

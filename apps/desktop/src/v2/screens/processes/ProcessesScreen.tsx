@@ -12,8 +12,6 @@ import {
   Segmented,
   StatCard,
   Toast,
-  useScrolled,
-  ScrollEdgeGlass,
   useToast,
   type LiveState,
   type Status,
@@ -113,7 +111,6 @@ export function ProcessesScreen(props: ProcessesScreenProps) {
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [scrolled, onScroll] = useScrolled();
   const toast = useToast();
 
   // Live readings re-sort the list. While the pointer or keyboard focus is in it, the order is
@@ -207,7 +204,6 @@ export function ProcessesScreen(props: ProcessesScreenProps) {
             tabIndex={0}
             aria-label="Process list"
             className="proc-list"
-            onScroll={onScroll}
             onPointerEnter={() => hold(true)}
             onPointerLeave={() => hold(false)}
             onFocus={() => hold(true)}
@@ -217,7 +213,6 @@ export function ProcessesScreen(props: ProcessesScreenProps) {
               }
             }}
           >
-            <ScrollEdgeGlass visible={scrolled} inset={0} as="li" />
             {shown.map((process) => {
               const status = statusOf(process);
               return (
@@ -386,7 +381,7 @@ function ProcessPanel({ process, slots, onClose, onQuit }: ProcessPanelProps) {
       <div className="proc-panel-spacer" />
       {canQuit(process) ? (
         <Button variant="primary" className="proc-quit-btn" onClick={onQuit}>
-          {`Quit ${process.name}…`}
+          {`Quit ${process.name}`}
         </Button>
       ) : (
         <div className="v2-info-strip proc-protected">

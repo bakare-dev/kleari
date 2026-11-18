@@ -20,7 +20,7 @@ The static PNGs don't show backdrop blur. The glass recipes below describe what 
 
 - **Window:** 1120×800 design size, radius 14, and a 1px `--mp-window-edge` border. The page behind it is `--mp-wallpaper` and only exists for the mockups.
 - **Sidebar:** 232px wide on `--mp-glass` with backdrop blur. In the real app, use the native Liquid Glass or vibrancy window material described in ADR-008.
-  - Header: the Navigator icon (36px), the "Kleari" wordmark ("Pilot" filled with `--mp-wordmark`), and the tagline "Scan · Explain · Approve".
+  - Header: the Navigator icon (36px), the "Kleari" wordmark (filled with `--mp-wordmark`), and the tagline "Scan · Explain · Approve".
   - Nav order: Dashboard, Cleanup, Quarantine, Storage, System, Developer, Processes, Activity. Settings is pinned to the bottom.
   - Each nav item is 34px tall, radius 8, with a 10px gap between icon and label. The selected item uses `--mp-nav-sel` plus `--mp-nav-sel-shadow`, and its icon turns blue.
   - The footer chip reads "Offline. Nothing leaves this Mac." with a green dot.

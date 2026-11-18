@@ -41,6 +41,8 @@ export interface ProjectResult {
   location: string;
   stack: ProjectStack;
   lastCommitMs: number | null;
+  /** A file in it, or the folder, was open in some app when scanned; nothing is suggested. */
+  inUse: boolean;
   bytes: number;
   folders: BuildFolder[];
 }
@@ -200,6 +202,7 @@ export function parseDeveloperScan(payload: unknown): DeveloperScan {
         location: text(project.location, `projects[${index}].location`),
         stack: oneOf(projectStacks, project.stack, `projects[${index}].stack`),
         lastCommitMs: nullable(project.lastCommitMs, (time) => nonNegativeInteger(time, `projects[${index}].lastCommitMs`)),
+        inUse: boolean(project.inUse, `projects[${index}].inUse`),
         bytes,
         folders,
       };

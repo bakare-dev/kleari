@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Glyph, type IconName } from "../../ui/icons";
-import { Button, IconTile, PageHeader, Pill, ScrollEdgeGlass, SearchField, Segmented, StatCard, useScrolled, type Status, type Tone } from "../../ui/components";
+import { Button, IconTile, PageHeader, Pill, SearchField, Segmented, StatCard, type Status, type Tone } from "../../ui/components";
 import { hrefFor, headingIdFor, type V2Route } from "../../shell/routes";
 import "./activity.css";
 
@@ -50,6 +50,8 @@ interface ActivityScreenProps {
   unavailable?: string | null;
   /** More happened in the kept window than is listed. */
   truncated?: boolean;
+  /** The log hasn't been read yet: show nothing rather than an empty log. */
+  loading?: boolean;
 }
 
 const kindMeta: Record<ActivityKind, { tag: string; tone: Tone; status: Status; group: ActivityGroup }> = {
@@ -72,11 +74,10 @@ const filters: readonly { value: ActivityGroup | "all"; label: string }[] = [
   { value: "system", label: "System" },
 ];
 
-export function ActivityScreen({ days, stats, retentionDays, onExport, unavailable, truncated }: ActivityScreenProps) {
+export function ActivityScreen({ days, stats, retentionDays, onExport, unavailable, truncated, loading }: ActivityScreenProps) {
   const [filter, setFilter] = useState<ActivityGroup | "all">("all");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
-  const [scrolled, onScroll] = useScrolled();
 
   const needle = query.trim().toLowerCase();
   const matches = (event: ActivityEvent) =>
@@ -135,8 +136,7 @@ export function ActivityScreen({ days, stats, retentionDays, onExport, unavailab
           />
           <SearchField label="Search activity" value={query} onChange={setQuery} width={190} strong />
         </div>
-        <div tabIndex={0} role="region" aria-label="Activity log" className="act-log" onScroll={onScroll}>
-          <ScrollEdgeGlass visible={scrolled} />
+        <div tabIndex={0} role="region" aria-label="Activity log" className="act-log">
           {shown.map((day) => (
             <section key={day.label} aria-label={day.label} className="v2-card act-day">
               <div className="act-day-head">
@@ -188,7 +188,7 @@ export function ActivityScreen({ days, stats, retentionDays, onExport, unavailab
               </ol>
             </section>
           ))}
-          {shown.length === 0 && !unavailable && (
+          {shown.length === 0 && !unavailable && !loading && (
             <span className="act-empty">
               {days.length === 0 ? "Nothing recorded yet. Scans, moves, restores and deletes appear here as they happen." : "Nothing in the log matches this filter."}
             </span>

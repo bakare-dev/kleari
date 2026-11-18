@@ -13,8 +13,6 @@ import { plural } from "../../v2/ui/format";
 
 const GB = 1_000_000_000;
 const DAY_MS = 86_400_000;
-/** A project committed to within this many days is active and never suggested. */
-export const ACTIVE_DAYS = 14;
 
 const toGb = (bytes: number) => bytes / GB;
 
@@ -99,6 +97,7 @@ export function cacheEntry(cache: CacheResult): DevEntry {
     id: cache.id,
     name: meta.name,
     sub: cache.version ? `${meta.tool} ${cache.version}` : (cache.locations[0] ?? ""),
+    dateMs: null,
     gb: toGb(cache.measured.bytes),
     lowerBound: cache.measured.lowerBound,
     risk: meta.risk,
@@ -113,8 +112,9 @@ export function cacheEntry(cache: CacheResult): DevEntry {
   };
 }
 
-export function projectRisk(project: ProjectResult, nowMs: number): DevRisk {
-  if (project.lastCommitMs !== null && nowMs - project.lastCommitMs < ACTIVE_DAYS * DAY_MS) {
+/** Active while a file in it, or the folder, is open in some app; its Git history doesn't count. */
+export function projectRisk(project: ProjectResult): DevRisk {
+  if (project.inUse) {
     return "active";
   }
   return project.stack === "python" || project.folders.some((folder) => CHECK_FOLDERS.has(folder.name)) ? "check" : "low";
@@ -122,13 +122,14 @@ export function projectRisk(project: ProjectResult, nowMs: number): DevRisk {
 
 export function projectEntry(project: ProjectResult, nowMs: number): DevEntry {
   const meta = stackMeta[project.stack];
-  const risk = projectRisk(project, nowMs);
+  const risk = projectRisk(project);
   const folders = project.folders.map((folder) => `${folder.name}/`).join(", ");
   const commit = project.lastCommitMs === null ? "no Git history" : `last commit ${ago(project.lastCommitMs, nowMs)}`;
   return {
     id: `project:${project.location}`,
     name: project.name,
     sub: `${folders} · ${commit}`,
+    dateMs: project.lastCommitMs,
     gb: toGb(project.bytes),
     lowerBound: project.folders.some((folder) => folder.measured.lowerBound) || undefined,
     risk,
@@ -137,7 +138,10 @@ export function projectEntry(project: ProjectResult, nowMs: number): DevEntry {
     path: project.location,
     meta: meta.label,
     what: meta.what,
-    after: risk === "active" ? `Not suggested: you committed to it within the last ${ACTIVE_DAYS} days.` : meta.after,
+    after:
+      risk === "active"
+        ? "Not suggested: something in it is open in an app (an editor, a terminal or a dev server). Close it and scan again."
+        : meta.after,
     parts: project.folders.map((folder) => ({ name: folder.name, gb: toGb(folder.measured.bytes) })),
     // A project sends each of its build folders the backend could identify.
     reviewIds: project.folders.flatMap((folder) => (folder.reviewId === null ? [] : [folder.reviewId])),

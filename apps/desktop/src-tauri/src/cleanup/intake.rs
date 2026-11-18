@@ -4,16 +4,14 @@
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
-use super::policy::Kind;
+use super::policy::{self, Kind};
 use super::{assess_now, location_of, new_id, Candidate, Source, StoredFacts};
 use crate::developer::{open_absolute, ReviewItem, ReviewKind};
 use crate::quarantine::Identity;
 use crate::storage::analysis::LargeFile;
+use crate::system_monitor::open_paths::OpenPaths;
 use crate::system_monitor::running_apps::RunningBundle;
 
-/// A project with a commit within this many days is active.
-const ACTIVE_DAYS: u64 = 14;
-const DAY_MS: u64 = 86_400_000;
 /// Storage lists files from this size.
 const STORAGE_LARGE_BYTES: u64 = 1_000_000_000;
 
@@ -264,6 +262,8 @@ fn glob_segment(pattern: &str, segment: &str) -> bool {
 pub struct Intake<'a> {
     pub home: &'a Path,
     pub running: &'a [RunningBundle],
+    /// What is open now; `None` (couldn't be read) counts every project as in use.
+    pub open: Option<&'a OpenPaths>,
     pub store_dev: Option<u64>,
     pub now_ms: u64,
     /// Folders excluded in Settings now: an item in or containing one is dropped before
@@ -285,7 +285,8 @@ impl Intake<'_> {
         let file_name = super::display_name_of(&path);
         Candidate {
             id: new_id(self.now_ms),
-            assessment: assess_now(&kind, &file_name, facts, self.running, same_volume),
+            // Build folders are reassessed once their project is set.
+            assessment: assess_now(&kind, &file_name, facts, self.running, false, same_volume),
             location: location_of(&path, Some(self.home)),
             identity: Identity::of(stat),
             name,
@@ -314,17 +315,10 @@ impl Intake<'_> {
                         super::display_name_of(&item.path),
                         None,
                     ),
-                    ReviewKind::Build {
-                        name,
-                        project,
-                        last_commit_ms,
-                    } => {
+                    ReviewKind::Build { name, project, .. } => {
                         let facts = StoredFacts {
                             lockfile: name == "node_modules"
                                 && has_lockfile(&project, self.home, self.excluded),
-                            project_active: last_commit_ms.is_some_and(|commit| {
-                                self.now_ms.saturating_sub(commit) < ACTIVE_DAYS * DAY_MS
-                            }),
                             ..StoredFacts::default()
                         };
                         let shown = format!("{}/{name}", super::display_name_of(&project));
@@ -341,25 +335,73 @@ impl Intake<'_> {
                     .filter(|&seconds| seconds > 0)
                     .and_then(|seconds| seconds.checked_mul(1000));
                 candidate.project = project;
+                let same_volume = self
+                    .store_dev
+                    .is_none_or(|dev| dev == candidate.identity.dev);
+                candidate.reassess(self.running, self.open, same_volume);
                 candidate
             })
             .collect()
     }
 
-    /// A large file from the Storage page: always inspect only.
+    /// Leftovers and installers from the Apps page.
+    pub fn app_items(&self, items: Vec<crate::apps::ReviewItem>) -> Vec<Candidate> {
+        items
+            .into_iter()
+            // Excluded in Settings since the Apps scan: dropped unread.
+            .filter(|item| !crate::preferences::touches_excluded(&item.path, self.excluded))
+            .map(|item| {
+                let facts = StoredFacts {
+                    owner_removed: item.owner_removed,
+                    ..StoredFacts::default()
+                };
+                let mut candidate = self.candidate(
+                    item.kind,
+                    Source::Apps,
+                    item.path,
+                    &item.stat,
+                    facts,
+                    item.name,
+                );
+                candidate.bytes = item.measured.bytes;
+                candidate.files = item.measured.files;
+                candidate.lower_bound = item.measured.lower_bound;
+                candidate.modified_ms = u64::try_from(item.measured.newest_modified_s)
+                    .ok()
+                    .filter(|&seconds| seconds > 0)
+                    .and_then(|seconds| seconds.checked_mul(1000));
+                candidate
+            })
+            .collect()
+    }
+
+    /// A large file from the Storage page: yours to quarantine when it is somewhere you may
+    /// choose things (`Kind::UserChosen`), otherwise inspect only.
     pub fn storage_file(&self, file: LargeFile) -> Option<Candidate> {
         if crate::preferences::touches_excluded(&file.source.path, self.excluded) {
             return None;
         }
         let stat = file.source.stat?;
+        let chosen = policy::within_bounds(
+            &Kind::UserChosen,
+            &file.source.path,
+            self.home,
+            None,
+            |_| Vec::new(),
+        );
         let facts = StoredFacts {
             larger_than: STORAGE_LARGE_BYTES,
             ..StoredFacts::default()
         };
+        let path = file.source.path;
         let mut candidate = self.candidate(
-            Kind::LargeFile,
+            if chosen {
+                Kind::UserChosen
+            } else {
+                Kind::LargeFile
+            },
             Source::Storage,
-            file.source.path,
+            path.clone(),
             &stat,
             facts,
             file.name,
@@ -367,6 +409,76 @@ impl Intake<'_> {
         candidate.bytes = file.bytes;
         candidate.files = 1;
         candidate.modified_ms = file.modified_ms;
+        if chosen {
+            self.hold_while_open(&mut candidate, path);
+        }
         Some(candidate)
+    }
+
+    /// A launch agent you chose to stop in Maintenance › Login items.
+    pub fn launch_agent(
+        &self,
+        path: std::path::PathBuf,
+        stat: &crate::storage::fsdir::FileStat,
+    ) -> Option<Candidate> {
+        if crate::preferences::touches_excluded(&path, self.excluded)
+            || !policy::within_bounds(&Kind::LaunchAgent, &path, self.home, None, |_| Vec::new())
+        {
+            return None;
+        }
+        let name = super::display_name_of(&path);
+        let mut candidate = self.candidate(
+            Kind::LaunchAgent,
+            Source::Apps,
+            path,
+            stat,
+            StoredFacts::default(),
+            name,
+        );
+        candidate.bytes = stat.blocks.saturating_mul(512);
+        candidate.files = 1;
+        Some(candidate)
+    }
+
+    /// Files and folders chosen on the Storage page's Browse view.
+    pub fn chosen_items(&self, items: Vec<crate::storage::explorer::Chosen>) -> Vec<Candidate> {
+        items
+            .into_iter()
+            .filter(|item| !crate::preferences::touches_excluded(&item.path, self.excluded))
+            .filter(|item| {
+                policy::within_bounds(&Kind::UserChosen, &item.path, self.home, None, |_| {
+                    Vec::new()
+                })
+            })
+            .map(|item| {
+                let mut candidate = self.candidate(
+                    Kind::UserChosen,
+                    Source::Storage,
+                    item.path.clone(),
+                    &item.stat,
+                    StoredFacts::default(),
+                    item.name,
+                );
+                candidate.bytes = item.measured.bytes;
+                candidate.files = item.measured.files;
+                candidate.lower_bound = item.measured.lower_bound;
+                candidate.modified_ms = u64::try_from(item.measured.newest_modified_s)
+                    .ok()
+                    .filter(|&seconds| seconds > 0)
+                    .and_then(|seconds| seconds.checked_mul(1000));
+                self.hold_while_open(&mut candidate, item.path);
+                candidate
+            })
+            .collect()
+    }
+
+    /// Something you chose isn't moved while anything inside it is open in an app: it is its
+    /// own "project" for the in-use check, read again before anything moves.
+    fn hold_while_open(&self, candidate: &mut Candidate, path: std::path::PathBuf) {
+        candidate.project = Some(path);
+        let same_volume = self
+            .store_dev
+            .is_none_or(|dev| dev == candidate.identity.dev);
+        candidate.reassess(self.running, self.open, same_volume);
     }
 }

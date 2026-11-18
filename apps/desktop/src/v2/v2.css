@@ -227,7 +227,7 @@ input[type="checkbox"]:disabled {
   letter-spacing: -0.02em;
 }
 
-.v2-wordmark-pilot {
+.v2-wordmark-fill {
   background: var(--mp-wordmark);
   -webkit-background-clip: text;
   background-clip: text;
@@ -1022,13 +1022,24 @@ input[type="checkbox"]:disabled {
 }
 
 .v2-live-dot.pulse {
+  position: relative;
   background: var(--v2-online);
-  animation: v2-pulse 1.6s ease-in-out infinite;
+}
+
+/* The ring grows and fades with transform and opacity only, which the compositor animates
+   without repainting the page each frame (a box-shadow pulse repainted it 60 times a second). */
+.v2-live-dot.pulse::after {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.45);
+  content: "";
+  animation: v2-pulse 1.6s ease-out infinite;
 }
 
 @keyframes v2-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45); }
-  50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(2); }
 }
 
 /* Search field */
@@ -1081,6 +1092,20 @@ input[type="checkbox"]:disabled {
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
+  container-type: inline-size;
+}
+
+/* A card too narrow for its icon and text side by side (four across in a small window)
+   drops the icon, so the label and the figure aren't cut off. */
+@container (max-width: 185px) {
+  .v2-stat > .v2-tile {
+    display: none;
+  }
+
+  .v2-stat .v2-stat-label,
+  .v2-stat .v2-stat-sub {
+    white-space: normal;
+  }
 }
 
 .v2-stat-lg {
@@ -1127,64 +1152,6 @@ input[type="checkbox"]:disabled {
 
 .v2-stat-lg .v2-stat-sub { font-size: 11.5px; }
 
-/* Scroll-edge glass: a sticky band that fades in once content scrolls beneath it. */
-.v2-edge {
-  position: sticky;
-  z-index: 3;
-  top: 0;
-  display: block;
-  height: 40px;
-  flex-shrink: 0;
-  margin-bottom: -54px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
-}
-
-.v2-edge.visible {
-  opacity: 1;
-}
-
-@supports (animation-timeline: scroll()) {
-  .v2-edge {
-    animation: v2-glass-in linear both;
-    animation-range: 0 28px;
-    animation-timeline: scroll(nearest block);
-  }
-}
-
-@keyframes v2-glass-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.v2-edge-blur {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, var(--mp-edge-top) 0%, var(--mp-edge-mid) 55%, rgba(255, 255, 255, 0) 100%);
-  -webkit-backdrop-filter: blur(16px) saturate(1.9) brightness(1.04);
-  backdrop-filter: blur(16px) saturate(1.9) brightness(1.04);
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%);
-  mask-image: linear-gradient(180deg, #000 0%, #000 45%, transparent 100%);
-}
-
-.v2-edge-line {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0), var(--mp-edge-line) 20%, var(--mp-edge-line) 80%, rgba(255, 255, 255, 0));
-}
-
-.v2-edge-sheen {
-  position: absolute;
-  top: 1px;
-  height: 14px;
-  border-radius: 0 0 50% 50% / 0 0 100% 100%;
-  background: radial-gradient(ellipse at 50% 0%, var(--mp-edge-sheen), rgba(255, 255, 255, 0) 70%);
-}
-
 /* Floating glass action bar */
 
 .v2-float {
@@ -1192,6 +1159,8 @@ input[type="checkbox"]:disabled {
   z-index: 4;
   display: flex;
   flex-shrink: 0;
+  /* In a narrow window the buttons move under the text rather than being squeezed. */
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   margin: 0 28px 22px;
@@ -1212,6 +1181,7 @@ input[type="checkbox"]:disabled {
 .v2-float-text {
   display: flex;
   min-width: 0;
+  flex: 1 1 220px;
   flex-direction: column;
   line-height: 1.3;
 }
@@ -1228,6 +1198,8 @@ input[type="checkbox"]:disabled {
 
 .v2-float-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
   margin-left: auto;
 }
@@ -1295,13 +1267,24 @@ input[type="checkbox"]:disabled {
   background: var(--mp-scrim);
 }
 
+/* Centred dialogs and sheets stay inside the window with room around them; taller content
+   scrolls inside the dialog instead of stretching past the window. */
+.v2-modal-center,
+.v2-modal-sheet {
+  max-width: calc(100vw - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .v2-modal-center {
   width: 440px;
+  max-height: calc(100vh - 48px);
   border-radius: 16px;
 }
 
 .v2-modal-sheet {
   width: 580px;
+  max-height: calc(100vh - 24px);
   margin-top: 0;
   border-top: 0;
   border-radius: 0 0 14px 14px;
@@ -1460,21 +1443,19 @@ input[type="checkbox"]:disabled {
   font-size: 12.5px;
 }
 
-/* Glass header for sticky table headings. */
+/* Sticky table headings: opaque, so nothing blurs beneath them while the table scrolls. */
 .v2-th-glass {
   position: sticky;
   z-index: 1;
   top: 0;
   border-bottom: 1px solid var(--mp-border-solid);
-  background: var(--mp-th-glass);
-  -webkit-backdrop-filter: blur(16px) saturate(1.9);
-  backdrop-filter: blur(16px) saturate(1.9);
+  background: var(--mp-card);
 }
 
 /* Reduced motion keeps state changes but drops decorative movement. */
 @media (prefers-reduced-motion: reduce) {
   .v2-spinner,
-  .v2-live-dot.pulse,
+  .v2-live-dot.pulse::after,
   .v2-sheen,
   .v2-spin {
     animation: none;
@@ -1483,8 +1464,7 @@ input[type="checkbox"]:disabled {
   .v2-progress-fill,
   .v2-gauge-value,
   .v2-switch,
-  .v2-switch-knob,
-  .v2-edge {
+  .v2-switch-knob {
     transition: none;
   }
 }
@@ -1493,16 +1473,9 @@ input[type="checkbox"]:disabled {
 @media (prefers-reduced-transparency: reduce) {
   .v2-float,
   .v2-toast,
-  .v2-th-glass,
   .v2-modal-drawer,
   .v2-modal-panel {
     background: var(--mp-card);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-
-  .v2-edge-blur {
-    background: var(--mp-bg);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -1616,4 +1589,182 @@ input[type="checkbox"]:disabled {
   margin-left: auto;
   color: var(--mp-text-2);
   font-size: 11.5px;
+}
+
+/* Step-by-step permission guides (AccessSteps). */
+.v2-access-steps {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.v2-access-steps ol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--mp-text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* First-launch setup. */
+.setup-body {
+  max-width: 560px;
+}
+
+.setup-step {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.setup-step .v2-row-text {
+  gap: 6px;
+}
+
+/* The sidebar's ⓘ: the "use at your own risk" notice on hover or focus; a click opens About. */
+.v2-disclaimer-info {
+  position: relative;
+  display: inline-flex;
+  margin-left: auto;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--mp-text-2);
+  cursor: pointer;
+}
+
+.v2-disclaimer-info:hover,
+.v2-disclaimer-info:focus-visible {
+  color: var(--mp-text);
+}
+
+.v2-disclaimer-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: -150px;
+  z-index: 20;
+  width: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--mp-border);
+  border-radius: 10px;
+  background: var(--mp-card);
+  box-shadow: var(--mp-card-shadow);
+  color: var(--mp-text);
+  font-size: 11.5px;
+  line-height: 1.45;
+  text-align: left;
+  visibility: hidden;
+  opacity: 0;
+}
+
+.v2-disclaimer-info:hover .v2-disclaimer-tip,
+.v2-disclaimer-info:focus-visible .v2-disclaimer-tip {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* A row's picture: a thumbnail or an app icon, in the space of its icon tile. */
+.v2-picture {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.v2-picture-img {
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.v2-picture-open {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  cursor: zoom-in;
+}
+
+.v2-picture-open:focus-visible {
+  outline: 2px solid var(--mp-link);
+  outline-offset: 2px;
+}
+
+/* The large preview: the image as big as the window allows, and its group below. */
+.v2-preview {
+  width: min(960px, calc(100vw - 32px));
+}
+
+.v2-preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.v2-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.v2-preview-head .v2-row-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.v2-preview-large {
+  display: flex;
+  min-height: 240px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--mp-glass-chip);
+}
+
+.v2-preview-large img {
+  max-width: 100%;
+  max-height: min(62vh, 720px);
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.v2-preview-strip {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 2px 0 4px;
+  overflow-x: auto;
+  list-style: none;
+}
+
+.v2-preview-strip li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.v2-preview-strip button {
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
+.v2-preview-strip li.on button {
+  border-color: var(--mp-link);
+}
+
+.v2-preview-note {
+  color: var(--mp-text-2);
+  font-size: 11px;
 }

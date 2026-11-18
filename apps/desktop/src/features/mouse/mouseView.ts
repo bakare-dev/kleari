@@ -8,6 +8,8 @@ import {
   shortcutKeys,
   type ButtonAction,
   type Combo,
+  type ConnectedMouse,
+  type MouseConnection,
   type Modifiers,
   type MouseSettings,
   type MouseStatus,
@@ -33,23 +35,40 @@ export const buttonNames: Record<number, { label: string; sub: string }> = {
 /** The Select value for a button: its action, `usual` when unchanged. */
 export type ActionChoice = "usual" | SimpleButtonAction | "shortcut";
 
-export const actionOptions: readonly { value: ActionChoice; label: string }[] = [
+export const actionOptions: readonly { value: ActionChoice; label: string; group?: string }[] = [
   { value: "usual", label: "Its usual click" },
-  { value: "back", label: "Back (⌘[)" },
-  { value: "forward", label: "Forward (⌘])" },
-  { value: "missionControl", label: "Mission Control (⌃↑)" },
-  { value: "appWindows", label: "App windows (⌃↓)" },
-  { value: "previousSpace", label: "Previous Space (⌃←)" },
-  { value: "nextSpace", label: "Next Space (⌃→)" },
-  { value: "middleClick", label: "Middle click" },
-  { value: "playPause", label: "Play / Pause" },
-  { value: "nextTrack", label: "Next track" },
-  { value: "previousTrack", label: "Previous track" },
-  { value: "volumeUp", label: "Volume up" },
-  { value: "volumeDown", label: "Volume down" },
-  { value: "mute", label: "Mute" },
-  { value: "disabled", label: "Do nothing" },
-  { value: "shortcut", label: "Keyboard shortcut…" },
+  { value: "back", label: "Back (⌘[)", group: "Navigate" },
+  { value: "forward", label: "Forward (⌘])", group: "Navigate" },
+  { value: "scrollUp", label: "Scroll up", group: "Navigate" },
+  { value: "scrollDown", label: "Scroll down", group: "Navigate" },
+  { value: "refresh", label: "Refresh page (⌘R)", group: "Navigate" },
+  { value: "zoomIn", label: "Zoom in (⌘=)", group: "Navigate" },
+  { value: "zoomOut", label: "Zoom out (⌘-)", group: "Navigate" },
+  { value: "newTab", label: "New tab (⌘T)", group: "Tabs" },
+  { value: "closeTab", label: "Close tab (⌘W)", group: "Tabs" },
+  { value: "nextTab", label: "Next tab (⌃⇥)", group: "Tabs" },
+  { value: "previousTab", label: "Previous tab (⌃⇧⇥)", group: "Tabs" },
+  { value: "nextApp", label: "Next application (⌘⇥)", group: "Apps and windows" },
+  { value: "previousApp", label: "Previous application (⌘⇧⇥)", group: "Apps and windows" },
+  { value: "nextWindow", label: "Next window (⌘`)", group: "Apps and windows" },
+  { value: "previousWindow", label: "Previous window (⌘⇧`)", group: "Apps and windows" },
+  { value: "minimize", label: "Minimise window", group: "Apps and windows" },
+  { value: "toggleFullScreen", label: "Full screen on or off", group: "Apps and windows" },
+  { value: "closeWindow", label: "Close window", group: "Apps and windows" },
+  { value: "tileLeft", label: "Tile window left", group: "Apps and windows" },
+  { value: "tileRight", label: "Tile window right", group: "Apps and windows" },
+  { value: "hideApp", label: "Hide application", group: "Apps and windows" },
+  { value: "missionControl", label: "Mission Control (⌃↑)", group: "Desktop" },
+  { value: "appWindows", label: "Application windows (⌃↓)", group: "Desktop" },
+  { value: "showDesktop", label: "Show desktop (F11)", group: "Desktop" },
+  { value: "previousSpace", label: "Previous desktop (⌃←)", group: "Desktop" },
+  { value: "nextSpace", label: "Next desktop (⌃→)", group: "Desktop" },
+  { value: "spotlight", label: "Spotlight (⌘Space)", group: "Desktop" },
+  { value: "screenshot", label: "Screenshot (⌘⇧3)", group: "Capture" },
+  { value: "screenshotArea", label: "Screenshot of an area (⌘⇧4)", group: "Capture" },
+  { value: "screenRecording", label: "Screen recording (⌘⇧5)", group: "Capture" },
+  { value: "lockScreen", label: "Lock Mac (⌃⌘Q)", group: "System" },
+  { value: "shortcut", label: "Keyboard shortcut…", group: "System" },
 ];
 
 export const speedOptions = mouseSpeeds.map((speed) => ({ value: String(speed), label: speed === 100 ? "100% (macOS)" : `${speed}%` }));
@@ -59,6 +78,8 @@ export const scrollActionNames: Record<ScrollAction, string> = {
   zoom: "Zoom in and out",
   switchTabs: "Switch tabs",
   horizontalScroll: "Scroll sideways",
+  switchApps: "Switch apps (like ⌘⇥; let go to choose)",
+  switchWindows: "Switch the app’s windows (⌘`)",
 };
 
 export const scrollActionOptions = scrollActions.map((action) => ({ value: action, label: scrollActionNames[action] }));
@@ -124,6 +145,11 @@ export function comboProblem(combo: Combo, others: readonly Combo[]): string | n
   }
   if (combo.does.kind === "wheel" && combo.buttons.length === 0 && !anyModifier(combo.modifiers)) {
     return "Choose a button or a key to hold.";
+  }
+  // Mirrors Rust: the switcher stays open while a button is held, and left click's release
+  // must reach the app.
+  if (combo.does.kind === "wheel" && combo.does.wheel === "switchApps" && (combo.buttons.length === 0 || combo.buttons.includes(0))) {
+    return "Switching apps needs a mouse button to hold (not left click): letting go of it picks the app.";
   }
   if (combo.does.kind === "press" && combo.buttons.length === 0) {
     return "Choose the buttons to press together.";
@@ -306,6 +332,17 @@ export function mouseState(status: MouseStatus | null): MouseState {
     };
   }
   return { tone: "ok", title: "On now", detail: "Your mouse settings are working." };
+}
+
+const connectionNames: Record<MouseConnection, string> = { usb: "USB", receiver: "wireless receiver", bluetooth: "Bluetooth", other: "connected" };
+
+/** "MX Master 3S (Bluetooth)", or what to expect with none connected. */
+export function miceNote(mice: readonly ConnectedMouse[]): string {
+  if (mice.length === 0) {
+    return "No external mouse is connected. Your trackpad is never changed; these settings apply once you connect a mouse by USB, a wireless receiver or Bluetooth.";
+  }
+  const names = mice.map((mouse) => `${mouse.name} (${connectionNames[mouse.connection]})`).join(", ");
+  return `Connected: ${names}. Your trackpad is never changed.`;
 }
 
 /** What would stop the settings working, as a reminder: they only work while Kleari runs. */

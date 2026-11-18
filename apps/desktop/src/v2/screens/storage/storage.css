@@ -16,10 +16,17 @@
   color: var(--mp-text-2);
 }
 
+/* One card title size for every card on the page. */
+.st-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
 .st-capacity {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  padding: 14px 16px;
 }
 
 .st-cap-head {
@@ -31,7 +38,7 @@
 .st-cap-total {
   display: flex;
   flex-direction: column;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .st-cap-total h2 {
@@ -41,61 +48,42 @@
 }
 
 .st-cap-total > span {
-  font-size: 30px;
+  font-size: 20px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: -0.02em;
 }
 
 .st-cap-total > span span {
   color: var(--mp-text-2);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0;
 }
 
-.st-chips {
-  display: flex;
-  gap: 10px;
+.st-available {
   margin-left: auto;
-}
-
-.st-chip {
-  display: flex;
-  flex-direction: column;
-  padding: 7px 12px;
-  border-radius: 10px;
-  background: var(--mp-info-bg);
-  line-height: 1.25;
-}
-
-.st-chip span {
   color: var(--mp-text-2);
-  font-size: 11px;
+  font-size: 12px;
 }
 
-.st-chip strong {
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
+.st-available strong {
+  margin-left: 4px;
+  font-size: 13px;
 }
 
 .st-ok { color: var(--mp-ok-text); }
-.st-warn { color: var(--mp-warn-text); }
 
 .st-bar {
   display: flex;
-  height: 22px;
+  height: 10px;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 5px;
   background: var(--mp-track);
-  box-shadow: inset 0 1px 2px rgba(24, 34, 48, 0.08);
 }
 
 .st-bar span {
   background: linear-gradient(90deg, var(--c1), var(--c2));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset -1px 0 0 rgba(255, 255, 255, 0.7);
+  box-shadow: inset -1px 0 0 var(--mp-card);
   opacity: 0.55;
-  transition: opacity 0.2s;
 }
 
 .st-bar span.on {
@@ -120,7 +108,7 @@
 
 .st-cat {
   display: flex;
-  height: 28px;
+  height: 26px;
   align-items: center;
   gap: 7px;
   padding: 0 10px;
@@ -146,66 +134,107 @@
   font-weight: 600;
 }
 
+/* Heading, steps, then the button: one column, all left-aligned. */
 .st-access {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
   border: 1px solid var(--mp-border);
   border-radius: 10px;
+  font-size: 12px;
+}
+
+.st-access-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.st-access-head svg {
+  flex-shrink: 0;
+  color: var(--mp-text-2);
+}
+
+/* Analysis progress, on the page so the rest of Kleari stays usable. */
+.st-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.st-progress-text {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
   color: var(--mp-text-2);
   font-size: 12px;
 }
 
-.st-access svg {
-  flex-shrink: 0;
+.st-ended {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--mp-warn-text);
+  font-size: 12px;
 }
 
-.st-access > span {
-  flex: 1;
+.st-ended svg {
+  flex-shrink: 0;
 }
 
 .st-empty {
   display: flex;
-  flex: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 24px;
+  gap: 8px;
+  padding: 28px 16px;
   text-align: center;
 }
 
 .st-empty .v2-card-note {
-  max-width: 360px;
+  max-width: 380px;
 }
 
-/* Only the folder or file list scrolls; the capacity card and side cards stay put, as on Processes. */
+/* The whole page scrolls; the cards keep their natural height. */
 .st-body {
-  display: flex;
-  min-height: 0;
   flex: 1 1 auto;
-  flex-direction: column;
-  gap: 14px;
-  overflow: hidden;
-  padding: 4px 28px 22px;
 }
 
-.st-grid {
+.st-body > * {
+  flex-shrink: 0;
+}
+
+/* The category and macOS cards share a row; the explorer has the full width below. */
+.st-pair {
   display: grid;
-  min-height: 0;
-  flex: 1 1 auto;
   gap: 14px;
-  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.st-pair-one {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 760px) {
+  .st-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .st-explore {
   display: flex;
-  min-height: 0;
   flex-direction: column;
   gap: 8px;
   padding: 14px 12px 8px;
+}
+
+/* Browse lists in full here; the page scrolls instead of the list. */
+.st-explore .st-browse-rows {
+  flex: none;
+  overflow: visible;
 }
 
 .st-explore-head {
@@ -257,21 +286,12 @@
 
 .st-folders,
 .st-files {
-  min-height: 0;
-  flex: 1 1 auto;
-  margin: 0 -4px 0 0;
-  padding: 0 4px 0 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 
-.st-folders .v2-edge,
-.st-files .v2-edge {
-  margin-bottom: -40px;
-}
-
-.st-folders li:not(.v2-edge) {
+.st-folders li {
   border-top: 1px solid var(--mp-border-solid);
 }
 
@@ -280,7 +300,7 @@
   width: 100%;
   align-items: center;
   gap: 10px;
-  padding: 8px 6px;
+  padding: 7px 6px;
   border: 0;
   border-radius: 8px;
   background: transparent;
@@ -346,12 +366,18 @@
   margin: 0 6px;
 }
 
-.st-files li:not(.v2-edge) {
+.st-files li {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 6px;
+  padding: 7px 6px;
   border-top: 1px solid var(--mp-border-solid);
+}
+
+/* The full location, never cut off, so you know exactly which file it is. */
+.st-file-where {
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .st-file-size {
@@ -364,36 +390,45 @@
 
 .st-file-action {
   display: flex;
-  width: 118px;
+  width: 140px;
   flex-shrink: 0;
+  align-items: center;
   justify-content: flex-end;
+  gap: 6px;
   padding-left: 6px;
 }
 
-/* Scrolls only when the window is too short for both cards; the padding keeps shadows unclipped. */
-.st-side {
+.st-reveal {
   display: flex;
-  min-width: 0;
-  min-height: 0;
-  flex-direction: column;
-  gap: 14px;
-  margin: -6px;
-  padding: 6px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mp-border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--mp-text-2);
+  cursor: pointer;
 }
 
-.st-detail {
+.st-reveal:hover {
+  background: var(--mp-sel-row);
+  color: var(--mp-text);
+}
+
+.st-detail,
+.st-managed {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
+  gap: 8px;
+  padding: 14px 16px;
 }
 
 .st-detail-head {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .st-detail-sub {
@@ -401,28 +436,15 @@
 }
 
 .st-blurb {
-  font-size: 12.5px;
+  color: var(--mp-text-2);
+  font-size: 12px;
 }
 
 .st-detail-foot {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.st-detail-foot > :nth-child(2) {
-  margin-left: auto;
-}
-
-.st-managed {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-}
-
-.st-managed-note {
-  margin-top: -4px;
+  margin-top: auto;
 }
 
 .st-managed-row {
@@ -438,7 +460,7 @@
   font-weight: 600;
 }
 
-/* Analyze dialog */
+/* Full Disk Access dialog */
 
 .st-an {
   width: 460px;
@@ -446,61 +468,6 @@
 
 .st-an-body {
   gap: 14px;
-}
-
-.st-an-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.st-an-numbers {
-  display: flex;
-  justify-content: space-between;
-  color: var(--mp-text-2);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-.st-an-numbers strong {
-  color: var(--mp-text);
-}
-
-.st-an-steps > li {
-  align-items: center;
-}
-
-.st-an-steps > li.wait .st-an-label {
-  color: var(--mp-text-2);
-}
-
-.st-an-icon {
-  display: flex;
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-}
-
-.st-an-wait {
-  width: 10px;
-  height: 10px;
-  border: 1.5px solid var(--mp-strong);
-  border-radius: 50%;
-}
-
-.st-an-label {
-  flex: 1;
-  font-weight: 500;
-}
-
-.st-an-label.now {
-  font-weight: 600;
-}
-
-.st-an-size {
-  font-size: 11.5px;
 }
 
 .st-an-note {
@@ -517,4 +484,189 @@
 .st-an-note svg {
   flex-shrink: 0;
   color: var(--mp-ok-text);
+}
+
+/* Browse and choose: one folder at a time, down to single files. */
+.st-browse {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Only the folder's contents give way to a short window; the map keeps its size. */
+.st-browse > :not(.st-browse-rows) {
+  flex-shrink: 0;
+}
+
+/* Pinned to the bottom of whatever scrolls the list (the page here, the list on Files). */
+.st-browse-float {
+  position: sticky;
+  bottom: 10px;
+  z-index: 4;
+}
+
+.st-browse-float .v2-float {
+  margin: 0;
+}
+
+.st-browse-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.st-browse-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.st-crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.st-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.st-crumb button {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* The storage map: the largest entries side by side, sized by what they take. */
+.st-map {
+  display: flex;
+  gap: 4px;
+  height: 92px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.st-map-cell {
+  display: flex;
+  min-width: 22px;
+  flex-basis: 0;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 1px;
+  overflow: hidden;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(160deg, var(--c1), var(--c2));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+
+.st-map-cell .v2-num {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.st-map-cell-thin {
+  padding: 0;
+}
+
+.st-map-cell-thin > * {
+  display: none;
+}
+
+.st-map-cell:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.st-map-cell:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+.st-browse-rows {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.st-browse-rows li {
+  display: grid;
+  grid-template-columns: 16px 28px minmax(0, 1fr) minmax(40px, 120px) 72px 96px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.st-browse-name {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--mp-text);
+  font: inherit;
+  text-align: left;
+}
+
+button.st-browse-name {
+  cursor: pointer;
+}
+
+.st-browse-name .v2-ellipsis {
+  max-width: 100%;
+}
+
+.st-browse-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--mp-track);
+}
+
+.st-browse-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--mp-link);
+}
+
+.st-browse-size {
+  text-align: right;
+}
+
+.st-browse-pill {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .st-browse-rows li {
+    grid-template-columns: 16px 28px minmax(0, 1fr) 64px;
+  }
+
+  .st-browse-bar,
+  .st-browse-pill {
+    display: none;
+  }
 }

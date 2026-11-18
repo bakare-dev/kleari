@@ -1,12 +1,24 @@
 mod activity;
+mod apps;
+mod apps_commands;
+mod browser;
 mod cleanup;
 mod cleanup_commands;
 mod commands;
 mod developer;
+mod explorer_commands;
+mod files;
+mod files_commands;
 mod finder;
 mod history;
+mod identity;
 mod ids;
+mod instance;
+mod issues;
+mod log;
 mod login_item;
+mod maintenance;
+mod maintenance_commands;
 mod menubar;
 mod mouse;
 mod notifications;
@@ -18,6 +30,10 @@ mod settings_commands;
 mod storage;
 mod system_monitor;
 mod system_settings;
+mod thumbnail_commands;
+mod thumbnails;
+mod trash;
+mod trash_commands;
 mod uninstall;
 mod updates;
 
@@ -25,34 +41,84 @@ use std::sync::Mutex;
 
 use tauri::Manager;
 
+/// Moves what Kleari kept under its old bundle identifier to the new one's folders, before
+/// anything opens them (`identity`). `None` without a home folder: Tauri's data folder is used
+/// as it is.
+fn migrate(identifier: &str) -> Option<identity::Migration> {
+    let home = storage::home_dir()?;
+    let caches = home.join("Library/Caches").join(identifier);
+    Some(identity::migrate(
+        &home,
+        identifier,
+        identity::old_running(),
+        || {
+            std::fs::create_dir_all(&caches).is_ok()
+                && identity::stub_reset(&caches, identity::OLD_IDENTIFIER)
+        },
+    ))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let context = tauri::generate_context!();
+    // First, so the move below and everything after it is recorded.
+    if let Some(home) = storage::home_dir() {
+        log::start(&log::folder(&home), env!("CARGO_PKG_VERSION"));
+    }
+    let migration = migrate(&context.config().identifier);
+    // One Kleari at a time (`instance`); the lock is held until this process ends.
+    let _instance = match &migration {
+        Some(migration) => instance::claim(&migration.data_folder),
+        None => instance::Claim::Unknown,
+    };
+    if matches!(_instance, instance::Claim::Taken) {
+        log::note("instance", "already running; asked it to show and quit");
+        instance::ask_first_to_show(&context.config().identifier);
+        return;
+    }
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(updates::UpdateState::default())
+        .manage(trash::TrashState::default())
         .manage(Mutex::new(system_monitor::SystemSampler::new()))
         .manage(Mutex::new(system_monitor::ActivitySampler::new()))
         .manage(Mutex::new(system_monitor::ProcessListSampler::new()))
         .manage(storage::StorageState::default())
         .manage(storage::analysis::AnalysisState::default())
         .manage(developer::DeveloperState::default())
+        .manage(apps::AppsState::default())
+        .manage(storage::explorer::ExplorerState::default())
+        .manage(files::FilesState::default())
+        .manage(browser::BrowserState::default())
+        .manage(maintenance_commands::MaintenanceState::default())
         .manage(cleanup::CleanupState::default())
         .manage(quarantine::QuarantineState::default())
         .manage(menubar::PopoverState::default())
         .manage(mouse::MouseState::default())
-        .setup(|app| {
-            // The history and quarantine folder live in the app's data folder. If it can't be
-            // found, the history is unavailable and nothing can be moved.
-            let folder = app.path().app_data_dir().ok();
+        .setup(move |app| {
+            // The history and quarantine folder live in the app's data folder (the old one, for
+            // a run whose move didn't happen). If it can't be found, the history is unavailable
+            // and nothing can be moved.
+            let folder = match &migration {
+                Some(migration) => Some(migration.data_folder.clone()),
+                None => app.path().app_data_dir().ok(),
+            };
             let history = history::History::open(folder);
+            if let Some(migration) = &migration {
+                identity::record(&history.db, migration.outcome);
+            }
             let menu_bar = preferences::load(&history.db).preferences.menu_bar;
             app.manage(history);
             // Without the item Kleari still opens, and closing the window quits as usual;
             // Settings › Show in menu bar tries again and reports a failure.
             let _ = menubar::apply(app.handle(), menu_bar);
+            // A later launch asks this one to show its window, then quits.
+            instance::show_when_asked(app.handle());
             // Clicking a scan's notification opens the review.
             notifications::open_review_on_click(app.handle().clone());
             schedule::start(app.handle().clone());
+            // Issue alerts, notified only when that's turned on in Settings.
+            issues::watch(app.handle().clone());
             // The Mouse settings apply from launch if they are on and macOS allows them.
             mouse::start(app.handle());
             Ok(())
@@ -83,6 +149,10 @@ pub fn run() {
             commands::get_system_details,
             commands::list_startup_items,
             commands::open_system_settings,
+            commands::open_release_page,
+            commands::open_legal_document,
+            commands::report_problem,
+            commands::show_log,
             commands::choose_scan_folder,
             commands::start_scan,
             commands::cancel_scan,
@@ -95,17 +165,41 @@ pub fn run() {
             commands::start_developer_scan,
             commands::cancel_developer_scan,
             commands::add_developer_folder,
+            apps_commands::start_apps_scan,
+            apps_commands::cancel_apps_scan,
+            apps_commands::prepare_app_items_removal,
+            apps_commands::prepare_app_caches_removal,
+            apps_commands::remove_app,
+            explorer_commands::list_storage_folder,
+            explorer_commands::cancel_storage_listing,
+            explorer_commands::prepare_storage_items_removal,
+            files_commands::start_files_scan,
+            files_commands::cancel_files_scan,
+            files_commands::prepare_files_removal,
+            files_commands::open_found_folder,
+            maintenance_commands::get_maintenance_info,
+            maintenance_commands::run_maintenance_task,
+            maintenance_commands::prepare_launch_agent_removal,
+            issues::get_issues,
+            browser::list_browser_tabs,
+            browser::close_browser_tabs,
             cleanup_commands::get_cleanup_scope,
             cleanup_commands::request_folder_access,
             cleanup_commands::add_cleanup_folder,
             cleanup_commands::start_cleanup_scan,
             cleanup_commands::cancel_cleanup_scan,
             cleanup_commands::get_cleanup_review,
-            cleanup_commands::send_developer_items_to_review,
-            cleanup_commands::add_storage_file_to_review,
+            cleanup_commands::prepare_developer_items_removal,
+            cleanup_commands::prepare_storage_file_removal,
             cleanup_commands::reveal_review_item,
+            cleanup_commands::reveal_storage_file,
             cleanup_commands::create_cleanup_preview,
             cleanup_commands::approve_cleanup_preview,
+            cleanup_commands::delete_cleanup_preview,
+            thumbnail_commands::get_picture,
+            trash_commands::list_trash,
+            trash_commands::delete_trash_items,
+            trash_commands::put_back_trash_items,
             cleanup_commands::list_quarantine,
             cleanup_commands::restore_quarantine_items,
             cleanup_commands::delete_quarantine_items,
@@ -123,6 +217,7 @@ pub fn run() {
             settings_commands::list_activity,
             settings_commands::clear_activity,
             settings_commands::uninstall_kleari,
+            settings_commands::dismiss_identity_move,
             settings_commands::quit_kleari,
             updates::check_for_update,
             updates::install_update,
@@ -131,16 +226,28 @@ pub fn run() {
             mouse::request_mouse_access,
             mouse::listen_mouse_probe,
             mouse::capture_mouse_probe,
+            mouse::start_shortcut_recording,
+            mouse::stop_shortcut_recording,
+            mouse::start_keyboard_lock,
+            mouse::get_keyboard_lock,
             menubar::open_main,
-            menubar::hide_popover
+            menubar::hide_popover,
+            menubar::fit_popover
         ])
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("failed to build Kleari desktop shell")
         .run(|_app, _event| {
             // Clicking the Dock icon brings back a window closed into the menu bar (macOS only).
             #[cfg(target_os = "macos")]
             if let tauri::RunEvent::Reopen { .. } = _event {
                 menubar::show_main(_app);
+            }
+            // Quitting always unlocks the keyboard, and the lock's thread gets to turn macOS's
+            // system shortcuts back on before the process ends (a crash leaves that to the
+            // next launch).
+            if let tauri::RunEvent::Exit = _event {
+                mouse::keylock::stop_and_wait(std::time::Duration::from_millis(500));
+                log::note("kleari", "quit");
             }
         });
 }

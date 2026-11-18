@@ -1,11 +1,12 @@
 /* global process, console */
 // Fails when the release bundle could contain v2 sample data. main.tsx loads the sample
 // interface (V2App) only in development (import.meta.env.DEV) and ReleaseApp otherwise, so
-// Vite must drop sample data from `pnpm build`. Two checks prove it:
+// Vite must drop sample data from `pnpm build`. Three checks prove it:
 // 1. every import reachable from main.tsx, static or dynamic, reaches no file in
 //    src/v2/sample/ (whether or not it carries the marker); only main.tsx's DEV-gated
 //    ./v2/V2App import is skipped, and the gating itself is checked;
-// 2. no built JavaScript file contains the sample-data marker.
+// 2. no built JavaScript file contains the sample-data marker;
+// 3. the popover import preloads its own stylesheets (see below).
 // Run after `pnpm build`: `pnpm check:release-bundle`.
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -22,7 +23,7 @@ const main = join(desktop, "src", "main.tsx");
 const DEV_ONLY = "./v2/V2App";
 const mainSource = readFileSync(main, "utf8");
 const gated = new RegExp(
-  String.raw`import\.meta\.env\.DEV\s*\?\s*import\(\s*["']\./v2/V2App["']\s*\)[\s\S]*?:\s*import\(\s*["']\./v2/ReleaseApp["']\s*\)`,
+  String.raw`import\.meta\.env\.DEV\s*\?\s*(?:\(\)\s*=>\s*)?import\(\s*["']\./v2/V2App["']\s*\)[\s\S]*?:\s*(?:\(\)\s*=>\s*)?import\(\s*["']\./v2/ReleaseApp["']\s*\)`,
 );
 if (!gated.test(mainSource)) {
   console.error(`main.tsx no longer loads ${DEV_ONLY} only in development and ./v2/ReleaseApp otherwise; update this check.`);
@@ -55,4 +56,27 @@ if (leaking.length > 0) {
   process.exit(1);
 }
 
-console.log(`Release bundle is free of sample data (source graph checked; ${files.length} JavaScript files checked).`);
+// 3. The menu-bar popover's import must preload its own stylesheets. When main.tsx's loaders
+//    were one conditional expression, the build gave both imports ReleaseApp's preload only,
+//    and the popover window rendered unstyled.
+const entry = files.find((name) => name.startsWith("index-"));
+const styles = readdirSync(assets).filter((name) => name.endsWith(".css"));
+const popoverStyles = styles.filter((name) => name.startsWith("PopoverApp-") || name.startsWith("v2-"));
+const entrySource = entry ? readFileSync(join(assets, entry), "utf8") : "";
+const depsList = /m\.f=\[([^\]]*)\]/.exec(entrySource);
+const popoverImport = /import\(`\.\/PopoverApp-[\w-]+\.js`\)\.then\([^)]*\),__vite__mapDeps\(\[([\d,]+)\]\)/.exec(entrySource);
+if (!depsList || !popoverImport || popoverStyles.length === 0) {
+  console.error("Couldn't find the popover's preload in the release entry chunk; update this check.");
+  process.exit(1);
+}
+const deps = depsList[1].split(",").map((dep) => dep.trim().replace(/^["'`]assets\/|["'`]$/g, ""));
+const preloaded = new Set(popoverImport[1].split(",").map((index) => deps[Number(index)]));
+const missing = popoverStyles.filter((name) => !preloaded.has(name));
+if (missing.length > 0) {
+  console.error(`The popover window doesn't preload its stylesheets: ${missing.join(", ")}`);
+  process.exit(1);
+}
+
+console.log(
+  `Release bundle is free of sample data (source graph checked; ${files.length} JavaScript files checked); the popover preloads its stylesheets.`,
+);

@@ -1,11 +1,14 @@
 import { useRef, useState } from "react";
 import type { IconName } from "../../ui/icons";
-import { Button, FloatingBar, IconTile, LinkButton, PageHeader, Pill, ScrollEdgeGlass, Segmented, Spinner, StatCard, Toast, useScrolled, useToast, type Status, type Tone } from "../../ui/components";
+import type { CleanupPreview } from "../../../contracts/cleanup";
+import { Button, FloatingBar, IconTile, PageHeader, Pill, Segmented, Spinner, StatCard, Toast, useToast, type Status, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
-import { headingIdFor, hrefFor } from "../../shell/routes";
+import { headingIdFor, tabFromHash } from "../../shell/routes";
+import { useRemoval } from "../../../features/removal/RemovalProvider";
+import { applyFilter, FilterBar, useListFilter, type ListFilterSpec, type TypeChip } from "../../ui/ListFilter";
 import "./developer.css";
 
-/** How careful to be: low and check can be sent to review; Xcode-managed and active never can.
+/** How careful to be: low and check can be removed; Xcode-managed and active never can.
  * Cleanup decides again in Rust what may move. */
 export type DevRisk = "low" | "check" | "xcode" | "active";
 
@@ -13,6 +16,8 @@ export interface DevEntry {
   id: string;
   name: string;
   sub: string;
+  /** For sorting: a project's last commit; `null` for a cache. */
+  dateMs: number | null;
   gb: number;
   /** Something inside couldn't be read or counted, so the size is a minimum. */
   lowerBound?: boolean;
@@ -24,8 +29,8 @@ export interface DevEntry {
   what: string;
   after: string;
   parts: readonly { name: string; gb: number }[];
-  /** What Send to review sends: the cache, or each of a project's build folders. Empty when
-   * the backend couldn't identify it, so it can't be sent. */
+  /** What Remove removes: the cache, or each of a project's build folders. Empty when the
+   * backend couldn't identify it, so it can't be removed. */
   reviewIds: readonly string[];
 }
 
@@ -53,15 +58,10 @@ interface DeveloperScreenProps {
   onCancel: () => void;
   /** Opens the macOS folder panel; resolves to a message to show, if any. */
   onAddFolder: () => Promise<string | null>;
-  /** Review IDs already sent to Cleanup's review. */
-  sent: ReadonlySet<string>;
-  /** Sends the entries to Cleanup step 2; resolves to a message. Nothing moves. */
-  onSendToReview: (entries: readonly DevEntry[]) => Promise<string>;
-}
-
-/** Every one of the entry's items is already in review. */
-function inReview(entry: DevEntry, sent: ReadonlySet<string>): boolean {
-  return entry.reviewIds.length > 0 && entry.reviewIds.every((id) => sent.has(id));
+  /** Prepares the entries for removal here (the confirm sheet shows it). */
+  onPrepare: (entries: readonly DevEntry[]) => Promise<CleanupPreview>;
+  /** After something moved: scans again. */
+  onRemoved: () => void;
 }
 
 const riskPill: Record<DevRisk, { label: string; status: Status }> = {
@@ -71,35 +71,52 @@ const riskPill: Record<DevRisk, { label: string; status: Status }> = {
   active: { label: "Active project", status: "muted" },
 };
 
+const riskChips: readonly TypeChip[] = [
+  { value: "low", label: "Low risk", tone: "green" },
+  { value: "check", label: "Check first", tone: "orange" },
+  { value: "xcode", label: "Remove in Xcode", tone: "gray" },
+  { value: "active", label: "Active project", tone: "gray" },
+];
+const toolchainSpec: ListFilterSpec<DevEntry> = {
+  bytes: (entry) => entry.gb,
+  name: (entry) => entry.name,
+  text: (entry) => `${entry.sub} ${entry.path}`,
+  type: (entry) => entry.risk,
+};
+/** Projects also sort by their last commit. */
+const projectSpec: ListFilterSpec<DevEntry> = { ...toolchainSpec, date: (entry) => entry.dateMs };
+
 /** Reclaiming Docker space is Docker's job; Kleari only shows the command (ADR-005). */
 const DOCKER_COMMAND = "docker system prune";
 
-type View = "toolchains" | "projects";
+const views = ["toolchains", "projects"] as const;
+type View = (typeof views)[number];
 
 function size(entry: { gb: number; lowerBound?: boolean }): string {
   return `${entry.lowerBound ? "≥ " : ""}${formatGb(entry.gb)}`;
 }
 
 export function DeveloperScreen(props: DeveloperScreenProps) {
-  const { toolchains, projects, status, sent } = props;
-  const [view, setView] = useState<View>("toolchains");
+  const { toolchains, projects, status } = props;
+  const removal = useRemoval();
+  const [view, setView] = useState<View>(() => tabFromHash(views, "toolchains"));
   const [focus, setFocus] = useState<string | null>(null);
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
-  const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [scrolled, onScroll] = useScrolled();
   const rows = useRef<HTMLUListElement>(null);
   const toast = useToast();
 
-  const list = view === "projects" ? projects : toolchains;
+  const [filter, setFilter] = useListFilter(view === "projects" ? "developer.projects" : "developer.toolchains");
+  const spec = view === "projects" ? projectSpec : toolchainSpec;
+  const unfiltered = view === "projects" ? projects : toolchains;
+  const list = applyFilter(unfiltered, filter, spec);
   const all = [...toolchains, ...projects];
   const focused = all.find((entry) => entry.id === focus) ?? list[0];
   const scanned = props.developerGb !== null;
-  const selectable = (entry: DevEntry) => (entry.risk === "low" || entry.risk === "check") && entry.reviewIds.length > 0 && !inReview(entry, sent);
+  const selectable = (entry: DevEntry) => (entry.risk === "low" || entry.risk === "check") && entry.reviewIds.length > 0;
   const picked = all.filter((entry) => selectable(entry) && selection.has(entry.id));
   const pickedGb = sum(picked, (entry) => entry.gb);
   const has = picked.length > 0;
-  const sentCount = all.filter((entry) => inReview(entry, sent)).length;
 
   const toggle = (entry: DevEntry) => {
     if (!selectable(entry)) {
@@ -115,12 +132,15 @@ export function DeveloperScreen(props: DeveloperScreenProps) {
     setFocus(entry.id);
   };
 
-  const send = () => {
-    setSending(true);
-    void props.onSendToReview(picked).then((message) => {
-      setSending(false);
-      setSelection(new Set());
-      toast.show(message);
+  const removePicked = () => {
+    const entries = picked;
+    removal({
+      what: plural(entries.length, "item"),
+      prepare: () => props.onPrepare(entries),
+      onDone: () => {
+        setSelection(new Set());
+        props.onRemoved();
+      },
     });
   };
 
@@ -132,7 +152,6 @@ export function DeveloperScreen(props: DeveloperScreenProps) {
         subtitle="Toolchains, caches and build output. Most of it rebuilds itself; nothing moves until you approve it in Cleanup."
         actions={
           <>
-            <LinkButton href={hrefFor("review")} size="sm">Open review</LinkButton>
             <Button
               variant="soft"
               size="sm"
@@ -194,15 +213,17 @@ export function DeveloperScreen(props: DeveloperScreenProps) {
                   ? "Only folders a build or install makes again (node_modules, target, build). Your source code is never selected."
                   : "Found by a read-only scan of the usual developer folders. Pick a row to see what it holds."}
               </span>
+              {unfiltered.length > 0 && <FilterBar label={view === "projects" ? "Filter projects" : "Filter toolchains"} className="dev-list-note" state={filter} onChange={setFilter} items={unfiltered} spec={spec} chips={riskChips} />}
               {list.length === 0 ? (
-                <span className="v2-card-note dev-list-note">{view === "projects" ? "No project build folders were found." : "No developer caches were found."}</span>
+                <span className="v2-card-note dev-list-note">
+                  {unfiltered.length > 0 ? "Nothing matches." : view === "projects" ? "No project build folders were found." : "No developer caches were found."}
+                </span>
               ) : (
-                <ul ref={rows} tabIndex={0} aria-label={view === "projects" ? "Project build folder list" : "Toolchain and cache list"} className="dev-rows" onScroll={onScroll}>
-                  <ScrollEdgeGlass visible={scrolled} inset={0} as="li" />
+                <ul ref={rows} tabIndex={0} aria-label={view === "projects" ? "Project build folder list" : "Toolchain and cache list"} className="dev-rows">
                   {list.map((entry) => {
                     const can = selectable(entry);
                     const on = can && selection.has(entry.id);
-                    const pill = inReview(entry, sent) ? { label: "In review", status: "link" as const } : riskPill[entry.risk];
+                    const pill = riskPill[entry.risk];
                     return (
                       <li key={entry.id} className={focused?.id === entry.id ? "focused" : ""}>
                         <input type="checkbox" aria-label={`Select ${entry.name}`} checked={on} disabled={!can} onChange={() => toggle(entry)} style={{ opacity: can ? 1 : 0.4 }} />
@@ -316,9 +337,9 @@ export function DeveloperScreen(props: DeveloperScreenProps) {
         <FloatingBar>
           <div className="v2-float-text">
             <span role="status" className="v2-float-title">
-              {has ? `${picked.length} selected · ${formatGb(pickedGb)}` : sentCount ? `${plural(sentCount, "item")} in review` : "Nothing selected"}
+              {has ? `${picked.length} selected · ${formatGb(pickedGb)}` : "Nothing selected"}
             </span>
-            <span className="v2-float-sub">Sending to review adds these to Cleanup step 2. Nothing moves until you approve it there.</span>
+            <span className="v2-float-sub">You'll see exactly what will go first, then choose to delete it or keep it in quarantine.</span>
           </div>
           <div className="v2-float-actions">
             <Button
@@ -328,16 +349,14 @@ export function DeveloperScreen(props: DeveloperScreenProps) {
             >
               Select low risk
             </Button>
-            <Button variant="primary" disabled={!has || sending} onClick={send}>
-              {has ? `Send ${picked.length} to review` : "Send to review"}
+            <Button variant="primary" disabled={!has} onClick={removePicked}>
+              {has ? `Remove ${plural(picked.length, "item")}` : "Remove"}
             </Button>
           </div>
         </FloatingBar>
       )}
 
-      <Toast message={toast.message} bottom={92}>
-        <a className="v2-link dev-toast-link" href={hrefFor("review")}>Open review</a>
-      </Toast>
+      <Toast message={toast.message} bottom={92} />
     </>
   );
 }

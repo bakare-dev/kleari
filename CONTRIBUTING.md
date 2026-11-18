@@ -22,22 +22,33 @@ Three protected branches; nobody pushes to them directly, and none is force-push
 
 | Branch | Holds | Receives |
 |---|---|---|
-| `beta` | the next release, as it is being built and tested; beta releases are built from it | pull requests from your branch |
+| `main` | development: every contribution lands here first, so it can hold unreleased work | pull requests from any branch or fork |
+| `beta` | the next beta; beta releases are built from it | a pull request from `main`, by a maintainer, when a beta is cut |
 | `release` | the latest stable release's code; stable releases are built from it | a pull request from `beta`, by a maintainer, when a beta is promoted |
-| `main` | the same as `release`: what most people see first | a fast-forward from `release` after each stable release, by a maintainer |
 
 Work on your own branch (in a fork, or a branch named `feat/…`, `fix/…`, `docs/…` or
-`chore/…`) cut from `beta`, and open your pull request **into `beta`**. An urgent fix to a
-stable release goes into `release` and is then merged back into `beta`.
+`chore/…`) cut from `main`, and open your pull request **into `main`**, GitHub's default.
+The required **Branch flow** check rejects any other route into `beta` or `release`.
+
+Maintainers only: an urgent fix to a stable release goes from a `hotfix/…` branch into
+`release`, and a stable release's version change from a `release-prep/…` branch; `release` is
+then merged back into `main`, and reaches `beta` with the next promotion. Promotions
+(`main` → `beta`, `beta` → `release`, `release` → `main`) use **Create a merge commit**, never
+squash or rebase, so the branches keep sharing history.
 
 ## 3. Rules every change follows
 
 **Safety (non-negotiable).**
 - Scanning only reads. Nothing changes, moves or deletes a user's file except Cleanup's move
-  into quarantine, Quarantine's restore and its separately confirmed permanent delete.
+  into quarantine, Quarantine's restore and its separately confirmed permanent delete, and
+  Apps moving a confirmed app to the Trash through macOS
+  ([ADR-017](docs/adr/ADR-017-apps-and-leftovers.md)), and Maintenance's fixed tasks, each
+  confirmed and run through macOS's own administrator prompt
+  ([ADR-020](docs/adr/ADR-020-maintenance-tasks.md)).
 - Rust decides everything that touches files; the interface never sends a path to act on.
 - Never follow symlinks out of scope, never overwrite on restore, and fail closed when unsure.
-- No root helper, no broad new permission, no shell command built from data.
+- No root helper, no broad new permission, no shell command built from data. Administrator
+  rights only through macOS's own prompt, per action, for a constant script (ADR-020).
 
 **Privacy (non-negotiable).**
 - Nothing about the user's Mac or files leaves it. No telemetry, analytics, crash upload,
@@ -87,13 +98,15 @@ only shows on real hardware).
   `refactor`), for example `fix: keep the review's order after a restore`.
 - Aim for a few hundred changed lines. Above roughly 500, split it, or explain why it can't be
   split and in what order to review it.
-- CI must be green, and a maintainer must approve. Only maintainers merge, and auto-merge is
-  never used.
+- CI must be green, every review conversation resolved, and a code owner
+  ([CODEOWNERS](.github/CODEOWNERS)) must approve. Pushing new commits after approval
+  dismisses it, so the final version is what gets approved. Only maintainers merge, and
+  auto-merge is never used.
 
 ## 6. Versions and releases
 
 Anyone can contribute code; **releases are made by the maintainer**, who also creates release
-tags and moves `release` and `main`. Versions follow [docs/versioning.md](docs/versioning.md);
+tags and promotes `main` to `beta` and `beta` to `release`. Versions follow [docs/versioning.md](docs/versioning.md);
 releases follow the [release checklist](docs/release-checklist.md).
 
 ## 7. AI-assisted contributions

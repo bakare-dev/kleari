@@ -29,13 +29,18 @@ if (popover) {
   // Before the first paint, so the page never lays out at the main window's minimum width.
   document.documentElement.dataset.window = "popover";
 }
-const load: Promise<ComponentType> = popover
-  ? import("./v2/PopoverApp").then((module) => module.PopoverApp)
-  : import.meta.env.DEV
-    ? import("./v2/V2App").then((module) => module.V2App)
-    : import("./v2/ReleaseApp").then((module) => module.ReleaseApp);
+// Each loader stays a separate property. Written as one conditional (or an if/else the
+// minifier folds into one), the release build wrapped both imports in a single preload
+// carrying only ReleaseApp's stylesheets, so the popover window loaded without v2.css or
+// popover.css. scripts/check-release-bundle.mjs checks each import keeps its own preload.
+const loaders: Record<"popover" | "main", () => Promise<ComponentType>> = {
+  popover: () => import("./v2/PopoverApp").then((module) => module.PopoverApp),
+  main: import.meta.env.DEV
+    ? () => import("./v2/V2App").then((module) => module.V2App)
+    : () => import("./v2/ReleaseApp").then((module) => module.ReleaseApp),
+};
 
-load.then(
+loaders[popover ? "popover" : "main"]().then(
   (Root) =>
     root.render(
       <React.StrictMode>

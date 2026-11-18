@@ -17,6 +17,7 @@ import {
   type StepFound,
 } from "./types";
 import "./cleanup.css";
+import { AccessSteps } from "../../ui/AccessSteps";
 
 /** Something the page should say about the last scan or the folders. */
 export interface CleanupNotices {
@@ -82,17 +83,18 @@ function looksFor(mode: ScanMode, options: ScanOptions): { label: string; sub: s
       { label: "Package caches", sub: "Homebrew, npm, pip and other tools fetch these again" },
       ...(options.logs ? [{ label: "Logs and crash reports", sub: `Not written for ${options.logAge}` }] : []),
       ...(options.temp ? [{ label: "Temporary files", sub: "Left behind by installers and apps, untouched for a week" }] : []),
+      { label: "Broken items", sub: "Damaged preferences files and login items whose program is gone" },
     ];
   }
   if (mode === "deep") {
     return [
-      { label: "Everything in Standard", sub: "Caches, logs and temporary files" },
+      { label: "Everything in Standard", sub: "Caches, logs, temporary files and broken items" },
       { label: "Large files", sub: `Over ${options.size} in the folders you granted` },
       { label: "Old files", sub: `Not opened in ${options.age}${options.hidden ? ", hidden files included" : ""}` },
     ];
   }
   return [
-    ...(options.xcode ? [{ label: "Xcode DerivedData, archives and device support", sub: "Build output and symbols Xcode can make again" }] : []),
+    ...(options.xcode ? [{ label: "Xcode DerivedData, previews, archives and device support", sub: "Build output and symbols Xcode can make again" }] : []),
     ...(options.sim ? [{ label: "iOS Simulator", sub: "Caches to review, and devices listed for Xcode to manage" }] : []),
     ...(options.node ? [{ label: "node_modules", sub: "Checked against each project’s lockfile" }] : []),
     ...(options.docker ? [{ label: "Docker disk use", sub: "Listed only, never changed" }] : []),
@@ -380,7 +382,7 @@ export function CleanupScreen(props: CleanupScreenProps) {
         headingId={headingIdFor("cleanup")}
         subtitle="Scans only read. Nothing moves until you approve a preview."
       />
-      <ScrollBody label="Cleanup" className="clean-body" edgeGlass={false}>
+      <ScrollBody label="Cleanup" className="clean-body">
         {notices.error && (
           <div role="alert" className="v2-banner v2-banner-warn">
             <IconTile tone="orange" icon="warning" size={32} />
@@ -395,6 +397,7 @@ export function CleanupScreen(props: CleanupScreenProps) {
             <div className="v2-banner-text">
               <strong>macOS kept some folders private</strong>
               <span>Allow Full Disk Access for Kleari in System Settings, then scan again to include them. Nothing else changes.</span>
+              <AccessSteps kind="fullDiskAccess" compact />
             </div>
             <Button variant="soft" size="sm" onClick={props.onOpenFullDiskAccess}>Open System Settings</Button>
           </div>
@@ -592,7 +595,7 @@ export function CleanupScreen(props: CleanupScreenProps) {
             <div
               className="clean-last-bar"
               role="img"
-              aria-label={`Found space by category: ${lastScan.categories.map((category) => `${category.name} ${category.gb} GB`).join(", ")}`}
+              aria-label={`Found space by category: ${lastScan.categories.map((category) => `${category.name} ${formatGb(category.gb)}`).join(", ")}`}
             >
               {lastScan.categories.map((category) => (
                 <span key={category.name} className={`tone-${category.tone}`} style={{ width: `${(lastScan.totalGb > 0 ? (category.gb / lastScan.totalGb) * 100 : 0).toFixed(1)}%` }} />
@@ -602,7 +605,7 @@ export function CleanupScreen(props: CleanupScreenProps) {
               {lastScan.categories.map((category) => (
                 <div key={category.name} className="clean-last-cat">
                   <span className="clean-last-name"><Dot tone={category.tone} />{category.name}</span>
-                  <span className="clean-last-size">{category.gb} GB <span>· {category.items} items</span></span>
+                  <span className="clean-last-size">{formatGb(category.gb)} <span>· {category.items} items</span></span>
                   <span className="clean-last-pills">
                     <Pill status={category.riskStatus}>{category.risk}</Pill>
                     <Pill status={category.eligibilityStatus}>{category.eligibility}</Pill>
@@ -634,6 +637,7 @@ export function CleanupScreen(props: CleanupScreenProps) {
                 <p className="v2-dialog-text">
                   You can allow it in System Settings › Privacy & Security › Files and Folders by turning on {grant.folder.path.replace("~/", "")} for Kleari. Then grant access again here.
                 </p>
+                <AccessSteps kind="filesAndFolders" compact />
                 <div className="v2-dialog-actions">
                   <Button variant="secondary" onClick={() => setGrant(null)}>Not now</Button>
                   <Button variant="primary" onClick={() => { setGrant(null); props.onOpenFilesAndFolders(); }}>Open System Settings</Button>

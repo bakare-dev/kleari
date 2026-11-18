@@ -42,7 +42,7 @@ A beta previews the next version, numbered for that version: `1.1.0-beta.1`, `-b
 on, restarting at `beta.1` for each new version. Betas are published as GitHub pre-releases,
 offered only with Settings › About › Beta updates on (on by default when the installed copy is
 itself a beta, off for a stable release). A beta that is ready
-becomes the stable version (`1.1.0`) with no further changes, from the `release` branch. A
+becomes the stable version (`1.1.0`) with no change but the version, from the `release` branch. A
 fix to a stable release (`1.1.1`) skips betas when it is small and urgent.
 
 ## Examples

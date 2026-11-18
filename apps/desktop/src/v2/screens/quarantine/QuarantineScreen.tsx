@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { StatusMark } from "../../ui/icons";
 import {
   Button,
@@ -9,11 +9,9 @@ import {
   PageHeader,
   Pill,
   ProgressBar,
-  ScrollEdgeGlass,
   Spinner,
   StatCard,
   Toast,
-  useScrolled,
   useToast,
 } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
@@ -22,6 +20,8 @@ import { actionable, chooseFolderHint, type DeleteJob, type QuarantineBatch, typ
 import "./quarantine.css";
 
 interface QuarantineScreenProps {
+  /** The Quarantine | Trash switch, shown in the header. */
+  tabs?: ReactNode;
   batches: readonly QuarantineBatch[];
   restored: ReadonlySet<string>;
   deleted: ReadonlySet<string>;
@@ -74,7 +74,6 @@ export function QuarantineScreen(props: QuarantineScreenProps) {
   const [conflict, setConflict] = useState<QuarantineItem | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const toast = useToast();
-  const [scrolled, onScroll] = useScrolled();
   const listRef = useRef<HTMLDivElement>(null);
 
   const visible = batches
@@ -157,7 +156,12 @@ export function QuarantineScreen(props: QuarantineScreenProps) {
         title="Quarantine"
         headingId={headingIdFor("quarantine")}
         subtitle="Items here have left their original place but are still on this Mac. Restore any of them at any time."
-        actions={<LinkButton href={hrefFor("cleanup")} size="sm">Back to Cleanup</LinkButton>}
+        actions={
+          <>
+            {props.tabs}
+            <LinkButton href={hrefFor("cleanup")} size="sm">Back to Cleanup</LinkButton>
+          </>
+        }
       />
       {/* Only the list of batches scrolls; the totals and the note stay put, as on Processes. */}
       <div className="q-body">
@@ -184,8 +188,7 @@ export function QuarantineScreen(props: QuarantineScreenProps) {
           </div>
         )}
 
-        <div ref={listRef} tabIndex={0} role="region" aria-label="Quarantined items" className="q-list" onScroll={onScroll}>
-        <ScrollEdgeGlass visible={scrolled} inset={0} />
+        <div ref={listRef} tabIndex={0} role="region" aria-label="Quarantined items" className="q-list">
         {visible.map((batch) => {
           const open = batch.items.filter((item) => !restored.has(item.id) && actionable(item));
           const allOn = open.length > 0 && open.every((item) => selection.has(item.id));
