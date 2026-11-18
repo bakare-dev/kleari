@@ -6,8 +6,12 @@ All notable user-facing changes to Kleari are documented here. This file follows
 
 ## [Unreleased]
 
+## [0.1.0-beta.5] - 2026-11-18
+
 ### Fixed
 
+- **Dashboard:** no longer keeps re-reading its issues while it is open, which used processor
+  time for nothing.
 - **App leftovers:** a folder named only after an app (not its bundle ID) is no longer offered
   as its leftover while another installed or running app has the same name, since it may be
   that app's data.
@@ -278,7 +282,8 @@ The first release of Kleari.
   **Beta updates** in Settings › About to also get betas.
 - **Uninstall** from Settings › About, moving Kleari and its data to the Trash.
 
-[Unreleased]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.4...HEAD
+[Unreleased]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.5...HEAD
+[0.1.0-beta.5]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.4...v0.1.0-beta.5
 [0.1.0-beta.4]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.3...v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.2...v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.1...v0.1.0-beta.2
