@@ -353,7 +353,7 @@ fn a_removed_apps_leftovers_are_read_again_and_marked_as_its_own() {
         .find(|bundle| bundle.name == "Fake")
         .expect("found");
     let cancel = AtomicBool::new(false);
-    let items = leftovers_for_removed(bundle, &home.0, now_ms(), &cancel);
+    let items = leftovers_for_removed(bundle, &bundles, &[], &home.0, now_ms(), &cancel);
     let mut names: Vec<&str> = items.iter().map(|item| item.name.as_str()).collect();
     names.sort_unstable();
     assert_eq!(
@@ -374,6 +374,63 @@ fn a_removed_apps_leftovers_are_read_again_and_marked_as_its_own() {
             |_| Vec::new()
         ));
     }
+}
+
+#[test]
+fn a_name_another_app_shares_doesnt_make_its_data_a_leftover() {
+    let home = Home::new("shared-name");
+    home.app("Code", "com.example.code");
+    home.app_in("Applications/Tools", "Code", "com.other.code");
+    home.write("Library/Application Support/Code/state.db", 3_000);
+    home.write("Library/Application Support/com.example.code/x", 3_000);
+    home.write("Library/Application Support/com.other.code/x", 3_000);
+    let (result, bundles, _) = run(&home, &[]);
+    let codes: Vec<_> = result
+        .apps
+        .iter()
+        .filter(|app| app.name == "Code")
+        .collect();
+    assert_eq!(codes.len(), 2, "both copies listed");
+    // In the scan, each offers only its bundle-ID folder, never the shared `Code`.
+    for app in codes {
+        let names: Vec<&str> = app
+            .leftovers
+            .iter()
+            .map(|left| left.name.as_str())
+            .collect();
+        assert_eq!(names.len(), 1, "{names:?}");
+        assert!(names[0].starts_with("com."), "{names:?}");
+    }
+
+    let removed = bundles
+        .iter()
+        .find(|bundle| bundle.bundle_id.as_deref() == Some("com.example.code"))
+        .expect("found");
+    let others: Vec<Bundle> = bundles
+        .iter()
+        .filter(|bundle| bundle.id != removed.id)
+        .cloned()
+        .collect();
+    let cancel = AtomicBool::new(false);
+    let names = |installed: &[Bundle], running: &[RunningBundle]| {
+        let mut names: Vec<String> =
+            leftovers_for_removed(removed, installed, running, &home.0, now_ms(), &cancel)
+                .into_iter()
+                .map(|item| item.name)
+                .collect();
+        names.sort_unstable();
+        names
+    };
+    // The other `Code` is still installed: only the bundle-ID folder is offered.
+    assert_eq!(names(&others, &[]), ["com.example.code"]);
+    // Nor while an app called `Code` runs (one without a bundle on the list).
+    let running = [RunningBundle {
+        id: "com.third.code".to_owned(),
+        name: "code".to_owned(),
+    }];
+    assert_eq!(names(&[], &running), ["com.example.code"]);
+    // With no other `Code` about, the name matches again.
+    assert_eq!(names(&[], &[]), ["Code", "com.example.code"]);
 }
 
 #[test]
@@ -512,8 +569,8 @@ fn apples_store_apps_can_be_removed_but_macos_apps_never_and_neither_offers_left
         .find(|bundle| bundle.name == "Xcode")
         .expect("Xcode");
     assert!(xcode.apple_made());
-    assert!(leftovers_for_removed(xcode, &home.0, now_ms(), &cancel).is_empty());
-    assert!(caches_of(xcode, &home.0, now_ms(), &cancel).is_empty());
+    assert!(leftovers_for_removed(xcode, &bundles, &[], &home.0, now_ms(), &cancel).is_empty());
+    assert!(caches_of(xcode, &bundles, &[], &home.0, now_ms(), &cancel).is_empty());
 }
 
 #[test]
