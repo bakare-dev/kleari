@@ -269,7 +269,8 @@ The first release of Kleari.
   **Beta updates** in Settings › About to also get betas.
 - **Uninstall** from Settings › About, moving Kleari and its data to the Trash.
 
-[Unreleased]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.3...HEAD
+[Unreleased]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.4...HEAD
+[0.1.0-beta.4]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.3...v0.1.0-beta.4
 [0.1.0-beta.3]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.2...v0.1.0-beta.3
 [0.1.0-beta.2]: https://github.com/bakare-dev/kleari/compare/v0.1.0-beta.1...v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/bakare-dev/kleari/releases/tag/v0.1.0-beta.1
