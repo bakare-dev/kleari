@@ -5,7 +5,9 @@ import { lockDurations, type LockDuration } from "../../../contracts/keyboardLoc
 import type { KeyboardLock } from "../../../features/keyboard/useKeyboardLock";
 import type { Maintenance } from "../../../features/maintenance/useMaintenance";
 import type { IconName } from "../../ui/icons";
-import { Button, IconTile, Modal, PageHeader, Pill, Segmented, Spinner, Toast, useToast, type Tone } from "../../ui/components";
+import { Button, FloatingBar, IconTile, Modal, PageHeader, Pill, Segmented, Spinner, Toast, useToast, type Tone } from "../../ui/components";
+import { applyFilter, FilterBar, useListFilter, type ListFilterSpec } from "../../ui/ListFilter";
+import type { AppEntry } from "../../../contracts/apps";
 import { formatGb, plural, sum } from "../../ui/format";
 import { cacheBytes, type Apps } from "../../../features/apps/useApps";
 import { headingIdFor, tabFromHash } from "../../shell/routes";
@@ -109,6 +111,12 @@ const outcomeText: Record<TaskOutcome, string> = {
   failed: "macOS didn’t finish it. Nothing more was changed.",
 };
 
+const cacheSpec: ListFilterSpec<AppEntry> = {
+  bytes: cacheBytes,
+  name: (app) => app.name,
+  text: (app) => app.bundleId ?? app.location,
+};
+
 const lockLabels: Record<LockDuration, string> = { 30: "30 s", 60: "1 min", 120: "2 min", 300: "5 min" };
 
 /** Keyboard cleaning mode: locks every key for the time chosen; any click unlocks. */
@@ -144,7 +152,12 @@ export function MaintenanceScreen({ maintenance, apps, keyboard, onOpenLoginItem
   const cached = (apps.state.result?.apps ?? [])
     .filter((app) => !app.apple && cacheBytes(app) > 0)
     .sort((a, b) => cacheBytes(b) - cacheBytes(a));
-  const cachePicked = cached.filter((app) => cachePick.has(app.id));
+  const [cacheFilter, setCacheFilter] = useListFilter("maintenance.caches");
+  const shownCaches = applyFilter(cached, cacheFilter, cacheSpec);
+  // An open app keeps its cache, so it can't be chosen.
+  const choosableCaches = shownCaches.filter((app) => !app.running);
+  const cachePicked = cached.filter((app) => !app.running && cachePick.has(app.id));
+  const cacheBar = tab === "caches" && cachePicked.length > 0;
   const [confirm, setConfirm] = useState<Task | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const toast = useToast(6000);
@@ -176,7 +189,7 @@ export function MaintenanceScreen({ maintenance, apps, keyboard, onOpenLoginItem
         subtitle="Tasks macOS can do but keeps out of sight. Each runs only when you choose it, and macOS asks for your password when it needs one."
         actions={<Button variant="soft" size="sm" disabled={maintenance.loading} onClick={refresh}>{maintenance.loading ? <Spinner size={10} /> : null} Measure again</Button>}
       />
-      <div className="mt-body">
+      <div className={`mt-body${cacheBar ? " mt-body-above-bar" : ""}`}>
         {maintenance.error && <span role="status" className="v2-card-note">{maintenance.error}</span>}
         <Segmented
           label="Section"
@@ -188,70 +201,69 @@ export function MaintenanceScreen({ maintenance, apps, keyboard, onOpenLoginItem
             { value: "login", label: "Login items" },
           ]}
         />
-        {tab === "caches" && (
-          <section aria-label="App caches" className="v2-card v2-card-pad mt-login">
-            <span className="v2-card-note">
-              What apps keep in ~/Library/Caches. Apps rebuild their caches by themselves, so clearing them frees space without touching your settings or data. An app that’s open keeps its cache.
-            </span>
-            {!apps.state.result ? (
-              <span className="mt-caches-empty">
-                <span className="v2-card-note">{apps.state.running ? "Scanning your apps…" : "Scan your apps to see their caches."}</span>
-                {!apps.state.running && <Button variant="soft" size="sm" onClick={apps.scan}>Scan apps</Button>}
+        {tab === "caches" &&
+          (!apps.state.result || cached.length === 0 ? (
+            <section aria-label="App caches" className="v2-card mt-empty">
+              {apps.state.running ? <Spinner size={18} /> : <IconTile tone="blue" icon="apps" size={32} />}
+              <span role="status" className="v2-row-title">
+                {apps.state.running ? "Scanning your apps…" : apps.state.result ? "No app caches were found" : "Not scanned yet"}
               </span>
-            ) : cached.length === 0 ? (
-              <span className="v2-card-note">No app caches were found.</span>
-            ) : (
-              <>
-                <ul className="mt-rows" tabIndex={0} aria-label="Apps with caches">
-                  {cached.map((app) => (
-                    <li key={app.id}>
-                      <input
-                        type="checkbox"
-                        aria-label={`Choose ${app.name}`}
-                        checked={cachePick.has(app.id)}
-                        onChange={() => {
-                          const next = new Set(cachePick);
-                          if (next.has(app.id)) {
-                            next.delete(app.id);
-                          } else {
-                            next.add(app.id);
-                          }
-                          setCachePick(next);
-                        }}
-                      />
-                      <Picture source="app" id={app.id} size={28} label={app.name} fallback={<IconTile tone="blue" icon="apps" size={28} />} />
-                      <span className="v2-row-text">
-                        <span className="v2-row-title v2-ellipsis">{app.name}</span>
-                        <span className="v2-row-sub v2-ellipsis">{app.running ? "Open now: its cache stays" : (app.bundleId ?? app.location)}</span>
-                      </span>
-                      <span className="mt-row-pill v2-num">{formatGb(cacheBytes(app) / 1e9)}</span>
-                    </li>
-                  ))}
-                </ul>
-                <span className="mt-caches-actions">
-                  <Button variant="secondary" size="sm" onClick={() => setCachePick(new Set(cached.map((app) => app.id)))}>Choose all</Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    disabled={cachePicked.length === 0}
-                    onClick={() =>
-                      removal({
-                        what: `the caches of ${plural(cachePicked.length, "app")}`,
-                        prepare: () => apps.prepareCaches(cachePicked.map((app) => app.id)),
-                        onDone: () => {
-                          setCachePick(new Set());
-                          apps.refresh();
-                        },
-                      })
-                    }
-                  >
-                    Clear {cachePicked.length > 0 ? `${formatGb(sum(cachePicked, (app) => cacheBytes(app)) / 1e9)}` : "caches"}…
-                  </Button>
+              <span className="v2-card-note">
+                App caches are what apps keep in ~/Library/Caches. Apps rebuild them by themselves, so clearing them frees space without touching your settings or data.
+              </span>
+              {!apps.state.running && <Button variant="primary" size="sm" onClick={apps.scan}>{apps.state.result ? "Scan again" : "Scan apps"}</Button>}
+            </section>
+          ) : (
+            <section aria-labelledby="mt-caches" className="v2-card mt-list">
+              <div className="mt-list-head">
+                <input
+                  type="checkbox"
+                  aria-label="Choose all shown"
+                  checked={choosableCaches.length > 0 && choosableCaches.every((app) => cachePick.has(app.id))}
+                  disabled={choosableCaches.length === 0}
+                  onChange={(event) => setCachePick(event.target.checked ? new Set(choosableCaches.map((app) => app.id)) : new Set())}
+                />
+                <h2 id="mt-caches" className="v2-card-title-sm">App caches</h2>
+                <span className="v2-muted v2-num">
+                  {plural(cached.length, "app")} · {formatGb(sum(cached, (app) => cacheBytes(app)) / 1e9)}
                 </span>
-              </>
-            )}
-          </section>
-        )}
+                <Button variant="soft" size="sm" disabled={apps.state.running} onClick={apps.scan}>
+                  {apps.state.running ? <Spinner size={10} /> : null} {apps.state.running ? "Scanning…" : "Scan again"}
+                </Button>
+              </div>
+              <span className="v2-card-note mt-list-note">Apps rebuild their caches by themselves. An app that’s open keeps its cache until you quit it.</span>
+              <FilterBar label="Filter app caches" className="mt-list-note" state={cacheFilter} onChange={setCacheFilter} items={cached} spec={cacheSpec} />
+              <ul className="mt-list-rows" tabIndex={0} aria-label="Apps with caches">
+                {shownCaches.length === 0 && <li className="v2-muted">No apps match.</li>}
+                {shownCaches.map((app) => (
+                  <li key={app.id}>
+                    <input
+                      type="checkbox"
+                      aria-label={`Choose ${app.name}`}
+                      checked={!app.running && cachePick.has(app.id)}
+                      disabled={app.running}
+                      onChange={() => {
+                        const next = new Set(cachePick);
+                        if (next.has(app.id)) {
+                          next.delete(app.id);
+                        } else {
+                          next.add(app.id);
+                        }
+                        setCachePick(next);
+                      }}
+                    />
+                    <Picture source="app" id={app.id} size={28} label={app.name} fallback={<IconTile tone="blue" icon="apps" size={28} />} />
+                    <span className="v2-row-text">
+                      <span className="v2-row-title v2-ellipsis">{app.name}</span>
+                      <span className="v2-row-sub v2-ellipsis">{app.bundleId ?? app.location}</span>
+                    </span>
+                    {app.running && <Pill status="warn">Open</Pill>}
+                    <span className="mt-size v2-num">{formatGb(cacheBytes(app) / 1e9)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
         {tab === "tasks" && (
         <section aria-label="Tasks" className="mt-grid" tabIndex={0}>
           <KeyboardCard keyboard={keyboard} />
@@ -333,6 +345,35 @@ export function MaintenanceScreen({ maintenance, apps, keyboard, onOpenLoginItem
         )}
       </div>
 
+      {cacheBar && (
+        <FloatingBar>
+          <div className="v2-float-text">
+            <span role="status" className="v2-float-title">
+              {plural(cachePicked.length, "app")} chosen · {formatGb(sum(cachePicked, (app) => cacheBytes(app)) / 1e9)}
+            </span>
+            <span className="v2-float-sub">You'll see exactly what will go before anything moves.</span>
+          </div>
+          <div className="v2-float-actions">
+            <Button variant="secondary" onClick={() => setCachePick(new Set())}>Clear</Button>
+            <Button
+              variant="primary"
+              onClick={() =>
+                removal({
+                  what: `the caches of ${plural(cachePicked.length, "app")}`,
+                  prepare: () => apps.prepareCaches(cachePicked.map((app) => app.id)),
+                  onDone: () => {
+                    setCachePick(new Set());
+                    apps.refresh();
+                  },
+                })
+              }
+            >
+              Clear caches…
+            </Button>
+          </div>
+        </FloatingBar>
+      )}
+
       <Modal open={confirm !== null} onClose={() => { setConfirm(null); setAcknowledged(false); }} labelledBy="mt-confirm-title" role="alertdialog">
         {confirm && (
           <div className="v2-dialog-body">
@@ -360,7 +401,7 @@ export function MaintenanceScreen({ maintenance, apps, keyboard, onOpenLoginItem
         )}
       </Modal>
 
-      <Toast message={toast.message} />
+      <Toast message={toast.message} bottom={cacheBar ? 92 : 26} />
     </>
   );
 }

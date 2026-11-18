@@ -32,6 +32,7 @@
     "allow-prepare-developer-items-removal",
     "allow-prepare-storage-file-removal",
     "allow-reveal-review-item",
+    "allow-reveal-storage-file",
     "allow-create-cleanup-preview",
     "allow-approve-cleanup-preview",
     "allow-delete-cleanup-preview",

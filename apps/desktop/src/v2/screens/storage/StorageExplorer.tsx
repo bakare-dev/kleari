@@ -3,7 +3,7 @@ import type { ExplorerEntry } from "../../../contracts/storageExplorer";
 import type { FileCategory } from "../../../contracts/storage";
 import type { StorageExplorer as Explorer } from "../../../features/storage/useStorageExplorer";
 import type { IconName } from "../../ui/icons";
-import { Button, IconTile, Pill, Spinner, type Tone } from "../../ui/components";
+import { Button, FloatingBar, IconTile, Pill, Spinner, type Tone } from "../../ui/components";
 import { formatGb, plural, sum } from "../../ui/format";
 import { useRemoval } from "../../../features/removal/RemovalProvider";
 import { Picture } from "../../ui/Picture";
@@ -217,14 +217,23 @@ export function StorageExplorer({ explorer, intro }: { explorer: Explorer; intro
         </ul>
       )}
 
-      {listing && (
-        <div className="st-browse-foot">
-          <span role="status" className="v2-card-note">
-            {picked.length > 0 ? `${picked.length} chosen · ${formatGb(gb(sum(picked, (entry) => entry.bytes)))}` : "“Kept as is” items are places Kleari never moves: top-level folders, most of the Library and the inside of app packages."}
-          </span>
-          <Button variant="primary" size="sm" disabled={picked.length === 0} onClick={removePicked}>
-            {picked.length > 0 ? `Remove ${picked.length}…` : "Remove…"}
-          </Button>
+      {listing && picked.length === 0 && (
+        <span className="v2-card-note">“Kept as is” items are places Kleari never moves: top-level folders, most of the Library and the inside of app packages.</span>
+      )}
+
+      {/* As on Files: once something is chosen, the bar stays in view however far the list scrolls. */}
+      {listing && picked.length > 0 && (
+        <div className="st-browse-float">
+          <FloatingBar>
+            <div className="v2-float-text">
+              <span role="status" className="v2-float-title">{`${picked.length} chosen · ${formatGb(gb(sum(picked, (entry) => entry.bytes)))}`}</span>
+              <span className="v2-float-sub">You'll see exactly what will go before anything moves.</span>
+            </div>
+            <div className="v2-float-actions">
+              <Button variant="secondary" onClick={() => setSelection(new Set())}>Clear</Button>
+              <Button variant="primary" onClick={removePicked}>{`Remove ${picked.length}…`}</Button>
+            </div>
+          </FloatingBar>
         </div>
       )}
 

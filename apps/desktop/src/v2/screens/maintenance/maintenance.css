@@ -114,16 +114,84 @@
   }
 }
 
-/* App caches: the scan prompt and the clear buttons. */
-.mt-caches-empty,
-.mt-caches-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
+/* The selection bar sits below the body, so the body leaves less space under it. */
+.mt-body-above-bar {
+  padding-bottom: 12px;
 }
 
-.mt-caches-empty {
-  justify-content: space-between;
+/* App caches: one card, its title and filter stay, its rows scroll. */
+.mt-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 24px;
+  text-align: center;
+}
+
+.mt-empty .v2-card-note {
+  max-width: 420px;
+}
+
+.mt-list {
+  display: flex;
+  min-height: 0;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 12px 6px;
+}
+
+.mt-list > :not(.mt-list-rows) {
+  flex-shrink: 0;
+}
+
+.mt-list-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 6px;
+}
+
+.mt-list-head .v2-muted {
+  margin-right: auto;
+  font-size: 12px;
+}
+
+.mt-list-note {
+  margin: 0 6px;
+}
+
+.mt-list-rows {
+  min-height: 0;
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.mt-list-rows:focus-visible {
+  outline-offset: -2px;
+}
+
+.mt-list-rows li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 6px;
+  border-top: 1px solid var(--mp-border-solid);
+}
+
+.mt-list-rows .v2-row-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.mt-size {
+  width: 64px;
+  flex-shrink: 0;
+  font-weight: 600;
+  text-align: right;
 }

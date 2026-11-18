@@ -192,6 +192,7 @@ pub fn run() {
             cleanup_commands::prepare_developer_items_removal,
             cleanup_commands::prepare_storage_file_removal,
             cleanup_commands::reveal_review_item,
+            cleanup_commands::reveal_storage_file,
             cleanup_commands::create_cleanup_preview,
             cleanup_commands::approve_cleanup_preview,
             cleanup_commands::delete_cleanup_preview,

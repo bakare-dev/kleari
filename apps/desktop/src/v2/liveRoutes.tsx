@@ -27,6 +27,7 @@ import { useSystemPage, type SystemMonitor } from "../features/system/useSystemP
 import { buildStorageView } from "../features/storage/storageAnalysisView";
 import { openFullDiskAccessSettings, useStorageAnalysis, useStorageOverview } from "../features/storage/useStorageAnalysis";
 import { openSystemSettings } from "../lib/systemPageIpc";
+import { revealStorageFile } from "../lib/cleanupIpc";
 import { navigate } from "./shell/routes";
 import { CleanupScreen } from "./screens/cleanup/CleanupScreen";
 import { PreviewScreen } from "./screens/cleanup/PreviewScreen";
@@ -110,6 +111,7 @@ export function StorageRoute({ storage, review, cleanup, explorer }: { storage: 
       onCancelAnalysis={storage.cancel}
       onOpenPrivacySettings={openFullDiskAccessSettings}
       onPrepareFile={(file) => review.prepareStorageFile(file.reviewId)}
+      onRevealFile={(file) => revealStorageFile(file.reviewId)}
       explorer={explorer}
       onScanInCleanup={(mode: ScanMode) => {
         // Opens Cleanup with the mode chosen; the scan starts only when asked there.

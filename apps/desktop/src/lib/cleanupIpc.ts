@@ -89,6 +89,11 @@ export function prepareStorageFileRemoval(reviewId: string): Promise<CleanupPrev
   return call("prepare_storage_file_removal", { reviewId }, parsePreview);
 }
 
+/** Shows a large file from the last Storage analysis in Finder. */
+export async function revealStorageFile(reviewId: string): Promise<void> {
+  await call("reveal_storage_file", { reviewId }, () => undefined);
+}
+
 export async function revealReviewItem(id: string): Promise<void> {
   await call("reveal_review_item", { id }, () => undefined);
 }

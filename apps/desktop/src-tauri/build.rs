@@ -28,6 +28,7 @@ fn main() {
             "prepare_developer_items_removal",
             "prepare_storage_file_removal",
             "reveal_review_item",
+            "reveal_storage_file",
             "create_cleanup_preview",
             "approve_cleanup_preview",
             "delete_cleanup_preview",

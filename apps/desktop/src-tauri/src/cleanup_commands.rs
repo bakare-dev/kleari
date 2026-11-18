@@ -509,6 +509,34 @@ pub async fn prepare_storage_file_removal(
     .map_err(blocking_failed)?
 }
 
+/// Shows a large file from the last Storage analysis in Finder, so it can be looked at before
+/// it is removed: only while it is not in an excluded folder and is still the file counted.
+#[tauri::command]
+pub async fn reveal_storage_file(app: AppHandle, review_id: String) -> Result<(), CommandError> {
+    check_ids(std::slice::from_ref(&review_id))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let file = app
+            .state::<AnalysisState>()
+            .large_file(&review_id)
+            .ok_or_else(|| CommandError::from(CommandErrorCode::RevealFailed))?;
+        let excluded = app.state::<History>().exclusions()?;
+        // Checked before the path is read, as for review items.
+        if preferences::touches_excluded(&file.source.path, &excluded) {
+            return Err(CommandErrorCode::RevealFailed.into());
+        }
+        let counted = file.source.stat.as_ref().map(quarantine::Identity::of);
+        let now = crate::cleanup::stat_path(&file.source.path)
+            .map(|stat| quarantine::Identity::of(&stat));
+        if counted.is_none() || counted != now {
+            return Err(CommandErrorCode::RevealFailed.into());
+        }
+        crate::finder::reveal(&app, vec![file.source.path])
+            .map_err(|_| CommandErrorCode::RevealFailed.into())
+    })
+    .await
+    .map_err(blocking_failed)?
+}
+
 /// Shows a review item in Finder, if it is still the item that was found.
 #[tauri::command]
 pub async fn reveal_review_item(app: AppHandle, id: String) -> Result<(), CommandError> {

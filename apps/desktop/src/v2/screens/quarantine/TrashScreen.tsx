@@ -149,20 +149,30 @@ export function TrashScreen({ tabs }: { tabs: ReactNode }) {
           </>
         }
       />
-      <div className="trash-body">
+      <div className={`trash-body${picked.length > 0 ? " trash-body-above-bar" : ""}`}>
         {error && <span role="alert" className="v2-card-note">{error}</span>}
         {list?.status === "notAllowed" ? (
-          <section aria-label="Full Disk Access" className="v2-card v2-card-pad trash-access">
-            <IconTile tone="blue" icon="lock" size={40} />
-            <span className="v2-row-title">Kleari needs Full Disk Access to show the Trash</span>
-            <span className="v2-card-note">macOS protects the Trash, so apps can only look inside with Full Disk Access. Kleari only reads names and sizes, and changes nothing until you choose.</span>
-            <AccessSteps kind="fullDiskAccess" compact onOpen={() => void openSystemSettings("fullDiskAccess")} />
-            <Button variant="soft" size="sm" onClick={load}>Check again</Button>
+          <section aria-labelledby="trash-access-title" className="v2-card trash-access">
+            <div className="trash-access-head">
+              <IconTile tone="blue" icon="lock" size={32} />
+              <h2 id="trash-access-title" className="v2-card-title-sm">Kleari needs Full Disk Access to show the Trash</h2>
+            </div>
+            <AccessSteps kind="fullDiskAccess" compact />
+            <div className="trash-access-actions">
+              <Button variant="primary" size="sm" onClick={() => void openSystemSettings("fullDiskAccess")}>Open System Settings</Button>
+              <Button variant="secondary" size="sm" onClick={load}>Check again</Button>
+            </div>
           </section>
         ) : !list ? (
-          <section aria-label="Reading" className="v2-card v2-card-pad trash-access">
-            <Spinner size={24} />
-            <span className="v2-card-note">Reading the Trash…</span>
+          <section aria-label="Reading" className="v2-card trash-state">
+            <Spinner size={18} />
+            <span role="status" className="v2-card-note">Reading the Trash…</span>
+          </section>
+        ) : all.length === 0 ? (
+          <section aria-label="Empty" className="v2-card trash-state">
+            <IconTile tone="green" icon="check" size={32} />
+            <span className="v2-row-title">The Trash is empty</span>
+            <span className="v2-card-note">What you move to the Trash in Finder shows here, from this Mac and from connected disks.</span>
           </section>
         ) : (
           <>
@@ -171,14 +181,21 @@ export function TrashScreen({ tabs }: { tabs: ReactNode }) {
               <StatCard tone="blue" icon="list" label="Items" value={String(all.length + (total?.more ?? 0))} sub={total && total.more > 0 ? `${total.more} more not listed` : "Across all disks"} />
               <StatCard tone="green" icon="arrowRight" label="Can go back" value={String(all.filter((item) => item.from !== null).length)} sub="Where Finder recorded the place" />
             </section>
-            <FilterBar label="Filter the Trash" className="trash-tools" state={filter} onChange={setFilter} items={all} spec={filterSpec} chips={fileKindChips} />
-            {items.length === 0 ? (
-              <section aria-label={all.length === 0 ? "Empty" : "Nothing matches"} className="v2-card v2-card-pad trash-access">
-                <IconTile tone={all.length === 0 ? "green" : "gray"} icon={all.length === 0 ? "check" : "search"} size={40} />
-                <span className="v2-row-title">{all.length === 0 ? "The Trash is empty" : "Nothing in the Trash matches"}</span>
-              </section>
-            ) : (
-              <ul className="v2-card trash-list" aria-label="Items in the Trash">
+            <section aria-labelledby="trash-list-title" className="v2-card trash-card">
+              <div className="trash-head">
+                <input
+                  type="checkbox"
+                  aria-label="Choose all shown"
+                  checked={items.length > 0 && items.every((item) => selection.has(item.id))}
+                  disabled={items.length === 0}
+                  onChange={(event) => setSelection(event.target.checked ? new Set(items.map((item) => item.id)) : new Set())}
+                />
+                <h2 id="trash-list-title" className="v2-card-title-sm">In the Trash</h2>
+                <span className="v2-muted v2-num">{items.length === all.length ? plural(all.length, "item") : `${items.length} of ${all.length} shown`}</span>
+              </div>
+              <FilterBar label="Filter the Trash" className="trash-tools" state={filter} onChange={setFilter} items={all} spec={filterSpec} chips={fileKindChips} />
+              <ul className="trash-list" tabIndex={0} aria-label="Items in the Trash">
+                {items.length === 0 && <li className="v2-muted">Nothing in the Trash matches.</li>}
                 {items.map((item) => (
                   <li key={item.id}>
                     <input type="checkbox" aria-label={`Choose ${item.name}`} checked={selection.has(item.id)} onChange={() => toggle(item.id)} />
@@ -214,7 +231,7 @@ export function TrashScreen({ tabs }: { tabs: ReactNode }) {
                   </li>
                 ))}
               </ul>
-            )}
+            </section>
           </>
         )}
       </div>
@@ -223,8 +240,12 @@ export function TrashScreen({ tabs }: { tabs: ReactNode }) {
         <FloatingBar>
           <div className="v2-float-text">
             <span role="status" className="v2-float-title">{picked.length} chosen · {formatGb(sum(picked, (item) => item.bytes) / 1e9)}</span>
+            <span className="v2-float-sub">
+              {canPutBack.length === picked.length ? "Put Back returns them where they came from." : `${plural(picked.length - canPutBack.length, "item")} can’t go back: Finder didn’t record where it came from.`}
+            </span>
           </div>
           <div className="v2-float-actions">
+            <Button variant="secondary" disabled={busy} onClick={() => setSelection(new Set())}>Clear</Button>
             <Button variant="soft" disabled={busy || canPutBack.length === 0} onClick={() => act("Put back", canPutBack, putBackTrashItems)}>
               Put Back {canPutBack.length > 0 ? canPutBack.length : ""}
             </Button>
