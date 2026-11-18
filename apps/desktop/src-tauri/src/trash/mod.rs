@@ -501,9 +501,12 @@ mod tests {
         let gone = scratch.trashed("Old.zip", None);
         let swapped = scratch.trashed("Swapped.txt", None);
         state.set(vec![gone.clone(), swapped.clone()]);
-        // Replaced after the listing: a different file under the same name.
-        std::fs::remove_file(&swapped.path).expect("remove");
-        std::fs::write(&swapped.path, b"someone else's").expect("replace");
+        // Replaced after the listing: a different file under the same name. Written first and
+        // renamed over it, so both exist at once and the new one can't reuse the old inode
+        // (Linux file systems hand a freed inode straight back; APFS doesn't).
+        let other = swapped.path.with_extension("new");
+        std::fs::write(&other, b"someone else's").expect("write");
+        std::fs::rename(&other, &swapped.path).expect("replace");
 
         let outcome = delete(&state, &["Old.zip".to_owned(), "Swapped.txt".to_owned()]);
         assert_eq!(outcome.done, ["Old.zip"]);
