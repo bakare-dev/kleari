@@ -166,6 +166,7 @@ mod macos {
             });
         if spawned.is_err() {
             // No thread now: this action is lost, and the next one tries again.
+            crate::log::note("window", "the window-action thread couldn't start");
             return;
         }
         // The worker was just made and is waiting on this channel.
@@ -175,6 +176,7 @@ mod macos {
 
     fn perform(job: Job) {
         let Some(app) = NSWorkspace::sharedWorkspace().frontmostApplication() else {
+            crate::log::note("window", "no frontmost app for a window action");
             return;
         };
         match job {
@@ -212,13 +214,20 @@ mod macos {
         }
     }
 
-    fn attribute(element: &CFType, name: &str) -> Option<CFRetained<CFType>> {
+    /// Records a failed Accessibility call: which step, which attribute or action (names
+    /// written here, never anything read from the app) and macOS's error code.
+    fn failed(step: &'static str, name: &'static str, error: i32) {
+        crate::log::note_detail("window", step, name, i64::from(error));
+    }
+
+    fn attribute(element: &CFType, name: &'static str) -> Option<CFRetained<CFType>> {
         let mut value: *const CFType = std::ptr::null();
         // SAFETY: `element` is a live AXUIElement; on success `value` is an owned object.
         let error = unsafe {
             AXUIElementCopyAttributeValue(element, &CFString::from_str(name), &mut value)
         };
         if error != AX_OK {
+            failed("couldn't read", name, error);
             return None;
         }
         let value = owned(NonNull::new(value.cast_mut()))?;
@@ -231,9 +240,14 @@ mod macos {
         Some(value)
     }
 
-    fn set(element: &CFType, name: &str, value: &CFType) -> bool {
+    fn set(element: &CFType, name: &'static str, value: &CFType) -> bool {
         // SAFETY: both are live CF objects.
-        unsafe { AXUIElementSetAttributeValue(element, &CFString::from_str(name), value) == AX_OK }
+        let error =
+            unsafe { AXUIElementSetAttributeValue(element, &CFString::from_str(name), value) };
+        if error != AX_OK {
+            failed("couldn't set", name, error);
+        }
+        error == AX_OK
     }
 
     /// The frontmost app's focused window.
@@ -258,7 +272,12 @@ mod macos {
             WindowAction::Close => {
                 if let Some(button) = attribute(window, "AXCloseButton") {
                     // SAFETY: `button` is a live AXUIElement.
-                    unsafe { AXUIElementPerformAction(&button, &CFString::from_str("AXPress")) };
+                    let error = unsafe {
+                        AXUIElementPerformAction(&button, &CFString::from_str("AXPress"))
+                    };
+                    if error != AX_OK {
+                        failed("couldn't press", "AXCloseButton", error);
+                    }
                 }
             }
             WindowAction::TileLeft | WindowAction::TileRight => {
@@ -282,6 +301,10 @@ mod macos {
                 && AXValueGetValue(&size, AX_SIZE, (&raw mut extent).cast())
         };
         if !read {
+            crate::log::note(
+                "window",
+                "tile: the window's position or size was unreadable",
+            );
             return;
         }
         let current = Rect {
@@ -291,6 +314,7 @@ mod macos {
             height: extent.height,
         };
         let Some(target) = screens().and_then(|screens| tiled(current, &screens, left)) else {
+            crate::log::note("window", "tile: no screen to tile on");
             return;
         };
         // A window in full screen can't be moved; it leaves full screen first.

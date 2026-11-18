@@ -88,6 +88,8 @@ fn main() {
             "close_browser_tabs",
             "open_release_page",
             "open_legal_document",
+            "report_problem",
+            "show_log",
         ]),
     ))
     .expect("failed to run tauri-build");

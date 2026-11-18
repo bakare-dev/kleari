@@ -22,6 +22,8 @@ pub fn data_locations(home: &Path, identifier: &str) -> Vec<PathBuf> {
         library
             .join("Preferences")
             .join(format!("{identifier}.plist")),
+        // Kleari's own log (`log.rs`), named for the app rather than the identifier.
+        crate::log::folder(home),
     ]
 }
 
@@ -108,9 +110,10 @@ mod tests {
         assert!(locations
             .iter()
             .all(|path| path.starts_with("/Users/someone/Library")));
-        assert!(locations
-            .iter()
-            .all(|path| path.to_string_lossy().contains("dev.kleari.app")));
+        assert!(locations.iter().all(|path| {
+            path.to_string_lossy().contains("dev.kleari.app")
+                || path == Path::new("/Users/someone/Library/Logs/Kleari")
+        }));
         assert!(locations.contains(&PathBuf::from(
             "/Users/someone/Library/Application Support/dev.kleari.app"
         )));

@@ -252,6 +252,7 @@ mod macos {
         let mut outcome = LockStart::NotAllowed;
         let mut reason = Unlock::Stopped;
         let mut locked = false;
+        let port_missing = port.is_none();
         if let Some(port) = port {
             if let (Some(source), Some(run_loop)) = (
                 CFMachPort::new_run_loop_source(None, Some(&port), 0),
@@ -266,8 +267,19 @@ mod macos {
                 // keyboard or touch the system shortcuts.
                 if CURRENT.load(Ordering::Relaxed) == number {
                     match recorder::hold_system_shortcuts(app) {
-                        None => outcome = LockStart::Busy,
+                        None => {
+                            crate::log::note(
+                                "keylock",
+                                "not started: a recording holds the shortcuts",
+                            );
+                            outcome = LockStart::Busy;
+                        }
                         Some(_held) => {
+                            crate::log::note_number(
+                                "keylock",
+                                "keyboard locked, seconds",
+                                i64::try_from(length.as_secs()).unwrap_or(i64::MAX),
+                            );
                             let ends_at_ms = ends_at(now_ms(), length.as_secs());
                             ENDS_AT_MS.store(ends_at_ms, Ordering::Relaxed);
                             CGEvent::tap_enable(&port, true);
@@ -298,6 +310,9 @@ mod macos {
             port.invalidate();
         }
         if !locked {
+            if port_missing {
+                crate::log::note("keylock", "macOS refused the keyboard tap");
+            }
             let _ = ready.send(outcome);
         }
         ENDS_AT_MS.store(0, Ordering::Relaxed);
@@ -306,6 +321,14 @@ mod macos {
         // SAFETY: the tap is invalidated (or was never made), so the callback can't run again.
         drop(unsafe { Box::from_raw(context) });
         if locked {
+            crate::log::note(
+                "keylock",
+                match reason {
+                    Unlock::Click => "keyboard unlocked: click",
+                    Unlock::Time => "keyboard unlocked: time ran out",
+                    Unlock::Stopped => "keyboard unlocked: stopped (quit or replaced)",
+                },
+            );
             let _ = app.emit(LOCK_EVENT, LockEvent::Unlocked { reason });
         }
     }

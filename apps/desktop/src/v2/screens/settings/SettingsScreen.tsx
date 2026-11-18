@@ -7,7 +7,7 @@ import type { AccessFolder, FolderSource, LoginItem, NotificationAccess, Prefere
 import type { ScanMode } from "../../../contracts/cleanup";
 import type { NotificationKey, UninstallOutcome } from "../../../features/settings/useSettings";
 import { COPYRIGHT, DISCLAIMER_SHORT, legalDocuments } from "../../../features/legal/legal";
-import { openLegalDocument } from "../../../lib/legalIpc";
+import { openLegalDocument, reportProblem, showLog } from "../../../lib/legalIpc";
 import type { UpdateState } from "../../../features/settings/useUpdates";
 import { installable, notesText, showReleaseNotes, updateStatus } from "./Updates";
 import "./settings.css";
@@ -638,6 +638,39 @@ export function SettingsScreen(props: SettingsScreenProps) {
                     }
                   />
                 ))}
+              </Group>
+              <Group title="Help" note="Kleari keeps a small log on this Mac of what it did and what went wrong. It never holds file names, paths or what you type, and nothing is sent anywhere.">
+                <Row
+                  label="Report a problem"
+                  sub="Opens a new issue on GitHub with your Kleari and macOS versions filled in, and shows the log in Finder so you can attach it if you like"
+                  control={
+                    <Button
+                      variant="soft"
+                      size="sm"
+                      onClick={() =>
+                        void reportProblem().then(
+                          (shown) => {
+                            if (!shown) {
+                              toast.show("The issue page opened, but the log couldn’t be shown. It’s in ~/Library/Logs/Kleari.", "warn");
+                            }
+                          },
+                          () => toast.show("GitHub couldn’t be opened in your browser.", "warn"),
+                        )
+                      }
+                    >
+                      Report…
+                    </Button>
+                  }
+                />
+                <Row
+                  label="Log"
+                  sub="~/Library/Logs/Kleari/kleari.log, up to about 2 MB"
+                  control={
+                    <Button variant="soft" size="sm" onClick={() => void showLog().catch(() => toast.show("The log couldn’t be shown in Finder.", "warn"))}>
+                      Show in Finder
+                    </Button>
+                  }
+                />
               </Group>
               <Group title="Uninstall" note="Your own files are never touched. Quarantine must be empty first, so nothing of yours goes to the Trash with Kleari.">
                 <Row

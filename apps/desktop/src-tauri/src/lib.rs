@@ -14,6 +14,7 @@ mod history;
 mod identity;
 mod ids;
 mod issues;
+mod log;
 mod login_item;
 mod maintenance;
 mod maintenance_commands;
@@ -59,6 +60,10 @@ fn migrate(identifier: &str) -> Option<identity::Migration> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let context = tauri::generate_context!();
+    // First, so the move below and everything after it is recorded.
+    if let Some(home) = storage::home_dir() {
+        log::start(&log::folder(&home), env!("CARGO_PKG_VERSION"));
+    }
     let migration = migrate(&context.config().identifier);
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -133,6 +138,8 @@ pub fn run() {
             commands::open_system_settings,
             commands::open_release_page,
             commands::open_legal_document,
+            commands::report_problem,
+            commands::show_log,
             commands::choose_scan_folder,
             commands::start_scan,
             commands::cancel_scan,
@@ -226,6 +233,7 @@ pub fn run() {
             // next launch).
             if let tauri::RunEvent::Exit = _event {
                 mouse::keylock::stop_and_wait(std::time::Duration::from_millis(500));
+                log::note("kleari", "quit");
             }
         });
 }

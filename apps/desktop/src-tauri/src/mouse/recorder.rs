@@ -197,6 +197,11 @@ pub fn restore_after_crash(db: &Database) {
 fn restore_with(db: &Database, turn_on: impl FnOnce(&[i32]) -> Vec<i32>) {
     let left_off = saved_suspended(db);
     if !left_off.is_empty() {
+        crate::log::note_number(
+            "shortcuts",
+            "turning back on system shortcuts an earlier run left off",
+            i64::try_from(left_off.len()).unwrap_or(i64::MAX),
+        );
         restore_list(db, &left_off, turn_on);
     }
 }
@@ -213,6 +218,19 @@ const fn missed(now: bool, wanted: bool) -> bool {
 /// saved, it keeps what it held before, which is only ever more to turn on: never fewer.
 fn restore_list(db: &Database, numbers: &[i32], turn_on: impl FnOnce(&[i32]) -> Vec<i32>) {
     let still_off = turn_on(numbers);
+    let count = |list: usize| i64::try_from(list).unwrap_or(i64::MAX);
+    crate::log::note_number(
+        "shortcuts",
+        "system shortcuts turned back on",
+        count(numbers.len() - still_off.len().min(numbers.len())),
+    );
+    if !still_off.is_empty() {
+        crate::log::note_number(
+            "shortcuts",
+            "system shortcuts macOS kept off; tried again at the next launch",
+            count(still_off.len()),
+        );
+    }
     let _ = save_suspended(db, &still_off);
 }
 
@@ -331,10 +349,30 @@ mod macos {
         let db = &app.state::<History>().db;
         // Unsaved, a crash could leave them off: then they stay on, and only shortcuts macOS
         // doesn't act on first can be recorded.
-        if on.is_empty() || !save_suspended(db, &on) {
+        if on.is_empty() {
+            return Vec::new();
+        }
+        if !save_suspended(db, &on) {
+            crate::log::note(
+                "shortcuts",
+                "list couldn't be saved; system shortcuts left on",
+            );
             return Vec::new();
         }
         let still_on = set_enabled(&on, false);
+        let count = |list: usize| i64::try_from(list).unwrap_or(i64::MAX);
+        crate::log::note_number(
+            "shortcuts",
+            "system shortcuts turned off",
+            count(on.len() - still_on.len()),
+        );
+        if !still_on.is_empty() {
+            crate::log::note_number(
+                "shortcuts",
+                "system shortcuts macOS kept on",
+                count(still_on.len()),
+            );
+        }
         // Those macOS kept on needn't be turned back on; the list says exactly what is off.
         let off: Vec<i32> = on
             .into_iter()
@@ -458,6 +496,7 @@ mod macos {
                     };
                     CGEvent::tap_enable(&port, true);
                     captured = true;
+                    crate::log::note("recorder", "shortcut recording started");
                     RUNNING.store(number, Ordering::Relaxed);
                     // `run` may have stopped waiting.
                     let _ = ready.send(true);
@@ -476,7 +515,20 @@ mod macos {
             }
             port.invalidate();
         }
-        if !captured {
+        if captured {
+            crate::log::note(
+                "recorder",
+                if timed_out {
+                    "shortcut recording ended: time ran out"
+                } else {
+                    "shortcut recording ended"
+                },
+            );
+        } else {
+            crate::log::note(
+                "recorder",
+                "shortcut recording couldn't capture the keyboard",
+            );
             let _ = ready.send(false);
         }
         // Only this recording's own mark is cleared; a newer one keeps its own.

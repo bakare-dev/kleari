@@ -19,8 +19,11 @@ release file are the only usage figures there are.
 
 ## What isn't Kleari going online
 
-- **Links you open.** "See what's new" opens the release page in your browser; your browser
-  makes that request, not Kleari.
+- **Links you open.** "See what's new" opens the release page in your browser, the legal
+  links open Kleari's documents on GitHub, and Settings › About › Report a problem opens a new
+  issue on `github.com/bakare-dev/kleari/issues/new`, filled in with Kleari's version, the
+  macOS version and the kind of chip (never the log, which you attach yourself if you choose).
+  Your browser makes those requests, not Kleari, and nothing is sent until you submit.
 - **macOS itself.** When you first open an app, macOS may check its signature with Apple
   (Gatekeeper). That's macOS's own check, made for every app.
 - **Local connections.** Kleari's window talks to its own engine over an in-app channel, and

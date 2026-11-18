@@ -228,6 +228,11 @@ fn run(
             unsafe { &*context }.port.replace(Some(port.clone()));
             CGEvent::tap_enable(&port, true);
             alive.store(true, Ordering::Relaxed);
+            crate::log::note_number(
+                "mouse",
+                "event tap started; clicks seen (0 none, 1 left, 2 right, 3 both)",
+                i64::from(clicks.left) + 2 * i64::from(clicks.right),
+            );
             // `start` may have stopped waiting; then there is no one to tell.
             let _ = ready.send(());
             while wanted.load(Ordering::Relaxed) {
@@ -239,12 +244,16 @@ fn run(
                 if allowed() {
                     reported = false;
                 } else if !reported {
+                    crate::log::note("mouse", "Accessibility withdrawn while the tap ran");
                     reported = revoked();
                 }
             }
             CGEvent::tap_enable(&port, false);
+            crate::log::note("mouse", "event tap stopped");
         }
         port.invalidate();
+    } else {
+        crate::log::note("mouse", "macOS refused the event tap");
     }
     // Refused or stopped: `start` stops waiting at once.
     let _ = ready.send(());
@@ -274,6 +283,10 @@ unsafe extern "C-unwind" fn callback(
         if let Some(port) = context.port.borrow().as_ref() {
             CGEvent::tap_enable(port, true);
         }
+        crate::log::note(
+            "mouse",
+            "macOS turned the slow event tap off; turned back on",
+        );
         return pass;
     }
     // SAFETY: macOS passes a valid event for the duration of the call.

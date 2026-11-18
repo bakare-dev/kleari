@@ -131,6 +131,59 @@ pub fn legal_page(document: LegalDocument, version: &str) -> String {
     )
 }
 
+/// `text` for a URL's query: everything but unreserved characters is percent-encoded.
+fn query_text(text: &str) -> String {
+    text.bytes()
+        .map(|byte| match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => {
+                char::from(byte).to_string()
+            }
+            _ => format!("%{byte:02X}"),
+        })
+        .collect()
+}
+
+/// A new GitHub issue on Kleari's repository, pre-filled with the version, macOS version and
+/// kind of chip, and empty sections to describe the problem. Nothing else about the Mac, and
+/// never the log: the user attaches that themselves if they choose.
+pub fn issue_page(version: &str, macos: &str, chip: &str) -> String {
+    let body = format!(
+        "**What happened**\n\n\n**What you expected**\n\n\n**Steps to reproduce**\n1. \n\n---\n\
+         Kleari {version} \u{b7} macOS {macos} \u{b7} {chip}\n\n\
+         Kleari showed its log file in Finder (~/Library/Logs/Kleari/kleari.log). You can attach \
+         it here if you like: it records what Kleari did and errors, never file names, paths or \
+         what you type. Look it over first."
+    );
+    format!(
+        "https://github.com/bakare-dev/kleari/issues/new?body={}",
+        query_text(&body)
+    )
+}
+
+/// This Mac's macOS version and kind of chip, for the issue page.
+fn mac_summary() -> (String, &'static str) {
+    let macos = crate::system_monitor::sysctl::string("kern.osproductversion")
+        .filter(|version| {
+            version.len() <= 16 && version.bytes().all(|b| b.is_ascii_digit() || b == b'.')
+        })
+        .unwrap_or_else(|| "unknown".to_owned());
+    let chip = if crate::system_monitor::sysctl::integer("hw.optional.arm64") == Some(1) {
+        "Apple silicon"
+    } else {
+        "Intel"
+    };
+    (macos, chip)
+}
+
+/// Opens a new, pre-filled GitHub issue in the default browser (`issue_page`).
+pub fn open_issue_page<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Result<(), OpenFailed> {
+    let (macos, chip) = mac_summary();
+    open_page(
+        app,
+        issue_page(&app.package_info().version.to_string(), &macos, chip),
+    )
+}
+
 /// Opens Kleari's release page for `version` in the default browser.
 pub fn open_release_page<R: tauri::Runtime>(
     app: &tauri::AppHandle<R>,
@@ -198,6 +251,28 @@ mod macos {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_issue_page_is_klearis_own_and_names_only_version_macos_and_chip() {
+        let page = issue_page("0.1.0-beta.4", "15.2", "Apple silicon");
+        let prefix = "https://github.com/bakare-dev/kleari/issues/new?body=";
+        assert!(page.starts_with(prefix));
+        let query = &page[prefix.len()..];
+        // Fully encoded: nothing in the body can add another parameter or leave the page.
+        assert!(query
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"-._~%".contains(&b)));
+        assert!(query
+            .contains("Kleari%200.1.0-beta.4%20%C2%B7%20macOS%2015.2%20%C2%B7%20Apple%20silicon"));
+        assert!(query.contains("What%20happened"));
+        // Well under the length browsers and GitHub accept for an address.
+        assert!(page.len() < 2000);
+    }
+
+    #[test]
+    fn query_text_keeps_only_unreserved_characters() {
+        assert_eq!(query_text("a b&c=d/é"), "a%20b%26c%3Dd%2F%C3%A9");
+    }
 
     #[test]
     fn panes_deserialize_from_fixed_names_only() {

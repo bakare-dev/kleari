@@ -99,23 +99,50 @@ pub fn migrate(
         return at(Outcome::NothingToMove, &new);
     }
     if exists(&new) {
+        crate::log::note(
+            "migration",
+            "both identifiers have a data folder; old one left",
+        );
         return at(Outcome::BothExist, &new);
     }
     if old_running {
+        crate::log::note(
+            "migration",
+            "an old-identifier Kleari is running; nothing moved",
+        );
         return at(Outcome::OldRunning, &old);
     }
-    if std::fs::rename(&old, &new).is_err() {
+    if let Err(error) = std::fs::rename(&old, &new) {
+        crate::log::note_number(
+            "migration",
+            "data folder rename failed; using the old folder",
+            i64::from(error.raw_os_error().unwrap_or(0)),
+        );
         return at(Outcome::Failed, &old);
     }
+    crate::log::note("migration", "data folder moved to the new identifier");
     // The appearance and list choices; if this rename fails Kleari starts with the defaults.
     let (old_webkit, new_webkit) = (webkit(home, OLD_IDENTIFIER), webkit(home, new_identifier));
-    if exists(&old_webkit) && !exists(&new_webkit) {
-        let _ = std::fs::rename(&old_webkit, &new_webkit);
+    if exists(&old_webkit)
+        && !exists(&new_webkit)
+        && std::fs::rename(&old_webkit, &new_webkit).is_err()
+    {
+        crate::log::note("migration", "web storage rename failed");
     }
     for path in disposable(home, OLD_IDENTIFIER) {
-        remove(&path);
+        if !remove(&path) {
+            crate::log::note("migration", "an old cache folder couldn't be deleted");
+        }
     }
     let old_permissions_reset = reset();
+    crate::log::note(
+        "migration",
+        if old_permissions_reset {
+            "old identifier's permissions reset"
+        } else {
+            "old identifier's permissions not reset"
+        },
+    );
     at(
         Outcome::Moved {
             old_permissions_reset,

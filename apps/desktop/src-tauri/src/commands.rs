@@ -72,10 +72,21 @@ pub enum CommandErrorCode {
     FilesScanFailed,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommandError {
     pub code: CommandErrorCode,
+}
+
+/// A command error is serialized only when Tauri sends it to the page as a command's result,
+/// so that is where it is logged: once per error the page receives, by its code's name.
+impl Serialize for CommandError {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        crate::log::command_error(self.code);
+        let mut fields = serializer.serialize_struct("CommandError", 1)?;
+        fields.serialize_field("code", &self.code)?;
+        fields.end()
+    }
 }
 
 impl From<CommandErrorCode> for CommandError {
@@ -224,6 +235,47 @@ pub async fn open_release_page(app: AppHandle, version: String) -> Result<(), Co
         .await
         .map_err(|_| CommandError::from(CommandErrorCode::SettingsUnavailable))?
         .map_err(|system_settings::OpenFailed| CommandErrorCode::SettingsUnavailable.into())
+}
+
+/// Shows Kleari's log in Finder: the file, or its folder before anything was logged.
+fn reveal_log(app: &AppHandle) -> bool {
+    let Some(home) = crate::storage::home_dir() else {
+        return false;
+    };
+    let file = crate::log::file(&home);
+    let shown = if file.is_file() {
+        file
+    } else {
+        crate::log::folder(&home)
+    };
+    crate::finder::reveal(app, vec![shown]).is_ok()
+}
+
+/// "Report a problem" (Settings › About): opens a new, pre-filled GitHub issue in the browser
+/// (the address is built in Rust) and shows the log in Finder, to attach if the user chooses.
+/// Returns whether the log could be shown.
+#[tauri::command]
+pub async fn report_problem(app: AppHandle) -> Result<bool, CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        system_settings::open_issue_page(&app)
+            .map_err(|system_settings::OpenFailed| CommandErrorCode::SettingsUnavailable)?;
+        crate::log::note("report", "issue page opened");
+        Ok(reveal_log(&app))
+    })
+    .await
+    .map_err(|_| CommandError::from(CommandErrorCode::SettingsUnavailable))?
+}
+
+/// Shows Kleari's log in Finder (Settings › About).
+#[tauri::command]
+pub async fn show_log(app: AppHandle) -> Result<(), CommandError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        reveal_log(&app)
+            .then_some(())
+            .ok_or_else(|| CommandError::from(CommandErrorCode::RevealFailed))
+    })
+    .await
+    .map_err(|_| CommandError::from(CommandErrorCode::RevealFailed))?
 }
 
 /// Opens one of Kleari's legal documents (Settings › About) in the browser. The page names only
