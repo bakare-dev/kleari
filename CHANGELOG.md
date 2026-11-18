@@ -6,6 +6,12 @@ All notable user-facing changes to Kleari are documented here. This file follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Updates:** after Install and restart, the new version opens in Kleari's icon kept in the
+  Dock instead of a second icon beside it. Kleari now quits first and opens the new version
+  once it has gone, rather than starting it alongside.
+
 ## [0.1.0-beta.5] - 2026-11-18
 
 ### Fixed
