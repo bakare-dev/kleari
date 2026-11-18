@@ -349,7 +349,7 @@ export function FilesScreen({ files, explorer }: { files: Files; explorer: Explo
           <div className="v2-float-actions">
             {keeps(groups[0]) && <Button variant="secondary" onClick={chooseAllButKept}>Choose all but one of each</Button>}
             <Button variant="primary" disabled={picked.length === 0} onClick={removePicked}>
-              {picked.length > 0 ? `Remove ${picked.length}…` : "Remove…"}
+              {picked.length > 0 ? `Remove ${plural(picked.length, "item")}` : "Remove"}
             </Button>
           </div>
         </FloatingBar>

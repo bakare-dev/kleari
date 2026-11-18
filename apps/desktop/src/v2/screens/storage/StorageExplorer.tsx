@@ -231,7 +231,7 @@ export function StorageExplorer({ explorer, intro }: { explorer: Explorer; intro
             </div>
             <div className="v2-float-actions">
               <Button variant="secondary" onClick={() => setSelection(new Set())}>Clear</Button>
-              <Button variant="primary" onClick={removePicked}>{`Remove ${picked.length}…`}</Button>
+              <Button variant="primary" onClick={removePicked}>{`Remove ${plural(picked.length, "item")}`}</Button>
             </div>
           </FloatingBar>
         </div>

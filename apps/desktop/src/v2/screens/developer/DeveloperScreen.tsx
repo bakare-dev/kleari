@@ -350,7 +350,7 @@ export function DeveloperScreen(props: DeveloperScreenProps) {
               Select low risk
             </Button>
             <Button variant="primary" disabled={!has} onClick={removePicked}>
-              {has ? `Remove ${picked.length}…` : "Remove…"}
+              {has ? `Remove ${plural(picked.length, "item")}` : "Remove"}
             </Button>
           </div>
         </FloatingBar>

@@ -334,7 +334,7 @@ export function AppsScreen(props: AppsScreenProps) {
               </Button>
             )}
             <Button variant="primary" disabled={picked.length === 0 || busy} onClick={removePicked}>
-              {picked.length > 0 ? `Remove ${picked.length}…` : "Remove…"}
+              {picked.length > 0 ? `Remove ${plural(picked.length, view === "installers" ? "installer" : "leftover")}` : "Remove"}
             </Button>
           </div>
         </FloatingBar>

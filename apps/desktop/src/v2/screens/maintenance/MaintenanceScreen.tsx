@@ -288,7 +288,7 @@ export function MaintenanceScreen({ maintenance, apps, keyboard, onOpenLoginItem
                 )}
                 <div className="mt-task-foot">
                   <Button variant={entry?.deletes ? "danger" : "soft"} size="sm" disabled={running !== null} onClick={() => setConfirm(task)}>
-                    {running === task ? <Spinner size={10} /> : null} {running === task ? "Running…" : "Run…"}
+                    {running === task ? <Spinner size={10} /> : null} {running === task ? "Running…" : "Run"}
                   </Button>
                 </div>
               </article>
