@@ -1095,7 +1095,7 @@ fn clearing_an_apps_caches_takes_only_its_caches_and_never_while_it_is_open() {
         apple: false,
     };
     let cancel = AtomicBool::new(false);
-    let items = crate::apps::caches_of(&bundle, &home_path, now_ms(), &cancel);
+    let items = crate::apps::caches_of(&bundle, &[], &[], &home_path, now_ms(), &cancel);
     // Only the cache folder: the app's data and settings are never offered.
     assert_eq!(items.len(), 1);
     assert_eq!(items[0].path, cache.parent().expect("folder"));
@@ -1161,7 +1161,8 @@ fn a_removed_apps_leftover_moves_through_preview_into_quarantine_and_restores() 
         apple: false,
     };
     let cancel = AtomicBool::new(false);
-    let items = crate::apps::leftovers_for_removed(&bundle, &home_path, now_ms(), &cancel);
+    let items =
+        crate::apps::leftovers_for_removed(&bundle, &[], &[], &home_path, now_ms(), &cancel);
     assert_eq!(items.len(), 2);
     let intake = super::intake::Intake {
         home: &home_path,

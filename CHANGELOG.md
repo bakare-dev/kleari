@@ -6,6 +6,15 @@ All notable user-facing changes to Kleari are documented here. This file follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **App leftovers:** a folder named only after an app (not its bundle ID) is no longer offered
+  as its leftover while another installed or running app has the same name, since it may be
+  that app's data.
+- **Mouse window actions** (tile, close, minimise, full screen) now check that what the
+  frontmost app reports is a window, button, position or size before using it, and skip the
+  action otherwise.
+
 ## [0.1.0-beta.4] - 2026-11-18
 
 ### Added

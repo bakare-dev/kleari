@@ -37,7 +37,9 @@ downloads come from the versioned release.
 1. **Scope.** Review every `Unreleased` entry in [CHANGELOG.md](../CHANGELOG.md) against what
    is merged and verified; remove anything not shipped or not checked. Review security,
    privacy, data-integrity and compatibility effects, and pick the version
-   ([versioning.md](versioning.md)).
+   ([versioning.md](versioning.md)). Recheck each advisory ignored in `auditConfig` in
+   `pnpm-workspace.yaml`: remove it once a fixed version exists, and give any still needed a
+   new review date.
 2. **Prepare**, in one pull request: for a beta, into `main`, then promote `main` into `beta`
    (a pull request from `main`); for a stable release, first promote `beta` into `release`
    (a pull request from `beta`), then a pull request into `release` from a `release-prep/…`
