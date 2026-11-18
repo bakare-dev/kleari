@@ -5,9 +5,10 @@ use serde::Deserialize;
 use tauri::{AppHandle, Manager};
 
 use crate::apps::AppsState;
+use crate::browser::Browser;
 use crate::cleanup::CleanupState;
 use crate::cleanup_commands::{blocking_failed, check_ids};
-use crate::commands::CommandError;
+use crate::commands::{CommandError, CommandErrorCode};
 use crate::files::FilesState;
 use crate::storage::explorer::ExplorerState;
 use crate::thumbnails::{self, Kind};
@@ -28,6 +29,9 @@ pub enum PictureSource {
     /// A row of the removal sheet: for an app's cache or leftover, its app's icon (when the
     /// Apps page's last scan found the app).
     Planned,
+    /// A browser on Browser care (its icon): the ID is the browser's name (`safari`, `chrome`,
+    /// `brave`, `edge`), and macOS says where that app is installed.
+    Browser,
 }
 
 /// The picture for row `id` on `source`'s page, at most `size` pixels on its long side, as a
@@ -40,9 +44,16 @@ pub async fn get_picture(
     id: String,
     size: u32,
 ) -> Result<Option<String>, CommandError> {
-    check_ids(std::slice::from_ref(&id))?;
+    // A browser is named, not a row: only the four names are accepted.
+    let browser = if source == PictureSource::Browser {
+        Some(Browser::from_name(&id).ok_or(CommandErrorCode::InvalidRequest)?)
+    } else {
+        check_ids(std::slice::from_ref(&id))?;
+        None
+    };
     tauri::async_runtime::spawn_blocking(move || {
         let (path, kind) = match source {
+            PictureSource::Browser => (browser.and_then(Browser::app_path), Kind::Icon),
             PictureSource::Files => (app.state::<FilesState>().path(&id), Kind::Image),
             PictureSource::Explorer => (app.state::<ExplorerState>().file_path(&id), Kind::Image),
             PictureSource::Trash => (app.state::<TrashState>().path(&id), Kind::Image),

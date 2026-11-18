@@ -570,6 +570,10 @@ pub fn download_agent(path: &Path) -> Option<String> {
     (!agent.is_empty() && agent.len() <= 128 && !agent.contains('/')).then(|| agent.to_owned())
 }
 
+/// The Downloads group of items no app is recorded for.
+const UNTAGGED_DOWNLOADS: &str = "Saved or copied here";
+const UNTAGGED_DETAIL: &str = "macOS didn’t record an app for these: folders, unzipped files, AirDrop, and files saved or copied into Downloads";
+
 /// What is directly in Downloads, by the app that downloaded it.
 fn downloads(ctx: &mut Ctx<'_>, excluded: &[PathBuf], cancel: &AtomicBool, result: &mut FilesScan) {
     let folder = ctx.home.join("Downloads");
@@ -581,7 +585,8 @@ fn downloads(ctx: &mut Ctx<'_>, excluded: &[PathBuf], cancel: &AtomicBool, resul
         return;
     };
     let mut links = Links::default();
-    let mut by_agent: HashMap<String, Vec<FileItem>> = HashMap::new();
+    // `None`: no app is recorded for the item.
+    let mut by_agent: HashMap<Option<String>, Vec<FileItem>> = HashMap::new();
     while let Some(Ok(name)) = dir.next_name() {
         if cancel.load(Ordering::Relaxed) {
             return;
@@ -610,13 +615,23 @@ fn downloads(ctx: &mut Ctx<'_>, excluded: &[PathBuf], cancel: &AtomicBool, resul
             file_measured(&stat)
         };
         result.files_seen += 1;
-        let agent = download_agent(&path).unwrap_or_else(|| "Unknown".to_owned());
+        let agent = download_agent(&path);
         let item = ctx.item(&path, &stat, measured, None);
         by_agent.entry(agent).or_default().push(item);
     }
     let mut groups: Vec<Group> = by_agent
         .into_iter()
-        .map(|(agent, items)| group(GroupKind::Source, agent, None, items, 0))
+        .map(|(agent, items)| match agent {
+            Some(agent) => group(GroupKind::Source, agent, None, items, 0),
+            // macOS tags only what an app downloaded; the rest says nothing of where it came from.
+            None => group(
+                GroupKind::Source,
+                UNTAGGED_DOWNLOADS.to_owned(),
+                Some(UNTAGGED_DETAIL.to_owned()),
+                items,
+                0,
+            ),
+        })
         .collect();
     groups.sort_by_key(|group| std::cmp::Reverse(group.bytes));
     result.groups.extend(groups);

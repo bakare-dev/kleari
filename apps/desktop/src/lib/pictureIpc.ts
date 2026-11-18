@@ -1,8 +1,9 @@
 import { ContractError } from "../contracts/systemMetrics";
 import { call } from "./storageIpc";
 
-/** Which page's row a picture is for (src-tauri `PictureSource`). */
-export type PictureSource = "files" | "explorer" | "trash" | "app" | "planned";
+/** Which page's row a picture is for (src-tauri `PictureSource`). For `browser`, the ID is the
+ * browser's name (`safari`, `chrome`, `brave`, `edge`). */
+export type PictureSource = "files" | "explorer" | "trash" | "app" | "planned" | "browser";
 
 function parsePicture(payload: unknown): string | null {
   if (payload === null) {

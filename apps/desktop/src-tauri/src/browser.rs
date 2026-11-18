@@ -52,6 +52,36 @@ impl Browser {
         }
     }
 
+    /// The browser named `name` as the page writes it (`safari`, `chrome`, `brave`, `edge`).
+    pub fn from_name(name: &str) -> Option<Self> {
+        match name {
+            "safari" => Some(Self::Safari),
+            "chrome" => Some(Self::Chrome),
+            "brave" => Some(Self::Brave),
+            "edge" => Some(Self::Edge),
+            _ => None,
+        }
+    }
+
+    /// Where macOS (Launch Services) has this browser installed, for its icon: an app bundle,
+    /// or `None` when it isn't installed.
+    #[cfg(target_os = "macos")]
+    pub fn app_path(self) -> Option<std::path::PathBuf> {
+        use objc2_app_kit::NSWorkspace;
+        use objc2_foundation::NSString;
+
+        let url = NSWorkspace::sharedWorkspace()
+            .URLForApplicationWithBundleIdentifier(&NSString::from_str(self.bundle_id()))?;
+        let path = std::path::PathBuf::from(url.path()?.to_string());
+        (path.is_absolute() && path.extension().is_some_and(|extension| extension == "app"))
+            .then_some(path)
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn app_path(self) -> Option<std::path::PathBuf> {
+        None
+    }
+
     /// Safari names a tab's title `name`; Chrome-family browsers `title`.
     const fn title_property(self) -> &'static str {
         match self {
@@ -387,6 +417,28 @@ pub async fn close_browser_tabs(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_the_four_browser_names_are_accepted() {
+        for browser in Browser::ALL {
+            let name = serde_json::to_value(browser).expect("serializes");
+            assert_eq!(
+                Browser::from_name(name.as_str().expect("a name")),
+                Some(browser)
+            );
+        }
+        for name in ["", "Safari", "firefox", "../safari", "safari "] {
+            assert_eq!(Browser::from_name(name), None, "{name:?}");
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn safari_is_found_where_macos_installed_it() {
+        // Safari ships with macOS, so Launch Services always knows it.
+        let path = Browser::Safari.app_path().expect("Safari is installed");
+        assert!(path.ends_with("Safari.app"), "{}", path.display());
+    }
 
     #[test]
     fn listings_parse_and_odd_lines_are_skipped() {

@@ -209,10 +209,15 @@ fn downloads_are_grouped_by_the_app_that_downloaded_them() {
         labels,
         [
             ("Safari", vec!["page.pdf"]),
+            ("Saved or copied here", vec!["untagged.txt"]),
             ("Slack", vec!["design.png"]),
-            ("Unknown", vec!["untagged.txt"]),
         ]
     );
+    // The untagged group says why it has no app.
+    assert!(result
+        .groups
+        .iter()
+        .any(|group| group.label == "Saved or copied here" && group.detail.is_some()));
 }
 
 #[test]

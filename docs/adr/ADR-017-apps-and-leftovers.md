@@ -41,8 +41,15 @@
     Caches (Cleanup's) and the containers (macOS manages sandboxed apps' data; they are offered
     only for an app removed here), only for a name that looks like a bundle ID, that no
     installed or running app (nor another app of the same vendor) could own, and that hasn't
-    changed for 30 days. They are Medium risk and labelled "Check first": a command-line tool
-    without an app may still use its settings.
+    changed for 30 days. Nothing may be in use: an entry any of the user's processes has a file
+    open in, works in, or runs its program from (`open_paths`, read at scan time) isn't offered,
+    and a launch agent in `~/Library/LaunchAgents` is offered only when the program it starts no
+    longer exists (`cleanup::scan::program_missing`; its property list, at most 256 KB, read
+    without following symlinks, as untrusted input). They are Medium risk and labelled "Check
+    first": a command-line tool without an app may still use its settings.
+  - **In use at removal.** Preparing leftovers, installers or an app's caches reads what is open
+    again, and each item is held back while anything inside it is open (fail closed: if the
+    processes can't be listed, every item is held back).
   - **Installers** are `.dmg`, `.pkg`, `.mpkg` and `.xip` files directly in Downloads or on the
     Desktop, Low risk.
   - **Bounds.** `AppLeftover { owner }` is in bounds only directly in a leftover folder and when

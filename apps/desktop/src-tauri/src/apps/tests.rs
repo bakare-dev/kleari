@@ -92,15 +92,86 @@ fn now_ms() -> u64 {
 }
 
 fn run(home: &Home, running: &[RunningBundle]) -> (AppsScan, Vec<Bundle>, Vec<ReviewItem>) {
+    run_open(home, running, &OpenPaths::NOTHING)
+}
+
+fn run_open(
+    home: &Home,
+    running: &[RunningBundle],
+    open: &OpenPaths,
+) -> (AppsScan, Vec<Bundle>, Vec<ReviewItem>) {
     let cancel = AtomicBool::new(false);
     scan(
         &[home.0.join("Applications")],
         &[],
         Some(&home.0),
         running,
+        Some(open),
         now_ms(),
         &cancel,
     )
+}
+
+fn orphan_names(result: &AppsScan) -> Vec<&str> {
+    let mut names: Vec<&str> = result
+        .orphans
+        .iter()
+        .map(|left| left.name.as_str())
+        .collect();
+    names.sort_unstable();
+    names
+}
+
+#[test]
+fn a_leftover_something_has_open_or_runs_from_is_not_offered() {
+    let home = Home::new("open");
+    let held = home.write("Library/Application Support/com.gone.Held/db.sqlite", 500);
+    age(held.parent().expect("folder"), 60 * DAY);
+    let helper = home.write(
+        "Library/Application Support/com.gone.Helper/bin/helper",
+        500,
+    );
+    age(
+        &home.0.join("Library/Application Support/com.gone.Helper"),
+        60 * DAY,
+    );
+    let idle = home.write("Library/Application Support/com.gone.Idle/x", 500);
+    age(idle.parent().expect("folder"), 60 * DAY);
+    // A file open inside one, and a program running from inside another.
+    let open = OpenPaths::from_paths(vec![held, helper]);
+    let (result, _, review) = run_open(&home, &[], &open);
+    assert_eq!(orphan_names(&result), ["com.gone.Idle"]);
+    assert_eq!(review.len(), 1);
+}
+
+#[test]
+fn a_launch_agent_is_offered_only_when_its_program_is_gone() {
+    let home = Home::new("agents");
+    let agent = |label: &str, program: &Path| {
+        let path = home.0.join(format!("Library/LaunchAgents/{label}.plist"));
+        fs::create_dir_all(path.parent().expect("folder")).expect("folders");
+        fs::write(
+            &path,
+            format!(
+                r#"<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+<key>Label</key><string>{label}</string>
+<key>ProgramArguments</key><array><string>{}</string></array>
+</dict></plist>"#,
+                program.display()
+            ),
+        )
+        .expect("agent");
+        age(&path, 60 * DAY);
+    };
+    // A command-line tool still installed, without an app: its agent is in use.
+    let tool = home.write("bin/tool", 100);
+    agent("com.cli.Tool", &tool);
+    agent("com.gone.Agent", &home.0.join("bin/removed"));
+    let unreadable = home.write("Library/LaunchAgents/com.gone.Broken.plist", 10);
+    age(&unreadable, 60 * DAY);
+    let (result, _, _) = run(&home, &[]);
+    assert_eq!(orphan_names(&result), ["com.gone.Agent.plist"]);
 }
 
 fn snapshot(root: &Path) -> Vec<(PathBuf, u64)> {
@@ -385,6 +456,7 @@ fn apps_in_subfolders_are_found_two_levels_deep_never_inside_bundles_or_symlinks
         &[],
         Some(&home.0),
         &[],
+        None,
         now_ms(),
         &cancel,
     );
@@ -419,6 +491,7 @@ fn apples_store_apps_can_be_removed_but_macos_apps_never_and_neither_offers_left
         &[home.0.join("System Apps")],
         Some(&home.0),
         &[],
+        None,
         now_ms(),
         &cancel,
     );

@@ -9,6 +9,7 @@ import { storageErrorText } from "../../../features/storage/format";
 import { AccessSteps } from "../../ui/AccessSteps";
 import { Button, IconTile, Modal, PageHeader, Pill, Spinner, Toast, useToast, type Tone } from "../../ui/components";
 import { formatGb, plural } from "../../ui/format";
+import { Picture } from "../../ui/Picture";
 import { headingIdFor, hrefFor } from "../../shell/routes";
 import "./browser.css";
 
@@ -119,7 +120,8 @@ export function BrowserScreen({ monitor }: { monitor: ProcessMonitor }) {
           return (
             <section key={browser} aria-label={meta[browser].name} className="v2-card br-card">
               <div className="br-head">
-                <IconTile tone={meta[browser].tone} icon="laptop" size={38} glow />
+                {/* The browser's own icon, as macOS shows it; the tile if macOS has none to give. */}
+                <Picture source="browser" id={browser} size={38} label={meta[browser].name} fallback={<IconTile tone={meta[browser].tone} icon="laptop" size={38} glow />} />
                 <span className="v2-row-text">
                   <span className="v2-row-title">{meta[browser].name}</span>
                   <span className="v2-row-sub v2-num">

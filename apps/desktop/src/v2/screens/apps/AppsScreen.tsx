@@ -56,6 +56,10 @@ const itemSpec: ListFilterSpec<LeftoverEntry | InstallerEntry> = {
 };
 const listIds: Record<View, ListId> = { apps: "apps", leftovers: "apps.leftovers", installers: "apps.installers" };
 
+/** Where a row is on disk: unlike its ID, which every scan makes anew, it survives a rescan,
+ * so what you chose stays chosen when the list updates. */
+const placeOf = (entry: { location: string; name: string }) => `${entry.location}/${entry.name}`;
+
 function size(item: { bytes: number; lowerBound?: boolean }): string {
   return `${item.lowerBound ? "≥ " : ""}${formatGb(gb(item.bytes))}`;
 }
@@ -76,29 +80,38 @@ export function AppsScreen(props: AppsScreenProps) {
   const orphans = result?.orphans ?? [];
   const installers = result?.installers ?? [];
   const removable = apps.filter((app) => !app.apple);
-  const focused = apps.find((app) => app.id === focus) ?? removable[0] ?? null;
+  // The chosen app and items are kept by place, so a rescan keeps them chosen.
+  const focused = apps.find((app) => placeOf(app) === focus) ?? removable[0] ?? null;
   const sendable = (id: string | null): id is string => id !== null;
   const items: readonly (LeftoverEntry | InstallerEntry)[] = view === "installers" ? installers : orphans;
   const shownApps = applyFilter(apps, filter, appSpec);
   const shownItems = applyFilter(items, filter, itemSpec);
-  const picked = items.filter((item) => sendable(item.reviewId) && selection.has(item.reviewId ?? ""));
+  const picked = items.filter((item) => sendable(item.reviewId) && selection.has(placeOf(item)));
   const pickedBytes = sum(picked, (item) => item.bytes);
+  const choosableShown = shownItems.filter((item) => sendable(item.reviewId));
+  const allShownChosen = choosableShown.length > 0 && choosableShown.every((item) => selection.has(placeOf(item)));
 
-  const toggle = (id: string | null) => {
-    if (!sendable(id)) {
+  const toggle = (item: LeftoverEntry | InstallerEntry) => {
+    if (!sendable(item.reviewId)) {
       return;
     }
     const next = new Set(selection);
-    if (next.has(id)) {
-      next.delete(id);
+    const place = placeOf(item);
+    if (next.has(place)) {
+      next.delete(place);
     } else {
-      next.add(id);
+      next.add(place);
     }
     setSelection(next);
   };
 
+  /** Chooses every item shown (as filtered), or clears the choice when they all are. */
+  const chooseAllShown = () => {
+    setSelection(allShownChosen ? new Set() : new Set(choosableShown.map(placeOf)));
+  };
+
   const removePicked = () => {
-    const ids = picked.map((item) => item.reviewId ?? "");
+    const ids = picked.flatMap((item) => (item.reviewId === null ? [] : [item.reviewId]));
     removal({
       what: view === "installers" ? plural(ids.length, "installer") : plural(ids.length, "leftover"),
       prepare: () => props.onPrepare(ids),
@@ -109,7 +122,9 @@ export function AppsScreen(props: AppsScreenProps) {
     });
   };
 
-  const remove = (app: AppEntry) => {
+  const remove = (asked: AppEntry) => {
+    // Asked before a rescan finished: the same app as the latest scan knows it.
+    const app = apps.find((entry) => placeOf(entry) === placeOf(asked)) ?? asked;
     setBusy(true);
     void props.onRemove(app).then((outcome) => {
       setBusy(false);
@@ -144,6 +159,11 @@ export function AppsScreen(props: AppsScreenProps) {
       />
       <div className={`dev-body${result && view !== "apps" ? " dev-body-above-bar" : ""}`}>
         {props.note && <span role="status" className="v2-card-note dev-status">{props.note}</span>}
+        {result && running && (
+          <span role="status" className="v2-card-note dev-status apps-rescan">
+            <Spinner size={10} /> Scanning again. You can keep working: the list updates when it’s done, and what you chose stays chosen.
+          </span>
+        )}
         <section aria-label="Apps summary" className="v2-grid-4">
           <StatCard tone="blue" icon="apps" label="Apps" value={result ? String(removable.length) : "—"} sub={result ? `${formatGb(gb(sum(removable, (app) => app.bytes)))} installed` : "Not scanned yet"} />
           <StatCard tone="violet" icon="folder" label="Kept in your Library" value={result ? formatGb(gb(sum(removable, (app) => app.leftoverBytes))) : "—"} sub="Settings, caches and data" />
@@ -183,7 +203,7 @@ export function AppsScreen(props: AppsScreenProps) {
                 {view === "apps"
                   ? "Removing an app moves it to the Trash, then offers to remove what it keeps in your Library too. Apps that are part of macOS are never removed."
                   : view === "leftovers"
-                    ? "Named for an app that isn’t installed and unchanged for a month or more. Check each one: a tool without an app may still use its settings."
+                    ? "Named for an app that isn’t installed, unchanged for a month or more, and not open or running in anything now. Check each one: a tool without an app may still use its settings."
                     : "Disk images and packages in Downloads and on the Desktop. Installed apps run from Applications, not from these files."}
               </span>
               {view === "apps" ? (
@@ -197,7 +217,7 @@ export function AppsScreen(props: AppsScreenProps) {
                   {shownApps.map((app) => (
                     <li key={app.id} className={focused?.id === app.id ? "focused" : ""}>
                       <span className="apps-spacer" aria-hidden="true" />
-                      <button type="button" className="dev-row-main" aria-pressed={focused?.id === app.id} onClick={() => setFocus(app.id)}>
+                      <button type="button" className="dev-row-main" aria-pressed={focused?.id === app.id} onClick={() => setFocus(placeOf(app))}>
                         <Picture source="app" id={app.id} size={30} label={app.name} fallback={<IconTile tone={app.apple ? "gray" : "blue"} icon="apps" size={30} />} />
                         <span className="v2-row-text">
                           <span className="v2-row-title">{app.name}</span>
@@ -219,11 +239,11 @@ export function AppsScreen(props: AppsScreenProps) {
                   {shownItems.map((item) => {
                     const reviewId = item.reviewId;
                     const can = sendable(reviewId);
-                    const on = can && selection.has(reviewId);
+                    const on = can && selection.has(placeOf(item));
                     const installed = "installedApp" in item ? item.installedApp : null;
                     return (
-                      <li key={reviewId ?? item.name}>
-                        <input type="checkbox" aria-label={`Select ${item.name}`} checked={on} disabled={!can} onChange={() => toggle(reviewId)} style={{ opacity: can ? 1 : 0.4 }} />
+                      <li key={placeOf(item)}>
+                        <input type="checkbox" aria-label={`Select ${item.name}`} checked={on} disabled={!can} onChange={() => toggle(item)} style={{ opacity: can ? 1 : 0.4 }} />
                         <span className="dev-row-main">
                           <IconTile tone={view === "leftovers" ? "pink" : "orange"} icon={view === "leftovers" ? "folder" : "package"} size={30} />
                           <span className="v2-row-text">
@@ -308,6 +328,11 @@ export function AppsScreen(props: AppsScreenProps) {
             <span className="v2-float-sub">You'll see exactly what will go before anything moves, and it goes to quarantine, so you can put it back.</span>
           </div>
           <div className="v2-float-actions">
+            {choosableShown.length > 0 && (
+              <Button variant="secondary" onClick={chooseAllShown}>
+                {allShownChosen ? "Clear choice" : `Choose all ${choosableShown.length}`}
+              </Button>
+            )}
             <Button variant="primary" disabled={picked.length === 0 || busy} onClick={removePicked}>
               {picked.length > 0 ? `Remove ${picked.length}…` : "Remove…"}
             </Button>

@@ -2,8 +2,8 @@
 //! apps that are gone, and installers already downloaded (ADR-017).
 //!
 //! Read-only. Every folder is opened relative to its open parent without following
-//! symlinks (`fsdir`), and an app's `Info.plist` is the only file content read (at most
-//! 256 KB, parsed as untrusted input). Removing an app moves its bundle to the Trash through
+//! symlinks (`fsdir`), and an app's `Info.plist` and a launch agent's property list are the
+//! only file contents read (at most 256 KB each, parsed as untrusted input). Removing an app moves its bundle to the Trash through
 //! macOS (`remove_app`); its leftovers, other apps' leftovers and installers go through
 //! Cleanup's review, preview and quarantine like everything else Kleari moves.
 
@@ -21,6 +21,7 @@ use crate::developer::{measure_dir, open_absolute, Links, Measured};
 use crate::ids::new_id;
 use crate::storage::fsdir::{DirHandle, FileStat};
 use crate::system_monitor::display_path;
+use crate::system_monitor::open_paths::OpenPaths;
 use crate::system_monitor::running_apps::RunningBundle;
 
 const MAX_APPS: usize = 2_000;
@@ -303,12 +304,15 @@ pub fn bundle_in_bounds(path: &Path, folders: &[PathBuf]) -> bool {
 }
 
 /// Runs the read-only scan of the apps in `folders` (`app_folders`), macOS's own apps in
-/// `system` (`system_app_folders`), and the home folder.
+/// `system` (`system_app_folders`), and the home folder. A leftover anything in `open` is
+/// inside isn't offered; without a reading (`None`) they are listed, and preparing them
+/// reads again and holds back every one (fail closed).
 pub fn scan(
     folders: &[PathBuf],
     system: &[PathBuf],
     home: Option<&Path>,
     running: &[RunningBundle],
+    open: Option<&OpenPaths>,
     now_ms: u64,
     cancel: &AtomicBool,
 ) -> (AppsScan, Vec<Bundle>, Vec<ReviewItem>) {
@@ -376,6 +380,17 @@ pub fn scan(
                     continue;
                 };
                 let path = folder.folder.join(name);
+                // Something has it open, or runs from inside it: in use, whatever its name.
+                if open.is_some_and(|open| open.touches(&path)) {
+                    continue;
+                }
+                // A launch agent whose program is still there belongs to a tool that is still
+                // installed (one without an app); only one pointing to nothing is left over.
+                if folder.folder == home.join("Library/LaunchAgents")
+                    && !(stat.is_file() && agent_program_missing(&path))
+                {
+                    continue;
+                }
                 let measured = measure(&path, stat, &mut links, cancel);
                 let newest = measured.newest_modified_s.max(stat.modified_s);
                 if idle_days(newest, now_ms) < ORPHAN_IDLE_DAYS {
@@ -488,6 +503,28 @@ pub fn caches_of(
             }
         })
         .collect()
+}
+
+/// Whether the launch agent at `path` names a program that is gone (read as untrusted input,
+/// at most `MAX_PLIST_BYTES`, without following a symlink). Unreadable counts as not gone.
+fn agent_program_missing(path: &Path) -> bool {
+    use std::os::unix::fs::OpenOptionsExt;
+
+    let Ok(file) = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(path)
+    else {
+        return false;
+    };
+    if file.metadata().map_or(true, |metadata| {
+        !metadata.is_file() || metadata.len() > MAX_PLIST_BYTES
+    }) {
+        return false;
+    }
+    let mut bytes = Vec::new();
+    file.take(MAX_PLIST_BYTES).read_to_end(&mut bytes).is_ok()
+        && crate::cleanup::scan::program_missing(&bytes)
 }
 
 fn display_name(path: &Path) -> String {

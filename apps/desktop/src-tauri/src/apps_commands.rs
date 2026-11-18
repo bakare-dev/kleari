@@ -16,7 +16,7 @@ use crate::cleanup_commands::{blocking_failed, check_ids, home};
 use crate::commands::{CommandError, CommandErrorCode};
 use crate::history::History;
 use crate::persistence::{Event, EventKind};
-use crate::system_monitor::open_paths::OpenPaths;
+use crate::system_monitor::open_paths;
 use crate::system_monitor::running_apps;
 
 fn unix_time_ms() -> u64 {
@@ -39,11 +39,14 @@ pub async fn start_apps_scan(app: AppHandle) -> Result<AppsScan, CommandError> {
         // Without the running apps, none is shown as open; removing reads them again and
         // refuses to go on without them.
         let running = running_apps::running_bundles(&app).unwrap_or_default();
+        // A leftover something has open isn't offered; preparing one reads this again.
+        let open = open_paths::read().ok();
         let (result, bundles, review) = apps::scan(
             &apps::app_folders(home.as_deref()),
             &apps::system_app_folders(),
             home.as_deref(),
             &running,
+            open.as_ref(),
             unix_time_ms(),
             &cancel,
         );
@@ -73,12 +76,14 @@ pub async fn prepare_app_items_removal(
         let running = running_apps::running_bundles(&app).unwrap_or_default();
         let history = app.state::<History>();
         let excluded = history.exclusions()?;
+        // Unread, everything counts as open (fail closed); read again before anything moves.
+        let open = open_paths::read().ok();
         let items = app.state::<AppsState>().review_items(&ids);
         let intake = Intake {
             home: &home,
             running: &running,
-            // Leftovers and installers belong to no project.
-            open: Some(&OpenPaths::NOTHING),
+            // Each leftover or installer is held back while anything inside it is open.
+            open: open.as_ref(),
             store_dev: history.store.volume(),
             now_ms: unix_time_ms(),
             excluded: &excluded,
@@ -109,10 +114,11 @@ pub async fn prepare_app_caches_removal(
             .filter_map(|id| state.bundle(id))
             .flat_map(|bundle| apps::caches_of(&bundle, &home, unix_time_ms(), &cancel))
             .collect();
+        let open = open_paths::read().ok();
         let intake = Intake {
             home: &home,
             running: &running,
-            open: Some(&OpenPaths::NOTHING),
+            open: open.as_ref(),
             store_dev: history.store.volume(),
             now_ms: unix_time_ms(),
             excluded: &excluded,
@@ -185,10 +191,12 @@ pub async fn remove_app(app: AppHandle, id: String) -> Result<RemoveOutcome, Com
         let cancel = AtomicBool::new(false);
         let items = apps::leftovers_for_removed(&bundle, &home, unix_time_ms(), &cancel);
         let excluded = history.exclusions()?;
+        // The app is gone, but a helper it installed may still run from its data.
+        let open = open_paths::read().ok();
         let intake = Intake {
             home: &home,
             running: &running,
-            open: Some(&OpenPaths::NOTHING),
+            open: open.as_ref(),
             store_dev: history.store.volume(),
             now_ms: unix_time_ms(),
             excluded: &excluded,

@@ -122,7 +122,8 @@ export function FilesScreen({ files, explorer }: { files: Files; explorer: Explo
   const groups = result?.groups ?? [];
   const everything = groups.flatMap((group) => group.items);
   // Each group shows what matches, in the chosen order; a group with nothing left is hidden.
-  const shownGroups = groups.map((group) => ({ group, items: applyFilter(group.items, filter, filterSpec) })).filter((shown) => shown.items.length > 0);
+  // The type chips count every group, so each group is filtered against all of them.
+  const shownGroups = groups.map((group) => ({ group, items: applyFilter(group.items, filter, filterSpec, everything) })).filter((shown) => shown.items.length > 0);
   const choosable = (group: FileGroup, item: FileItem) => item.selectable && !isKept(group, item);
   const picked = groups.flatMap((group) => group.items.filter((item) => choosable(group, item) && selection.has(item.id)));
   const running = state.running === tool;

@@ -1,10 +1,10 @@
 import { useCallback, useState } from "react";
 import type { FileCategory } from "../../contracts/storage";
 import { SearchField, Select, type Tone } from "./components";
+import { ALL_TYPES, sortInEffect, sortKeys, typeInEffect, type FilterState, type ListFilterSpec, type SortKey } from "./listFilterLogic";
 import "./listFilter.css";
 
-/** How a list is ordered. */
-export type SortKey = "largest" | "smallest" | "newest" | "oldest" | "name";
+export { ALL_TYPES, applyFilter, type FilterState, type ListFilterSpec, type SortKey } from "./listFilterLogic";
 
 /** Every list that has a filter bar; each remembers its own sort and type. */
 export type ListId =
@@ -18,28 +18,9 @@ export type ListId =
   | "apps"
   | "apps.leftovers"
   | "apps.installers"
+  | "maintenance.caches"
   | "developer.toolchains"
   | "developer.projects";
-
-export interface FilterState {
-  sort: SortKey;
-  /** A type chip's value, or `ALL_TYPES`. */
-  type: string;
-  query: string;
-}
-
-export const ALL_TYPES = "all";
-
-/** How to read a list's items. Without `date`, the newest and oldest sorts aren't offered. */
-export interface ListFilterSpec<T> {
-  bytes: (item: T) => number;
-  name: (item: T) => string;
-  /** More text the search matches besides the name (a location or path). */
-  text?: (item: T) => string;
-  date?: (item: T) => number | null;
-  /** The value of the type chip the item belongs to. */
-  type?: (item: T) => string;
-}
 
 export interface TypeChip {
   value: string;
@@ -65,7 +46,6 @@ export function fileKind(item: { folder: boolean; fileCategory: FileCategory | n
   return item.folder ? "folder" : (item.fileCategory ?? "other");
 }
 
-const sortKeys: readonly SortKey[] = ["largest", "smallest", "newest", "oldest", "name"];
 const sortLabels: Record<SortKey, string> = { largest: "Largest first", smallest: "Smallest first", newest: "Newest first", oldest: "Oldest first", name: "Name" };
 
 const storageKey = (list: ListId) => `kleari.listFilter.${list}`;
@@ -140,41 +120,6 @@ export function useListFilter(list: ListId, fallback: SortKey = "largest"): [Fil
     return [next.state, update];
   }
   return [held.state, update];
-}
-
-/** The chip in effect: a remembered type no item has any more shows everything. */
-function typeInEffect<T>(items: readonly T[], state: FilterState, spec: ListFilterSpec<T>): string {
-  const typeOf = spec.type;
-  if (state.type === ALL_TYPES || typeOf === undefined) {
-    return ALL_TYPES;
-  }
-  return items.some((item) => typeOf(item) === state.type) ? state.type : ALL_TYPES;
-}
-
-/** The sort in effect: by date only for a list that has dates. */
-function sortInEffect<T>(state: FilterState, spec: ListFilterSpec<T>): SortKey {
-  return spec.date === undefined && (state.sort === "newest" || state.sort === "oldest") ? "largest" : state.sort;
-}
-
-/** The items that match, in the chosen order. */
-export function applyFilter<T>(items: readonly T[], state: FilterState, spec: ListFilterSpec<T>): T[] {
-  const type = typeInEffect(items, state, spec);
-  const needle = state.query.trim().toLowerCase();
-  const shown = items.filter(
-    (item) =>
-      (type === ALL_TYPES || spec.type?.(item) === type) &&
-      (needle === "" || `${spec.name(item)} ${spec.text?.(item) ?? ""}`.toLowerCase().includes(needle)),
-  );
-  const date = (item: T) => spec.date?.(item) ?? null;
-  const compare: Record<SortKey, (a: T, b: T) => number> = {
-    largest: (a, b) => spec.bytes(b) - spec.bytes(a),
-    smallest: (a, b) => spec.bytes(a) - spec.bytes(b),
-    // Items without a date go last either way.
-    newest: (a, b) => (date(b) ?? -Infinity) - (date(a) ?? -Infinity),
-    oldest: (a, b) => (date(a) ?? Infinity) - (date(b) ?? Infinity),
-    name: (a, b) => spec.name(a).localeCompare(spec.name(b), undefined, { numeric: true, sensitivity: "base" }),
-  };
-  return shown.sort(compare[sortInEffect(state, spec)]);
 }
 
 interface FilterBarProps<T> {

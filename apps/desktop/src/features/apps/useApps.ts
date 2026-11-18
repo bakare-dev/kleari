@@ -72,6 +72,9 @@ export function removeMessage(name: string, outcome: RemoveOutcome): { text: str
 export function useApps(onReviewChanged: () => void, loaders: AppsLoaders = defaultLoaders) {
   const [state, setState] = useState<AppsState>({ running: false, result: null, stopped: false, error: null });
   const running = useRef(false);
+  /** Another scan was asked for while one ran. */
+  const again = useRef(false);
+  const scanRef = useRef<() => void>(() => undefined);
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -88,13 +91,23 @@ export function useApps(onReviewChanged: () => void, loaders: AppsLoaders = defa
 
   const scan = useCallback(() => {
     if (running.current) {
+      // Asked again mid-scan (something was removed meanwhile): the running scan may have read
+      // it before it went, so one more follows it.
+      again.current = true;
       return;
     }
     running.current = true;
+    again.current = false;
     setState((current) => ({ ...current, running: true, stopped: false, error: null }));
     loaders.start().then(
       (result) => {
         running.current = false;
+        if (again.current && result.status === "completed" && mounted.current) {
+          // Shows this result meanwhile; the next one replaces it.
+          setState((current) => ({ ...current, result }));
+          scanRef.current();
+          return;
+        }
         if (mounted.current) {
           setState((current) =>
             result.status === "completed"
@@ -112,8 +125,10 @@ export function useApps(onReviewChanged: () => void, loaders: AppsLoaders = defa
       },
     );
   }, [loaders]);
+  scanRef.current = scan;
 
   const cancel = useCallback(() => {
+    again.current = false;
     loaders.cancel().catch((error: unknown) => {
       if (mounted.current) {
         setState((current) => ({ ...current, error: errorText(error) }));

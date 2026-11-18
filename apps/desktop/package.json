@@ -16,7 +16,7 @@
     "notices": "node scripts/third-party-notices.mjs",
     "check:notices": "node scripts/third-party-notices.mjs --check",
     "test:notices": "node --test scripts/third-party-notices.test.mjs",
-    "test:ui": "node --experimental-strip-types --test scripts/dashboard-search.test.mjs"
+    "test:ui": "node --experimental-strip-types --test scripts/dashboard-search.test.mjs scripts/list-filter.test.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
