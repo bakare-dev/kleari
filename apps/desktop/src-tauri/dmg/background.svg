@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="660" height="500" viewBox="0 0 660 500">
+  <!-- The window Finder shows when the Kleari disk image opens. Kleari's icon sits at
+       (165, 140) and Applications at (495, 140) (tauri.conf.json > bundle > macOS > dmg).
+       The bottom ~30 px is left plain: Finder's title bar can take that much of the window.
+       Rebuild background.png after editing: see README.md in this folder. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7f9fc"/>
+      <stop offset="1" stop-color="#eef2f8"/>
+    </linearGradient>
+  </defs>
+  <rect width="660" height="500" fill="url(#bg)"/>
+
+  <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif" fill="#1d2430">
+    <text x="330" y="34" font-size="17" font-weight="700" text-anchor="middle">Drag Kleari onto Applications</text>
+
+    <!-- Arrow between the two icons. -->
+    <g stroke="#3b6fe0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M262 140 H392"/>
+      <path d="M378 126 L394 140 L378 154"/>
+    </g>
+
+    <!-- First-open steps. -->
+    <rect x="24" y="250" width="612" height="210" rx="14" fill="#ffffff" stroke="#d6dde8"/>
+    <text x="44" y="278" font-size="14.5" font-weight="700">Then open it the first time</text>
+    <text x="44" y="297" font-size="12" fill="#5a6473">macOS warns you once, because Kleari isn’t from the App Store. That is expected.</text>
+
+    <g font-size="12.5">
+      <circle cx="54" cy="322" r="10" fill="#3b6fe0"/>
+      <text x="54" y="326.5" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+      <text x="74" y="326.5">Open <tspan font-weight="700">Applications</tspan> and double-click <tspan font-weight="700">Kleari</tspan> (not the copy in this window).</text>
+
+      <circle cx="54" cy="351" r="10" fill="#3b6fe0"/>
+      <text x="54" y="355.5" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+      <text x="74" y="355.5">macOS says “Kleari” Not Opened. Choose <tspan font-weight="700">Done</tspan>. <tspan font-weight="700" fill="#c4372c">Never choose Move to Trash.</tspan></text>
+
+      <circle cx="54" cy="380" r="10" fill="#3b6fe0"/>
+      <text x="54" y="384.5" font-size="11.5" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+      <text x="74" y="384.5">Open <tspan font-weight="700">System Settings › Privacy &amp; Security</tspan>, scroll to Security,</text>
+      <text x="74" y="401">choose <tspan font-weight="700">Open Anyway</tspan>, confirm with your password, then <tspan font-weight="700">Open Anyway</tspan> again.</text>
+    </g>
+
+    <text x="44" y="428" font-size="11.5" fill="#5a6473">On macOS 14: Control-click Kleari in Applications, choose Open, then Open. Once per version.</text>
+    <text x="44" y="446" font-size="11.5" fill="#5a6473">Full guide: github.com/bakare-dev/kleari/blob/main/docs/install.md</text>
+  </g>
+</svg>

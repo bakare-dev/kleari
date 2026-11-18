@@ -31,8 +31,9 @@ Three things to know before you start:
    `shasum -a 256 ~/Downloads/Kleari_<version>_aarch64.dmg` and compare the result with the
    checksum in the release notes. They must match exactly.
 3. Open the downloaded file. Drag **Kleari** onto the **Applications** folder in the window
-   that appears. If an older Kleari is there, choose **Replace** (your history, settings and
-   quarantine are kept: they aren't stored in the app).
+   that appears (the window also shows the first-open steps from step 2). If an older Kleari
+   is there, choose **Replace** (your history, settings and quarantine are kept: they aren't
+   stored in the app).
 4. Close the window and eject the disk image (the ⏏ next to **Kleari** in Finder's
    sidebar). You can then delete the downloaded `.dmg`.
 
