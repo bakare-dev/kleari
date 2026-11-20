@@ -19,7 +19,7 @@
     "test:ui": "node --experimental-strip-types --test scripts/dashboard-search.test.mjs scripts/list-filter.test.mjs"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/api": "^2.12.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
