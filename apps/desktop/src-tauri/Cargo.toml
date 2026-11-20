@@ -29,7 +29,7 @@ sha2 = "0.10"
 tauri = { version = "2", features = ["tray-icon"] }
 # Local history of cleanups and quarantine (ADR-006). SQLite is compiled in (`bundled`) so
 # the schema doesn't depend on the macOS library's version; no other feature is enabled.
-rusqlite = { version = "0.41.1", default-features = false, features = ["bundled"] }
+rusqlite = { version = "0.43.0", default-features = false, features = ["bundled"] }
 tauri-plugin-updater = "2"
 
 [features]
